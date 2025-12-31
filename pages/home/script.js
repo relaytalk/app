@@ -1,4 +1,4 @@
-// Home Page Script - UPDATED WITH FIXES
+// Home Page Script - COMPLETE FIXED VERSION
 import { auth } from '../../utils/auth.js'
 import { supabase } from '../../utils/supabase.js'
 
@@ -288,18 +288,31 @@ function hideNotificationBadge() {
 
 // Open search modal
 function openSearch() {
-    document.getElementById('searchModal').style.display = 'flex';
-    loadSearchResults();
+    console.log("Opening search modal");
+    const modal = document.getElementById('searchModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        loadSearchResults();
+    } else {
+        console.error("Search modal not found!");
+    }
 }
 
 // Open notifications modal
 function openNotifications() {
-    document.getElementById('notificationsModal').style.display = 'flex';
-    loadNotifications();
+    console.log("Opening notifications modal");
+    const modal = document.getElementById('notificationsModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        loadNotifications();
+    } else {
+        console.error("Notifications modal not found!");
+    }
 }
 
 // Close modal
 function closeModal() {
+    console.log("Closing modal");
     document.getElementById('searchModal').style.display = 'none';
     document.getElementById('notificationsModal').style.display = 'none';
 }
@@ -308,6 +321,11 @@ function closeModal() {
 async function loadSearchResults() {
     const container = document.getElementById('searchResults');
     const searchInput = document.getElementById('searchInput');
+
+    if (!container) {
+        console.error("Search results container not found!");
+        return;
+    }
 
     try {
         const { data: allUsers, error } = await supabase
@@ -329,21 +347,23 @@ async function loadSearchResults() {
 
         await displaySearchResults(allUsers);
 
-        searchInput.oninput = async function() {
-            const searchTerm = this.value.toLowerCase().trim();
-            if (searchTerm === '') {
-                await displaySearchResults(allUsers);
-                return;
-            }
+        if (searchInput) {
+            searchInput.oninput = async function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                if (searchTerm === '') {
+                    await displaySearchResults(allUsers);
+                    return;
+                }
 
-            const filteredUsers = allUsers.filter(user => 
-                user.username.toLowerCase().includes(searchTerm) ||
-                (user.full_name && user.full_name.toLowerCase().includes(searchTerm))
-            );
-            await displaySearchResults(filteredUsers);
-        };
+                const filteredUsers = allUsers.filter(user => 
+                    user.username.toLowerCase().includes(searchTerm) ||
+                    (user.full_name && user.full_name.toLowerCase().includes(searchTerm))
+                );
+                await displaySearchResults(filteredUsers);
+            };
 
-        searchInput.focus();
+            searchInput.focus();
+        }
 
     } catch (error) {
         console.error("Error loading users:", error);
@@ -359,6 +379,11 @@ async function loadSearchResults() {
 // Display search results
 async function displaySearchResults(users) {
     const container = document.getElementById('searchResults');
+
+    if (!container) {
+        console.error("Search results container not found!");
+        return;
+    }
 
     if (!users || users.length === 0) {
         container.innerHTML = `
@@ -486,7 +511,6 @@ async function createFriendRequestsTable() {
     
     if (error) {
         console.error("Error creating table:", error);
-        // Fallback: Try direct SQL (if you have service role)
         alert("Setting up database... Please refresh and try again.");
     }
 }
@@ -494,6 +518,11 @@ async function createFriendRequestsTable() {
 // Load notifications - SIMPLIFIED
 async function loadNotifications() {
     const container = document.getElementById('notificationsList');
+
+    if (!container) {
+        console.error("Notifications container not found!");
+        return;
+    }
 
     try {
         const { data: notifications, error } = await supabase
@@ -653,8 +682,10 @@ async function declineFriendRequest(requestId) {
     }
 }
 
-// Set up event listeners
+// Set up event listeners - UPDATED WITH BUTTON LISTENERS
 function setupEventListeners() {
+    console.log("Setting up event listeners...");
+
     // Logout button
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -667,6 +698,25 @@ function setupEventListeners() {
                 alert("Error logging out. Please try again.");
             }
         });
+        console.log("✅ Logout button listener added");
+    }
+
+    // Search button - ADD THIS
+    const searchBtn = document.getElementById('searchBtn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', openSearch);
+        console.log("✅ Search button listener added");
+    } else {
+        console.log("❌ Search button not found!");
+    }
+
+    // Notifications button - ADD THIS
+    const notificationBtn = document.getElementById('notificationBtn');
+    if (notificationBtn) {
+        notificationBtn.addEventListener('click', openNotifications);
+        console.log("✅ Notification button listener added");
+    } else {
+        console.log("❌ Notification button not found!");
     }
 
     // Close modals when clicking outside
