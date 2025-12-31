@@ -7,30 +7,22 @@
     <link rel="stylesheet" href="../../style.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Back button */
-        .back-btn {
-            position: fixed;
+        /* Simple Header */
+        .simple-header {
+            position: static;
             top: 20px;
             left: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: white;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.3rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             z-index: 100;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s;
         }
         
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.1);
+        .simple-logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            padding: 10px 20px;
         }
         
         /* Auth container */
@@ -166,28 +158,40 @@
             font-size: 1rem;
         }
         
-        .terms-links {
+        .terms-buttons {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             justify-content: center;
             margin-top: 15px;
+            flex-wrap: wrap;
         }
         
-        .terms-link {
+        .terms-btn {
+            flex: 1;
+            min-width: 180px;
+            background: rgba(102, 126, 234, 0.1);
             color: #667eea;
-            background: none;
-            border: none;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 14px 20px;
             cursor: pointer;
             font-size: 0.95rem;
-            padding: 8px 16px;
-            border-radius: 10px;
             transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 500;
         }
         
-        .terms-link:hover {
-            background: rgba(102, 126, 234, 0.1);
+        .terms-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        
+        .terms-icon {
+            font-size: 1.2rem;
         }
         
         /* Error messages */
@@ -211,19 +215,10 @@
         }
         
         /* Success message */
-        .success-message {
-            background: rgba(40, 167, 69, 0.1);
-            border: 1px solid rgba(40, 167, 69, 0.3);
-            border-radius: 25px;
-            padding: 40px 30px;
+        .success-container {
             text-align: center;
+            padding: 50px 20px;
             animation: fadeIn 0.5s ease;
-            margin-top: 30px;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
         }
         
         .success-icon {
@@ -232,66 +227,21 @@
             display: block;
         }
         
-        .user-link-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 25px 0;
-            word-break: break-all;
-            text-align: left;
-            position: relative;
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 20px;
+            overflow: hidden;
         }
         
-        .link-label {
-            position: absolute;
-            top: -12px;
-            left: 20px;
-            background: #1a1a2e;
-            padding: 0 10px;
-            color: #667eea;
-            font-size: 0.9rem;
-        }
-        
-        .user-link {
-            font-family: 'Courier New', monospace;
-            color: white;
-            font-size: 1.1rem;
-            display: block;
-            margin-top: 10px;
-        }
-        
-        .copy-btn {
-            background: rgba(102, 126, 234, 0.2);
-            color: #667eea;
-            border: 1px solid rgba(102, 126, 234, 0.4);
-            padding: 12px 30px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            transition: all 0.3s;
-            margin: 10px 0;
-        }
-        
-        .copy-btn:hover {
-            background: rgba(102, 126, 234, 0.3);
-        }
-        
-        .copy-btn.copied {
-            background: rgba(40, 167, 69, 0.2);
-            color: #28a745;
-            border-color: rgba(40, 167, 69, 0.4);
-        }
-        
-        .security-note {
-            background: rgba(255, 107, 139, 0.1);
-            border: 1px solid rgba(255, 107, 139, 0.2);
-            border-radius: 12px;
-            padding: 15px;
-            margin: 25px 0;
-            color: #ffb8c6;
-            font-size: 0.9rem;
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.1s;
         }
         
         /* Modal overlay */
@@ -390,6 +340,15 @@
             margin-bottom: 8px;
         }
         
+        .security-note {
+            background: rgba(255, 107, 139, 0.1);
+            border: 1px solid rgba(255, 107, 139, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #ffb8c6;
+        }
+        
         /* Responsive */
         @media (max-width: 480px) {
             .auth-container {
@@ -409,23 +368,30 @@
                 width: 95%;
             }
             
-            .terms-links {
+            .terms-buttons {
                 flex-direction: column;
                 gap: 10px;
+            }
+            
+            .terms-btn {
+                min-width: 100%;
+                padding: 12px 20px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Back Button -->
-    <button class="back-btn" onclick="window.location.href='../../index.html'">←</button>
+    <!-- Simple Header -->
+    <div class="simple-header">
+        <div class="simple-logo">✨Luster</div>
+    </div>
     
     <!-- Auth Container -->
     <div class="auth-container">
         <div class="auth-header">
             <div class="auth-logo">✨</div>
             <h1 class="auth-title">Join Luster</h1>
-            <p class="auth-subtitle">Create your personal messaging link</p>
+            <p class="auth-subtitle">Create your account to connect with friends</p>
         </div>
         
         <form class="auth-form" id="signupForm" onsubmit="handleSignup(event)">
@@ -472,35 +438,36 @@
                 <div class="error-message" id="confirmError"></div>
             </div>
             
-           <!-- Terms & Privacy -->
-<div class="terms-container">
-    <div class="terms-checkbox">
-        <input type="checkbox" id="terms" required>
-        <label for="terms">
-            I agree to the Terms & Conditions and Privacy Policy
-        </label>
-    </div>
-    
-    <div class="terms-buttons">
-        <button type="button" class="terms-btn" onclick="showTerms()">
-            <span class="terms-icon">📄</span>
-            Terms & Conditions
-        </button>
-        <button type="button" class="terms-btn" onclick="showPrivacy()">
-            <span class="terms-icon">🔒</span>
-            Privacy Policy
-        </button>
-    </div>
-</div>
+            <!-- Terms & Privacy -->
+            <div class="terms-container">
+                <div class="terms-checkbox">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms">
+                        I agree to the Terms & Conditions and Privacy Policy
+                    </label>
+                </div>
+                
+                <div class="terms-buttons">
+                    <button type="button" class="terms-btn" onclick="showTerms()">
+                        <span class="terms-icon">📄</span>
+                        Terms & Conditions
+                    </button>
+                    <button type="button" class="terms-btn" onclick="showPrivacy()">
+                        <span class="terms-icon">🔒</span>
+                        Privacy Policy
+                    </button>
+                </div>
+            </div>
+            
             <!-- Submit Button -->
             <button type="submit" class="btn-primary auth-btn" id="submitBtn">
                 Create Account
             </button>
         </form>
+        
+        <!-- Success Container (Hidden Initially) -->
+        <div class="success-container" id="successContainer" style="display: none;"></div>
     </div>
-    
-    <!-- Success Message Container (Hidden Initially) -->
-    <div id="successContainer" style="display: none;"></div>
     
     <!-- Terms Modal -->
     <div class="modal-overlay" id="termsModal">
@@ -536,7 +503,7 @@
                 <h3>Luster's Promise</h3>
                 <p>We provide a secure, simple messaging platform for everyone to connect safely.</p>
                 
-                <p><em>Last updated: Today</em></p>
+                <p><em>Last updated: December 2024 | App Version: 1.0</em></p>
             </div>
         </div>
     </div>
@@ -555,7 +522,7 @@
                 <h3>What We Store</h3>
                 <ul>
                     <li><strong>Username:</strong> Your chosen display name</li>
-                    <li><strong>Profile Link:</strong> Your unique chat link</li>
+                    <li><strong>Profile Information:</strong> Basic account details</li>
                     <li><strong>Messages:</strong> Only between you and recipients</li>
                 </ul>
                 
@@ -570,9 +537,9 @@
                 <h3>Your Data is Yours</h3>
                 <ul>
                     <li>Messages are stored only as long as needed</li>
-                    <li>You can delete your account anytime</li>
                     <li>We don't sell your data to anyone</li>
                     <li>We don't show ads</li>
+                    <li>🔒 All data is currently stored locally in your browser for testing. When we connect Supabase, it will be encrypted and secured in the cloud.</li>
                 </ul>
                 
                 <div class="security-note">
@@ -588,7 +555,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
     <script>
         // Modal functions
         function showTerms() {
@@ -625,7 +591,7 @@
         });
         
         // Toggle password visibility
-                function togglePassword() {
+        function togglePassword() {
             const passwordInput = document.getElementById('password');
             const toggleBtn = document.querySelector('.password-toggle');
             
@@ -638,66 +604,233 @@
             }
         }
         
-        // Show success message
-        function showSuccessMessage(user) {
-            const form = document.getElementById('signupForm');
-            const successContainer = document.getElementById('successContainer');
+        // Show error message
+        function showError(elementId, message) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+        
+        // Hide error message
+        function hideError(elementId) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.style.display = 'none';
+        }
+        
+        // Validate username
+        function validateUsername(username) {
+            if (username.length < 3) {
+                showError('usernameError', 'Username must be at least 3 characters');
+                return false;
+            }
+            if (username.length > 20) {
+                showError('usernameError', 'Username must be less than 20 characters');
+                return false;
+            }
+            if (!/^[a-zA-Z0-9_.]+$/.test(username)) {
+                showError('usernameError', 'Only letters, numbers, underscore, and dot allowed');
+                return false;
+            }
+            hideError('usernameError');
+            return true;
+        }
+        
+        // Validate password
+        function validatePassword(password) {
+            if (password.length < 6) {
+                showError('passwordError', 'Password must be at least 6 characters');
+                return false;
+            }
+            hideError('passwordError');
+            return true;
+        }
+        
+        // Validate password confirmation
+        function validateConfirmPassword(password, confirmPassword) {
+            if (password !== confirmPassword) {
+                showError('confirmError', 'Passwords do not match');
+                return false;
+            }
+            hideError('confirmError');
+            return true;
+        }
+        
+        // Create user account
+        async function createUserAccount(userData) {
+            // Show loading
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Creating account...';
+            submitBtn.disabled = true;
             
+            // Simulate API call
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    // Generate user ID
+                    const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    
+                    // Generate profile link (for future use)
+                    const randomId = Math.random().toString(36).substr(2, 8);
+                    const profileLink = `luster.chat/${userData.username.toLowerCase()}_${randomId}`;
+                    
+                    // Create user object
+                    const user = {
+                        id: userId,
+                        username: userData.username,
+                        profileLink: profileLink,
+                        createdAt: new Date().toISOString(),
+                        friends: [],
+                        notifications: [],
+                        isActive: true
+                    };
+                    
+                    // Save to localStorage
+                    localStorage.setItem('luster_user', JSON.stringify(user));
+                    
+                    // Save to all users list
+                    const allUsers = JSON.parse(localStorage.getItem('luster_all_users') || '[]');
+                    allUsers.push({
+                        username: userData.username,
+                        userId: userId,
+                        profileLink: profileLink,
+                        joinedAt: user.createdAt
+                    });
+                    localStorage.setItem('luster_all_users', JSON.stringify(allUsers));
+                    
+                    // Reset button
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                    
+                    resolve({
+                        success: true,
+                        user: user,
+                        message: 'Account created successfully!'
+                    });
+                }, 1500);
+            });
+        }
+        
+        // Handle form submission
+        async function handleSignup(event) {
+            event.preventDefault();
+            
+            // Get form values
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Validate inputs
+            const isUsernameValid = validateUsername(username);
+            const isPasswordValid = validatePassword(password);
+            const isConfirmValid = validateConfirmPassword(password, confirmPassword);
+            
+            if (!isUsernameValid || !isPasswordValid || !isConfirmValid) {
+                return;
+            }
+            
+            // Check if username already exists
+            const existingUsers = JSON.parse(localStorage.getItem('luster_all_users') || '[]');
+            const usernameExists = existingUsers.some(user => 
+                user.username.toLowerCase() === username.toLowerCase()
+            );
+            
+            if (usernameExists) {
+                showError('usernameError', 'Username already taken');
+                return;
+            }
+            
+            // Create user data object
+            const userData = {
+                username: username,
+                password: password
+            };
+            
+            // Create account
+            const result = await createUserAccount(userData);
+            
+            if (result.success) {
+                // Show success message and redirect
+                showSuccessAndRedirect(result.user);
+            }
+        }
+        
+        // Show success and redirect to home
+        function showSuccessAndRedirect(user) {
             // Hide form
-            form.style.display = 'none';
+            document.getElementById('signupForm').style.display = 'none';
             
             // Show success message
+            const successContainer = document.getElementById('successContainer');
             successContainer.style.display = 'block';
             successContainer.innerHTML = `
-                <div class="auth-container">
-                    <div class="success-message">
-                        <span class="success-icon">✨</span>
-                        <h2 style="color: #28a745; margin-bottom: 10px;">Account Created</h2>
-                        <p style="color: #c0c0e0;">Welcome to Luster, <strong style="color: white;">${user.username}</strong>!</p>
-                        
-                        <div class="user-link-box">
-                            <div class="link-label">Your Personal Link</div>
-                            <span class="user-link" id="userLink">https://${user.profileLink}</span>
-                        </div>
-                        
-                        <button class="copy-btn" onclick="copyUserLink()" id="copyLinkBtn">
-                            Copy Link
-                        </button>
-                        
-                        <div class="security-note">
-                            <strong>🔐 Remember Your Password</strong>
-                            <p style="margin-top: 8px;">We cannot recover your password if forgotten. Please store it securely.</p>
-                        </div>
-                        
-                        <p style="color: #a0a0c0; margin-top: 25px; font-size: 0.95rem;">
-                            Share your link with friends to start chatting!
-                        </p>
-                    </div>
+                <div class="success-icon">✨</div>
+                <h2 style="color: #28a745; margin-bottom: 15px;">Account Created!</h2>
+                <p style="color: #c0c0e0; margin-bottom: 10px;">
+                    Welcome to Luster, <strong style="color: white;">${user.username}</strong>!
+                </p>
+                <p style="color: #a0a0c0; margin-bottom: 30px; font-size: 0.95rem;">
+                    Your account is ready. Redirecting to home page...
+                </p>
+                
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 15px; margin: 20px 0;">
+                    <p style="color: #a0a0c0; font-size: 0.9rem; margin-bottom: 8px;">
+                        🔐 Remember your password securely
+                    </p>
+                    <p style="color: #667eea; font-size: 0.9rem;">
+                        We cannot recover it if forgotten
+                    </p>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
                 </div>
             `;
             
-            // Scroll to success message
-            successContainer.scrollIntoView({ behavior: 'smooth' });
+            // Start progress bar and redirect
+            let progress = 0;
+            const progressFill = document.getElementById('progressFill');
+            const interval = setInterval(() => {
+                progress += 2;
+                if (progressFill) progressFill.style.width = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    // Redirect to home page
+                    window.location.href = '../home/index.html';
+                }
+            }, 30); // 3 second redirect
         }
         
-        // Copy user link to clipboard
-        function copyUserLink() {
-            const linkText = document.getElementById('userLink').textContent;
-            navigator.clipboard.writeText(linkText)
-                .then(() => {
-                    const copyBtn = document.getElementById('copyLinkBtn');
-                    copyBtn.textContent = '✅ Copied!';
-                    copyBtn.classList.add('copied');
-                    
-                    setTimeout(() => {
-                        copyBtn.textContent = 'Copy Link';
-                        copyBtn.classList.remove('copied');
-                    }, 2000);
-                })
-                .catch(err => {
-                    alert("Could not copy link. Please copy manually.");
-                });
+        // Initialize auth page
+        function initAuthPage() {
+            console.log("✨ Luster Auth Page Initialized");
+            
+            // Real-time validation
+            document.getElementById('username').addEventListener('input', function() {
+                validateUsername(this.value);
+            });
+            
+            document.getElementById('password').addEventListener('input', function() {
+                validatePassword(this.value);
+            });
+            
+            document.getElementById('confirmPassword').addEventListener('input', function() {
+                const password = document.getElementById('password').value;
+                validateConfirmPassword(password, this.value);
+            });
+            
+            // Check if user is already logged in
+            const currentUser = JSON.parse(localStorage.getItem('luster_user') || 'null');
+            if (currentUser) {
+                // User is already logged in, redirect to home
+                setTimeout(() => {
+                    window.location.href = '../home/index.html';
+                }, 1000);
+            }
         }
+        
+        // Run when page loads
+        document.addEventListener('DOMContentLoaded', initAuthPage);
     </script>
 </body>
 </html>
