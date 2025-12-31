@@ -556,281 +556,309 @@
     </div>
 
     <script>
-        // Modal functions
-        function showTerms() {
-            document.getElementById('termsModal').style.display = 'flex';
+          // ====== AUTH PAGE SCRIPT - UPDATED FOR SUPABASE ======
+
+// Modal functions
+function showTerms() {
+    document.getElementById('termsModal').style.display = 'flex';
+}
+
+function showPrivacy() {
+    document.getElementById('privacyModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('termsModal').style.display = 'none';
+    document.getElementById('privacyModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const termsModal = document.getElementById('termsModal');
+    const privacyModal = document.getElementById('privacyModal');
+
+    if (event.target === termsModal) {
+        termsModal.style.display = 'none';
+    }
+    if (event.target === privacyModal) {
+        privacyModal.style.display = 'none';
+    }
+};
+
+// Escape key closes modal
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal();
+    }
+});
+
+// Toggle password visibility
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const toggleBtn = document.querySelector('.password-toggle');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleBtn.textContent = '🙈';
+    } else {
+        passwordInput.type = 'password';
+        toggleBtn.textContent = '👁️';
+    }
+}
+
+// Show error message
+function showError(elementId, message) {
+    const errorEl = document.getElementById(elementId);
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+}
+
+// Hide error message
+function hideError(elementId) {
+    const errorEl = document.getElementById(elementId);
+    errorEl.style.display = 'none';
+}
+
+// Validate username
+function validateUsername(username) {
+    if (username.length < 3) {
+        showError('usernameError', 'Username must be at least 3 characters');
+        return false;
+    }
+    if (username.length > 20) {
+        showError('usernameError', 'Username must be less than 20 characters');
+        return false;
+    }
+    if (!/^[a-zA-Z0-9_.]+$/.test(username)) {
+        showError('usernameError', 'Only letters, numbers, underscore, and dot allowed');
+        return false;
+    }
+    hideError('usernameError');
+    return true;
+}
+
+// Validate password
+function validatePassword(password) {
+    if (password.length < 6) {
+        showError('passwordError', 'Password must be at least 6 characters');
+        return false;
+    }
+    hideError('passwordError');
+    return true;
+}
+
+// Validate password confirmation
+function validateConfirmPassword(password, confirmPassword) {
+    if (password !== confirmPassword) {
+        showError('confirmError', 'Passwords do not match');
+        return false;
+    }
+    hideError('confirmError');
+    return true;
+}
+
+// Load Supabase (no import needed since script is inline)
+let supabase = null;
+
+async function initSupabase() {
+    try {
+        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+        supabase = createClient(
+            'https://blxtldgnssvasuinpyit.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJseHRsZGduc3N2YXN1aW5weWl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwODIxODIsImV4cCI6MjA4MjY1ODE4Mn0.Dv04IOAY76o2ccu5dzwK3fJjzo93BIoK6C2H3uWrlMw'
+        );
+        console.log("✅ Supabase connected");
+        return true;
+    } catch (error) {
+        console.error("❌ Supabase error:", error);
+        return false;
+    }
+}
+
+// Handle form submission WITH SUPABASE
+async function handleSignup(event) {
+    event.preventDefault();
+
+    // Get form values
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    // Validate inputs
+    const isUsernameValid = validateUsername(username);
+    const isPasswordValid = validatePassword(password);
+    const isConfirmValid = validateConfirmPassword(password, confirmPassword);
+
+    if (!isUsernameValid || !isPasswordValid || !isConfirmValid) {
+        return;
+    }
+
+    if (!document.getElementById('terms').checked) {
+        alert('Please agree to Terms & Conditions');
+        return;
+    }
+
+    // Show loading
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Creating account...';
+    submitBtn.disabled = true;
+
+    try {
+        // 1. Check if username already exists in Supabase
+        const { data: existingUser, error: checkError } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('username', username)
+            .single();
+
+        if (existingUser) {
+            showError('usernameError', 'Username already taken. Please choose another.');
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            return;
         }
-        
-        function showPrivacy() {
-            document.getElementById('privacyModal').style.display = 'flex';
-        }
-        
-        function closeModal() {
-            document.getElementById('termsModal').style.display = 'none';
-            document.getElementById('privacyModal').style.display = 'none';
-        }
-        
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const termsModal = document.getElementById('termsModal');
-            const privacyModal = document.getElementById('privacyModal');
-            
-            if (event.target === termsModal) {
-                termsModal.style.display = 'none';
-            }
-            if (event.target === privacyModal) {
-                privacyModal.style.display = 'none';
-            }
-        }
-        
-        // Escape key closes modal
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeModal();
+
+        // 2. Create account in Supabase Auth
+        const email = `${username}@luster.app`;
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    username: username,
+                    full_name: username
+                }
             }
         });
-        
-        // Toggle password visibility
-        function togglePassword() {
-            const passwordInput = document.getElementById('password');
-            const toggleBtn = document.querySelector('.password-toggle');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                toggleBtn.textContent = '🙈';
-            } else {
-                passwordInput.type = 'password';
-                toggleBtn.textContent = '👁️';
-            }
-        }
-        
-        // Show error message
-        function showError(elementId, message) {
-            const errorEl = document.getElementById(elementId);
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-        }
-        
-        // Hide error message
-        function hideError(elementId) {
-            const errorEl = document.getElementById(elementId);
-            errorEl.style.display = 'none';
-        }
-        
-        // Validate username
-        function validateUsername(username) {
-            if (username.length < 3) {
-                showError('usernameError', 'Username must be at least 3 characters');
-                return false;
-            }
-            if (username.length > 20) {
-                showError('usernameError', 'Username must be less than 20 characters');
-                return false;
-            }
-            if (!/^[a-zA-Z0-9_.]+$/.test(username)) {
-                showError('usernameError', 'Only letters, numbers, underscore, and dot allowed');
-                return false;
-            }
-            hideError('usernameError');
-            return true;
-        }
-        
-        // Validate password
-        function validatePassword(password) {
-            if (password.length < 6) {
-                showError('passwordError', 'Password must be at least 6 characters');
-                return false;
-            }
-            hideError('passwordError');
-            return true;
-        }
-        
-        // Validate password confirmation
-        function validateConfirmPassword(password, confirmPassword) {
-            if (password !== confirmPassword) {
-                showError('confirmError', 'Passwords do not match');
-                return false;
-            }
-            hideError('confirmError');
-            return true;
-        }
-        
-        // Create user account
-        async function createUserAccount(userData) {
-            // Show loading
-            const submitBtn = document.getElementById('submitBtn');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Creating account...';
-            submitBtn.disabled = true;
-            
-            // Simulate API call
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    // Generate user ID
-                    const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                    
-                    // Generate profile link (for future use)
-                    const randomId = Math.random().toString(36).substr(2, 8);
-                    const profileLink = `luster.chat/${userData.username.toLowerCase()}_${randomId}`;
-                    
-                    // Create user object
-                    const user = {
-                        id: userId,
-                        username: userData.username,
-                        profileLink: profileLink,
-                        createdAt: new Date().toISOString(),
-                        friends: [],
-                        notifications: [],
-                        isActive: true
-                    };
-                    
-                    // Save to localStorage
-                    localStorage.setItem('luster_user', JSON.stringify(user));
-                    
-                    // Save to all users list
-                    const allUsers = JSON.parse(localStorage.getItem('luster_all_users') || '[]');
-                    allUsers.push({
-                        username: userData.username,
-                        userId: userId,
-                        profileLink: profileLink,
-                        joinedAt: user.createdAt
-                    });
-                    localStorage.setItem('luster_all_users', JSON.stringify(allUsers));
-                    
-                    // Reset button
-                    submitBtn.textContent = originalText;
-                    submitBtn.disabled = false;
-                    
-                    resolve({
-                        success: true,
-                        user: user,
-                        message: 'Account created successfully!'
-                    });
-                }, 1500);
-            });
-        }
-        
-        // Handle form submission
-        async function handleSignup(event) {
-            event.preventDefault();
-            
-            // Get form values
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            
-            // Validate inputs
-            const isUsernameValid = validateUsername(username);
-            const isPasswordValid = validatePassword(password);
-            const isConfirmValid = validateConfirmPassword(password, confirmPassword);
-            
-            if (!isUsernameValid || !isPasswordValid || !isConfirmValid) {
-                return;
-            }
-            
-            // Check if username already exists
-            const existingUsers = JSON.parse(localStorage.getItem('luster_all_users') || '[]');
-            const usernameExists = existingUsers.some(user => 
-                user.username.toLowerCase() === username.toLowerCase()
-            );
-            
-            if (usernameExists) {
-                showError('usernameError', 'Username already taken');
-                return;
-            }
-            
-            // Create user data object
-            const userData = {
+
+        if (authError) throw authError;
+
+        console.log("✅ Auth created, creating profile...");
+
+        // 3. Create profile in database
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+                id: authData.user.id,
                 username: username,
-                password: password
-            };
-            
-            // Create account
-            const result = await createUserAccount(userData);
-            
-            if (result.success) {
-                // Show success message and redirect
-                showSuccessAndRedirect(result.user);
-            }
+                full_name: username,
+                avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`
+            });
+
+        if (profileError) throw profileError;
+
+        // 4. Show success
+        showSuccessAndRedirect(username);
+
+    } catch (error) {
+        console.error("Signup error:", error);
+        
+        if (error.message.includes('already registered')) {
+            showError('usernameError', 'Username already taken. Please choose another.');
+        } else if (error.message.includes('password')) {
+            showError('passwordError', 'Password too weak. Try a stronger one.');
+        } else {
+            alert('Error: ' + error.message);
         }
         
-        // Show success and redirect to home
-        function showSuccessAndRedirect(user) {
-            // Hide form
-            document.getElementById('signupForm').style.display = 'none';
-            
-            // Show success message
-            const successContainer = document.getElementById('successContainer');
-            successContainer.style.display = 'block';
-            successContainer.innerHTML = `
-                <div class="success-icon">✨</div>
-                <h2 style="color: #28a745; margin-bottom: 15px;">Account Created!</h2>
-                <p style="color: #c0c0e0; margin-bottom: 10px;">
-                    Welcome to Luster, <strong style="color: white;">${user.username}</strong>!
-                </p>
-                <p style="color: #a0a0c0; margin-bottom: 30px; font-size: 0.95rem;">
-                    Your account is ready. Redirecting to home page...
-                </p>
-                
-                <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 15px; margin: 20px 0;">
-                    <p style="color: #a0a0c0; font-size: 0.9rem; margin-bottom: 8px;">
-                        🔐 Remember your password securely
-                    </p>
-                    <p style="color: #667eea; font-size: 0.9rem;">
-                        We cannot recover it if forgotten
-                    </p>
-                </div>
-                
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-            `;
-            
-            // Start progress bar and redirect
-            let progress = 0;
-            const progressFill = document.getElementById('progressFill');
-            const interval = setInterval(() => {
-                progress += 2;
-                if (progressFill) progressFill.style.width = progress + '%';
-                
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    // Redirect to home page
-                    window.location.href = '../home/index.html';
-                }
-            }, 30); // 3 second redirect
-        }
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// Show success and redirect
+function showSuccessAndRedirect(username) {
+    // Hide form
+    document.getElementById('signupForm').style.display = 'none';
+
+    // Show success message
+    const successContainer = document.getElementById('successContainer');
+    successContainer.style.display = 'block';
+    successContainer.innerHTML = `
+        <div class="success-icon">✨</div>
+        <h2 style="color: #28a745; margin-bottom: 15px;">Account Created!</h2>
+        <p style="color: #c0c0e0; margin-bottom: 10px;">
+            Welcome to Luster, <strong style="color: white;">${username}</strong>!
+        </p>
+        <p style="color: #a0a0c0; margin-bottom: 30px; font-size: 0.95rem;">
+            Your account is ready. Redirecting to home page...
+        </p>
         
-        // Initialize auth page
-        function initAuthPage() {
-            console.log("✨ Luster Auth Page Initialized");
-            
-            // Real-time validation
-            document.getElementById('username').addEventListener('input', function() {
-                validateUsername(this.value);
-            });
-            
-            document.getElementById('password').addEventListener('input', function() {
-                validatePassword(this.value);
-            });
-            
-            document.getElementById('confirmPassword').addEventListener('input', function() {
-                const password = document.getElementById('password').value;
-                validateConfirmPassword(password, this.value);
-            });
-            
-            // Check if user is already logged in
-            const currentUser = JSON.parse(localStorage.getItem('luster_user') || 'null');
-            if (currentUser) {
-                // User is already logged in, redirect to home
-                setTimeout(() => {
-                    window.location.href = '../home/index.html';
-                }, 1000);
-            }
-        }
+        <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 15px; margin: 20px 0;">
+            <p style="color: #a0a0c0; font-size: 0.9rem; margin-bottom: 8px;">
+                🔐 Remember your password securely
+            </p>
+            <p style="color: #667eea; font-size: 0.9rem;">
+                We cannot recover it if forgotten
+            </p>
+        </div>
         
-        // Run when page loads
-        document.addEventListener('DOMContentLoaded', initAuthPage);
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    `;
+
+    // Start progress bar and redirect
+    let progress = 0;
+    const progressFill = document.getElementById('progressFill');
+    const interval = setInterval(() => {
+        progress += 2;
+        if (progressFill) progressFill.style.width = progress + '%';
+
+        if (progress >= 100) {
+            clearInterval(interval);
+            // Redirect to home page
+            window.location.href = '../home/index.html';
+        }
+    }, 30);
+}
+
+// Initialize auth page WITH SUPABASE
+async function initAuthPage() {
+    console.log("✨ Luster Auth Page Initialized");
+
+    // Initialize Supabase
+    const connected = await initSupabase();
+    if (!connected) {
+        alert("Cannot connect to server. Please try again later.");
+        return;
+    }
+
+    // Check if user is already logged in
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+        // User is already logged in, redirect to home
+        setTimeout(() => {
+            window.location.href = '../home/index.html';
+        }, 1000);
+        return;
+    }
+
+    // Real-time validation
+    document.getElementById('username').addEventListener('input', function() {
+        validateUsername(this.value);
+    });
+
+    document.getElementById('password').addEventListener('input', function() {
+        validatePassword(this.value);
+    });
+
+    document.getElementById('confirmPassword').addEventListener('input', function() {
+        const password = document.getElementById('password').value;
+        validateConfirmPassword(password, this.value);
+    });
+}
+
+// Run when page loads
+document.addEventListener('DOMContentLoaded', initAuthPage);
+
+// Make functions available globally (since HTML calls them)
+window.showTerms = showTerms;
+window.showPrivacy = showPrivacy;
+window.closeModal = closeModal;
+window.togglePassword = togglePassword;
+window.handleSignup = handleSignup;
     </script>
 </body>
 </html>
