@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ Luster — Create Account</title>
+    <title>✨ Luster - Create Account</title>
 
-    <!-- Global styles -->
+    <!-- Global CSS -->
     <link rel="stylesheet" href="../../style.css">
 
-    <!-- Page styles -->
+    <!-- Page CSS (moved from <style>) -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,7 +20,6 @@
 
     <!-- Auth Container -->
     <div class="auth-container">
-
         <div class="auth-header">
             <div class="auth-logo">✨</div>
             <h1 class="auth-title">Join Luster</h1>
@@ -28,77 +27,76 @@
         </div>
 
         <form class="auth-form" id="signupForm">
-
             <!-- Username -->
             <div class="form-group">
-                <label class="form-label">👤 Username</label>
+                <label class="form-label" for="username">
+                    <span class="form-label-icon">👤</span>
+                    Username
+                </label>
                 <input type="text" id="username" class="form-input"
-                       placeholder="e.g. alex_john" required>
+                       placeholder="e.g., alex_john" required
+                       minlength="3" maxlength="20">
                 <div class="error-message" id="usernameError"></div>
             </div>
 
             <!-- Password -->
             <div class="form-group">
-                <label class="form-label">🔒 Password</label>
+                <label class="form-label" for="password">
+                    <span class="form-label-icon">🔒</span>
+                    Password
+                </label>
                 <div class="password-input">
                     <input type="password" id="password" class="form-input"
-                           placeholder="Create a password" required>
-                    <button type="button" id="togglePassword" class="password-toggle">👁️</button>
+                           placeholder="Create a strong password" required minlength="6">
+                    <button type="button" class="password-toggle" id="togglePassword">👁️</button>
                 </div>
                 <div class="error-message" id="passwordError"></div>
-                <small class="hint-text">Minimum 6 characters</small>
             </div>
 
             <!-- Confirm Password -->
             <div class="form-group">
-                <label class="form-label">✅ Confirm Password</label>
-                <input type="password" id="confirmPassword" class="form-input"
-                       placeholder="Repeat password" required>
+                <label class="form-label" for="confirmPassword">
+                    <span class="form-label-icon">✅</span>
+                    Confirm Password
+                </label>
+                <input type="password" id="confirmPassword" class="form-input" required>
                 <div class="error-message" id="confirmError"></div>
             </div>
 
             <!-- Terms -->
             <div class="terms-container">
-                <label class="terms-checkbox">
-                    <input type="checkbox" id="terms">
-                    I agree to the Terms & Privacy Policy
-                </label>
+                <div class="terms-checkbox">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms">
+                        I agree to the Terms & Conditions and Privacy Policy
+                    </label>
+                </div>
 
                 <div class="terms-buttons">
-                    <button type="button" id="showTerms" class="terms-btn">📄 Terms</button>
-                    <button type="button" id="showPrivacy" class="terms-btn">🔒 Privacy</button>
+                    <button type="button" class="terms-btn" id="showTerms">
+                        📄 Terms & Conditions
+                    </button>
+                    <button type="button" class="terms-btn" id="showPrivacy">
+                        🔒 Privacy Policy
+                    </button>
                 </div>
             </div>
 
-            <button type="submit" id="submitBtn" class="btn-primary auth-btn">
+            <button type="submit" class="btn-primary auth-btn" id="submitBtn">
                 Create Account
             </button>
         </form>
 
-        <!-- Success -->
-        <div id="successContainer" class="success-container" style="display:none;"></div>
-
+        <div class="success-container" id="successContainer" style="display:none;"></div>
     </div>
 
     <!-- Terms Modal -->
-    <div class="modal-overlay" id="termsModal">
-        <div class="modal-content">
-            <h2>📄 Terms & Conditions</h2>
-            <p>Be respectful. No spam. No abuse.</p>
-            <button onclick="document.getElementById('termsModal').style.display='none'">Close</button>
-        </div>
-    </div>
+    <div class="modal-overlay" id="termsModal"></div>
 
     <!-- Privacy Modal -->
-    <div class="modal-overlay" id="privacyModal">
-        <div class="modal-content">
-            <h2>🔒 Privacy Policy</h2>
-            <p>We do not collect emails, phone numbers, or location.</p>
-            <button onclick="document.getElementById('privacyModal').style.display='none'">Close</button>
-        </div>
-    </div>
+    <div class="modal-overlay" id="privacyModal"></div>
 
-    <!-- JS MODULE -->
-    <script type="module" src="script.js"></script>
+    <!-- JS (moved from <script>) -->
+    <script type="module" src="signup.js"></script>
 </body>
 </html>
