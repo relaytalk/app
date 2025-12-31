@@ -1,8 +1,8 @@
-// Home Page Script - UPDATED FOR SUPABASE
+// Home Page Script - UPDATED WITH FIXES
 import { auth } from '../../utils/auth.js'
 import { supabase } from '../../utils/supabase.js'
 
-console.log("✨ Luster Home Page Loaded (Supabase Version)");
+console.log("✨ Luster Home Page Loaded");
 
 // Current user
 let currentUser = null;
@@ -10,13 +10,12 @@ let currentProfile = null;
 
 // Initialize home page
 async function initHomePage() {
-    console.log("Initializing home page with Supabase...");
+    console.log("Initializing home page...");
 
-    // Check if user is logged in with Supabase
+    // Check if user is logged in
     const { success, user } = await auth.getCurrentUser();
-    
+
     if (!success || !user) {
-        // No user found, redirect to auth
         alert("Please login first!");
         window.location.href = '../auth/index.html';
         return;
@@ -25,10 +24,10 @@ async function initHomePage() {
     currentUser = user;
     console.log("Logged in as:", currentUser.email);
 
-    // Get user profile from database
+    // Get user profile
     await loadUserProfile();
-    
-    // Update UI with user data
+
+    // Update UI
     updateWelcomeMessage();
     await loadFriends();
     await updateNotificationsBadge();
@@ -36,13 +35,10 @@ async function initHomePage() {
     // Set up event listeners
     setupEventListeners();
 
-    // Listen for real-time updates
-    setupRealtimeListeners();
-
     console.log("Home page initialized for:", currentProfile?.username);
 }
 
-// Load user profile from Supabase
+// Load user profile
 async function loadUserProfile() {
     try {
         const { data: profile, error } = await supabase
@@ -50,15 +46,14 @@ async function loadUserProfile() {
             .select('*')
             .eq('id', currentUser.id)
             .single();
-        
+
         if (error) throw error;
-        
+
         currentProfile = profile;
         console.log("Profile loaded:", profile);
-        
+
     } catch (error) {
         console.error("Error loading profile:", error);
-        // Create basic profile if not exists
         currentProfile = {
             username: currentUser.user_metadata?.username || 'User',
             full_name: currentUser.user_metadata?.full_name || 'User',
@@ -71,20 +66,18 @@ async function loadUserProfile() {
 function updateWelcomeMessage() {
     if (!currentProfile) return;
 
-    // Update welcome title
     const welcomeElement = document.getElementById('welcomeTitle');
     if (welcomeElement) {
         welcomeElement.textContent = `Welcome, ${currentProfile.username}!`;
     }
-    
-    // Update user avatar if exists
+
     const userAvatar = document.getElementById('userAvatar');
     if (userAvatar && currentProfile.avatar_url) {
         userAvatar.src = currentProfile.avatar_url;
     }
 }
 
-// Load friends list from Supabase
+// Load friends list
 async function loadFriends() {
     if (!currentUser) return;
 
@@ -94,7 +87,7 @@ async function loadFriends() {
     if (!container) return;
 
     try {
-        // Get friends from Supabase (from friends table)
+        // Get friends
         const { data: friends, error } = await supabase
             .from('friends')
             .select(`
@@ -109,19 +102,16 @@ async function loadFriends() {
             `)
             .eq('user_id', currentUser.id);
 
-        if (error) throw error;
+        if (error) {
+            console.log("Friends query error (table might not exist yet):", error.message);
+            showEmptyFriends(container);
+            return;
+        }
 
         console.log("Found friends:", friends?.length || 0);
 
         if (!friends || friends.length === 0) {
-            // Show empty state
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">👥</div>
-                    <p>No friends yet</p>
-                    <p style="font-size: 0.9rem; margin-top: 10px;">Search for users to add friends</p>
-                </div>
-            `;
+            showEmptyFriends(container);
             return;
         }
 
@@ -130,14 +120,9 @@ async function loadFriends() {
             const profile = friend.profiles;
             if (!profile) return;
 
-            console.log("Processing friend:", profile.username);
-
-            // Check online status
             const isOnline = profile.status === 'online';
             const lastSeen = profile.last_seen ? new Date(profile.last_seen) : new Date();
             const timeAgo = getTimeAgo(lastSeen);
-
-            // Get first letter for avatar
             const firstLetter = profile.username ? profile.username.charAt(0).toUpperCase() : '?';
 
             html += `
@@ -157,17 +142,21 @@ async function loadFriends() {
         });
 
         container.innerHTML = html;
-        
+
     } catch (error) {
         console.error("Error loading friends:", error);
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">⚠️</div>
-                <p>Error loading friends</p>
-                <p style="font-size: 0.9rem; margin-top: 10px;">Please try again later</p>
-            </div>
-        `;
+        showEmptyFriends(container);
     }
+}
+
+function showEmptyFriends(container) {
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-icon">👥</div>
+            <p>No friends yet</p>
+            <p style="font-size: 0.9rem; margin-top: 10px;">Search for users to add friends</p>
+        </div>
+    `;
 }
 
 // Get time ago string
@@ -188,56 +177,75 @@ function getTimeAgo(date) {
     return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// Open chat with friend
+// Open chat with friend - SIMPLIFIED VERSION
 async function openChat(friendId) {
     console.log("Opening chat with friend:", friendId);
 
     try {
-        // Check if conversation exists or create one
-        const { data: existingConversation, error: checkError } = await supabase
-            .from('participants')
-            .select('conversation_id')
-            .eq('user_id', currentUser.id)
-            .in('conversation_id', 
-                supabase.from('participants')
-                    .select('conversation_id')
-                    .eq('user_id', friendId)
-            )
+        // SIMPLE: Create new conversation every time
+        const { data: newConversation, error: createError } = await supabase
+            .from('conversations')
+            .insert({ is_group: false })
+            .select()
             .single();
 
-        let conversationId;
+        if (createError) {
+            console.error("Error creating conversation:", createError);
+            
+            // Create conversations table if doesn't exist
+            if (createError.message.includes('relation "conversations" does not exist')) {
+                alert("Chat feature not set up yet. Creating tables...");
+                await setupChatTables();
+                openChat(friendId); // Retry
+                return;
+            }
+            throw createError;
+        }
 
-        if (checkError || !existingConversation) {
-            // Create new conversation
-            const { data: newConversation, error: createError } = await supabase
-                .from('conversations')
-                .insert({ is_group: false })
-                .select()
-                .single();
+        const conversationId = newConversation.id;
+        console.log("Created conversation:", conversationId);
 
-            if (createError) throw createError;
-
-            conversationId = newConversation.id;
-
-            // Add both users as participants
-            await supabase.from('participants').insert([
+        // Add participants
+        const { error: participantError } = await supabase
+            .from('participants')
+            .insert([
                 { conversation_id: conversationId, user_id: currentUser.id },
                 { conversation_id: conversationId, user_id: friendId }
             ]);
-        } else {
-            conversationId = existingConversation.conversation_id;
-        }
+
+        if (participantError) throw participantError;
 
         // Redirect to chat page
-        window.location.href = `../chat/index.html?conversation=${conversationId}`;
-        
+        window.location.href = `../chats/index.html?conversation=${conversationId}`;
+
     } catch (error) {
         console.error("Error opening chat:", error);
-        alert("Could not open chat. Please try again.");
+        alert("Chat feature not ready yet. Please try again later.");
     }
 }
 
-// Update notifications badge from Supabase
+// Setup chat tables if they don't exist
+async function setupChatTables() {
+    try {
+        // Create conversations table
+        const { error: convError } = await supabase.rpc('create_conversations_table');
+        if (convError && !convError.message.includes('already exists')) {
+            console.error("Error creating conversations table:", convError);
+        }
+
+        // Create participants table
+        const { error: partError } = await supabase.rpc('create_participants_table');
+        if (partError && !partError.message.includes('already exists')) {
+            console.error("Error creating participants table:", partError);
+        }
+
+        console.log("Chat tables created/verified");
+    } catch (error) {
+        console.error("Error setting up tables:", error);
+    }
+}
+
+// Update notifications badge
 async function updateNotificationsBadge() {
     try {
         const { data: notifications, error } = await supabase
@@ -246,23 +254,36 @@ async function updateNotificationsBadge() {
             .eq('receiver_id', currentUser.id)
             .eq('status', 'pending');
 
-        if (error) throw error;
+        if (error) {
+            console.log("Friend requests table might not exist:", error.message);
+            hideNotificationBadge();
+            return;
+        }
 
         const unreadCount = notifications?.length || 0;
+        updateBadgeDisplay(unreadCount);
 
-        const badge = document.getElementById('notificationBadge');
-        if (badge) {
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                badge.style.display = 'block';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-        
     } catch (error) {
         console.error("Error loading notifications:", error);
+        hideNotificationBadge();
     }
+}
+
+function updateBadgeDisplay(count) {
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 9 ? '9+' : count;
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function hideNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (badge) badge.style.display = 'none';
 }
 
 // Open search modal
@@ -283,13 +304,12 @@ function closeModal() {
     document.getElementById('notificationsModal').style.display = 'none';
 }
 
-// Load search results from Supabase
+// Load search results
 async function loadSearchResults() {
     const container = document.getElementById('searchResults');
     const searchInput = document.getElementById('searchInput');
 
     try {
-        // Get all users except current user
         const { data: allUsers, error } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
@@ -307,13 +327,10 @@ async function loadSearchResults() {
             return;
         }
 
-        // Display all users initially
         await displaySearchResults(allUsers);
 
-        // Add search functionality
         searchInput.oninput = async function() {
             const searchTerm = this.value.toLowerCase().trim();
-
             if (searchTerm === '') {
                 await displaySearchResults(allUsers);
                 return;
@@ -323,13 +340,11 @@ async function loadSearchResults() {
                 user.username.toLowerCase().includes(searchTerm) ||
                 (user.full_name && user.full_name.toLowerCase().includes(searchTerm))
             );
-
             await displaySearchResults(filteredUsers);
         };
 
-        // Focus on search input
         searchInput.focus();
-        
+
     } catch (error) {
         console.error("Error loading users:", error);
         container.innerHTML = `
@@ -356,17 +371,15 @@ async function displaySearchResults(users) {
     }
 
     try {
-        // Check which users are already friends
-        const { data: friends, error } = await supabase
+        // Check friends
+        const { data: friends, error: friendError } = await supabase
             .from('friends')
             .select('friend_id')
             .eq('user_id', currentUser.id);
 
-        if (error) throw error;
-
         const friendIds = friends?.map(f => f.friend_id) || [];
 
-        // Check pending friend requests
+        // Check pending requests
         const { data: pendingRequests, error: requestError } = await supabase
             .from('friend_requests')
             .select('receiver_id, status')
@@ -407,13 +420,13 @@ async function displaySearchResults(users) {
         });
 
         container.innerHTML = html;
-        
+
     } catch (error) {
         console.error("Error checking friend status:", error);
     }
 }
 
-// Send friend request via Supabase
+// Send friend request - FIXED VERSION
 async function sendFriendRequest(toUserId, toUsername) {
     if (!currentUser) return;
 
@@ -425,7 +438,7 @@ async function sendFriendRequest(toUserId, toUsername) {
             .eq('sender_id', currentUser.id)
             .eq('receiver_id', toUserId)
             .eq('status', 'pending')
-            .single();
+            .maybeSingle();
 
         if (existingRequest) {
             alert(`Friend request already sent to ${toUsername}!`);
@@ -438,25 +451,47 @@ async function sendFriendRequest(toUserId, toUsername) {
             .insert({
                 sender_id: currentUser.id,
                 receiver_id: toUserId,
-                status: 'pending'
+                status: 'pending',
+                created_at: new Date().toISOString()
             });
 
-        if (error) throw error;
+        if (error) {
+            // If table doesn't exist, create it
+            if (error.message.includes('relation "friend_requests" does not exist')) {
+                await createFriendRequestsTable();
+                await sendFriendRequest(toUserId, toUsername); // Retry
+                return;
+            }
+            throw error;
+        }
 
         // Update UI
         loadSearchResults();
         updateNotificationsBadge();
 
-        // Show success message
         alert(`Friend request sent to ${toUsername}!`);
-        
+
     } catch (error) {
         console.error("Error sending friend request:", error);
         alert("Could not send friend request. Please try again.");
     }
 }
 
-// Load notifications from Supabase
+// Create friend_requests table if it doesn't exist
+async function createFriendRequestsTable() {
+    console.log("Creating friend_requests table...");
+    
+    // Run SQL to create table
+    const { error } = await supabase.rpc('create_friend_requests_table');
+    
+    if (error) {
+        console.error("Error creating table:", error);
+        // Fallback: Try direct SQL (if you have service role)
+        alert("Setting up database... Please refresh and try again.");
+    }
+}
+
+// Load notifications - SIMPLIFIED
 async function loadNotifications() {
     const container = document.getElementById('notificationsList');
 
@@ -464,48 +499,48 @@ async function loadNotifications() {
         const { data: notifications, error } = await supabase
             .from('friend_requests')
             .select(`
-                *,
-                sender:profiles!friend_requests_sender_id_fkey (
-                    username,
-                    full_name
+                id,
+                sender_id,
+                created_at,
+                profiles:sender_id (
+                    username
                 )
             `)
             .eq('receiver_id', currentUser.id)
             .eq('status', 'pending')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.log("Notifications error (table might not exist):", error.message);
+            showEmptyNotifications(container);
+            return;
+        }
 
         if (!notifications || notifications.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">🔔</div>
-                    <p>No notifications yet</p>
-                </div>
-            `;
+            showEmptyNotifications(container);
             return;
         }
 
         let html = '';
         notifications.forEach(notification => {
             const timeAgo = getTimeAgo(notification.created_at);
+            const senderName = notification.profiles?.username || 'Unknown User';
 
             html += `
-                <div class="search-result">
-                    <div class="search-avatar" style="background: linear-gradient(45deg, #667eea, #764ba2);">
-                        ${notification.sender.username.charAt(0).toUpperCase()}
+                <div class="notification-item">
+                    <div class="notification-avatar">
+                        ${senderName.charAt(0).toUpperCase()}
                     </div>
-                    <div class="search-info">
-                        <div class="search-name">${notification.sender.username}</div>
-                        <div class="search-username">Wants to be your friend</div>
-                        <div style="color: #a0a0c0; font-size: 0.8rem; margin-top: 5px;">${timeAgo}</div>
+                    <div class="notification-content">
+                        <strong>${senderName}</strong> wants to be friends
+                        <small>${timeAgo}</small>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="accept-btn" onclick="acceptFriendRequest('${notification.id}', '${notification.sender_id}')">
-                            Accept
+                    <div class="notification-actions">
+                        <button class="btn-small btn-success" onclick="acceptFriendRequest('${notification.id}', '${notification.sender_id}')">
+                            ✓
                         </button>
-                        <button class="decline-btn" onclick="declineFriendRequest('${notification.id}')">
-                            Decline
+                        <button class="btn-small btn-danger" onclick="declineFriendRequest('${notification.id}')">
+                            ✗
                         </button>
                     </div>
                 </div>
@@ -513,52 +548,87 @@ async function loadNotifications() {
         });
 
         container.innerHTML = html;
-        
+
     } catch (error) {
         console.error("Error loading notifications:", error);
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">⚠️</div>
-                <p>Error loading notifications</p>
-            </div>
-        `;
+        showEmptyNotifications(container);
     }
 }
 
-// Accept friend request
+function showEmptyNotifications(container) {
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-icon">🔔</div>
+            <p>No notifications yet</p>
+        </div>
+    `;
+}
+
+// Accept friend request - FIXED VERSION
 async function acceptFriendRequest(requestId, senderId) {
+    console.log("Accepting request:", requestId, "from:", senderId);
+
     try {
-        // Update friend request status
+        // 1. Update friend request status
         const { error: updateError } = await supabase
             .from('friend_requests')
             .update({ status: 'accepted' })
             .eq('id', requestId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+            console.error("Error updating request:", updateError);
+            throw updateError;
+        }
 
-        // Add to friends table (both directions)
+        // 2. Add to friends table (both directions)
         const { error: friendError1 } = await supabase
             .from('friends')
-            .insert({ user_id: currentUser.id, friend_id: senderId });
+            .insert({ 
+                user_id: currentUser.id, 
+                friend_id: senderId,
+                created_at: new Date().toISOString()
+            });
 
         const { error: friendError2 } = await supabase
             .from('friends')
-            .insert({ user_id: senderId, friend_id: currentUser.id });
+            .insert({ 
+                user_id: senderId, 
+                friend_id: currentUser.id,
+                created_at: new Date().toISOString()
+            });
 
         if (friendError1 || friendError2) {
+            console.error("Friend errors:", friendError1, friendError2);
+            
+            // If friends table doesn't exist, create it
+            if (friendError1?.message.includes('relation "friends" does not exist') ||
+                friendError2?.message.includes('relation "friends" does not exist')) {
+                await createFriendsTable();
+                await acceptFriendRequest(requestId, senderId); // Retry
+                return;
+            }
             throw friendError1 || friendError2;
         }
 
-        // Update UI
-        loadNotifications();
-        loadFriends();
-        updateNotificationsBadge();
+        // 3. Update UI
+        await loadNotifications();
+        await loadFriends();
+        await updateNotificationsBadge();
 
         alert(`You are now friends!`);
-        
+
     } catch (error) {
         console.error("Error accepting friend request:", error);
-        alert("Could not accept friend request. Please try again.");
+        alert("Could not accept friend request. The database might need setup.");
+    }
+}
+
+// Create friends table if it doesn't exist
+async function createFriendsTable() {
+    console.log("Creating friends table...");
+    const { error } = await supabase.rpc('create_friends_table');
+    if (error) {
+        console.error("Error creating friends table:", error);
     }
 }
 
@@ -572,31 +642,15 @@ async function declineFriendRequest(requestId) {
 
         if (error) throw error;
 
-        // Update UI
-        loadNotifications();
-        updateNotificationsBadge();
+        await loadNotifications();
+        await updateNotificationsBadge();
 
         alert(`Friend request declined.`);
-        
+
     } catch (error) {
         console.error("Error declining friend request:", error);
-        alert("Could not decline friend request. Please try again.");
+        alert("Could not decline friend request.");
     }
-}
-
-// Setup realtime listeners
-function setupRealtimeListeners() {
-    // Listen for new friend requests
-    supabase
-        .channel('friend-requests')
-        .on('postgres_changes', 
-            { event: 'INSERT', schema: 'public', table: 'friend_requests', filter: `receiver_id=eq.${currentUser.id}` },
-            () => {
-                console.log("New friend request received!");
-                updateNotificationsBadge();
-            }
-        )
-        .subscribe();
 }
 
 // Set up event listeners
