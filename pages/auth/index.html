@@ -556,7 +556,7 @@
     </div>
 
     <script>
-          // ====== AUTH PAGE SCRIPT - UPDATED FOR SUPABASE ======
+           // ====== AUTH PAGE SCRIPT - COMPLETE FIXED VERSION ======
 
 // Modal functions
 function showTerms() {
@@ -657,7 +657,7 @@ function validateConfirmPassword(password, confirmPassword) {
     return true;
 }
 
-// Load Supabase (no import needed since script is inline)
+// Load Supabase
 let supabase = null;
 
 async function initSupabase() {
@@ -675,7 +675,7 @@ async function initSupabase() {
     }
 }
 
-// Handle form submission WITH SUPABASE
+// Handle form submission WITH SUPABASE & AUTO-LOGIN
 async function handleSignup(event) {
     event.preventDefault();
 
@@ -710,7 +710,7 @@ async function handleSignup(event) {
             .from('profiles')
             .select('username')
             .eq('username', username)
-            .single();
+            .maybeSingle(); // Use maybeSingle instead of single
 
         if (existingUser) {
             showError('usernameError', 'Username already taken. Please choose another.');
@@ -721,6 +721,8 @@ async function handleSignup(event) {
 
         // 2. Create account in Supabase Auth
         const email = `${username}@luster.app`;
+        console.log("Creating account with email:", email);
+        
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: email,
             password: password,
@@ -732,11 +734,17 @@ async function handleSignup(event) {
             }
         });
 
-        if (authError) throw authError;
+        if (authError) {
+            console.error("Auth error:", authError);
+            throw authError;
+        }
 
-        console.log("✅ Auth created, creating profile...");
+        console.log("✅ Auth created, user ID:", authData.user?.id);
 
-        // 3. Create profile in database
+        // 3. Wait a moment for auth to propagate
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 4. Create profile in database
         const { error: profileError } = await supabase
             .from('profiles')
             .insert({
@@ -746,18 +754,44 @@ async function handleSignup(event) {
                 avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`
             });
 
-        if (profileError) throw profileError;
+        if (profileError) {
+            console.error("Profile error:", profileError);
+            throw profileError;
+        }
 
-        // 4. Show success
+        console.log("✅ Profile created");
+
+        // 5. SIGN IN IMMEDIATELY after signup (FIXES THE BUG!)
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (signInError) {
+            console.warn("Auto-login failed (user can login manually):", signInError);
+            // Continue anyway - show message
+            alert("Account created! Please login with your credentials.");
+        } else {
+            console.log("✅ Auto-login successful, user:", signInData.user);
+        }
+
+        // 6. Show success and redirect
         showSuccessAndRedirect(username);
 
     } catch (error) {
         console.error("Signup error:", error);
         
-        if (error.message.includes('already registered')) {
-            showError('usernameError', 'Username already taken. Please choose another.');
+        let errorMessage = 'Something went wrong. Please try again.';
+        
+        if (error.message.includes('already registered') || error.message.includes('already exists')) {
+            errorMessage = 'Username already taken. Please choose another.';
+            showError('usernameError', errorMessage);
         } else if (error.message.includes('password')) {
-            showError('passwordError', 'Password too weak. Try a stronger one.');
+            errorMessage = 'Password too weak. Try a stronger one.';
+            showError('passwordError', errorMessage);
+        } else if (error.message.includes('email')) {
+            errorMessage = 'Invalid email format.';
+            showError('usernameError', errorMessage);
         } else {
             alert('Error: ' + error.message);
         }
@@ -829,6 +863,7 @@ async function initAuthPage() {
     const { data } = await supabase.auth.getSession();
     if (data.session) {
         // User is already logged in, redirect to home
+        console.log("User already logged in, redirecting...");
         setTimeout(() => {
             window.location.href = '../home/index.html';
         }, 1000);
@@ -853,7 +888,9 @@ async function initAuthPage() {
 // Run when page loads
 document.addEventListener('DOMContentLoaded', initAuthPage);
 
-// Make functions available globally (since HTML calls them)
+// ====== MAKE FUNCTIONS AVAILABLE TO HTML ======
+// Attach functions that HTML calls via onclick
+
 window.showTerms = showTerms;
 window.showPrivacy = showPrivacy;
 window.closeModal = closeModal;
