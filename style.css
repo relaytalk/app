@@ -302,3 +302,62 @@ body {
         font-size: 1.5rem;
     }
 }
+
+
+
+/* ========== NOTIFICATION BUTTON STYLES ========== */
+/* Add these to your existing ../../style.css */
+
+.btn-small {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s;
+    min-width: 40px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-success {
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.btn-success:hover {
+    background: rgba(40, 167, 69, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.btn-danger:hover {
+    background: rgba(220, 53, 69, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Notification action buttons */
+.notification-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* For the ✓ and ✗ icons */
+.btn-small.btn-success {
+    font-size: 1.1rem;
+    padding: 6px;
+}
+
+.btn-small.btn-danger {
+    font-size: 1.1rem;
+    padding: 6px;
+}
