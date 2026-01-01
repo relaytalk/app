@@ -7,7 +7,7 @@
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.15s;
     border: none;
     display: flex;
     align-items: center;
@@ -65,7 +65,7 @@
     padding: 15px;
     margin-bottom: 10px;
     border-left: 4px solid #667eea;
-    transition: all 0.3s;
+    transition: all 0.15s;
 }
 
 .notification-item.unread {
@@ -107,7 +107,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.3s;
+    transition: all 0.15s;
 }
 
 .search-result:hover {
@@ -186,7 +186,7 @@
 }
 
 .slide-in {
-    animation: slideIn 0.3s ease;
+    animation: slideIn 0.15s ease;
 }
 
 /* Responsive adjustments */
@@ -195,13 +195,13 @@
         font-size: 0.9rem;
         padding: 15px;
     }
-    
+
     .btn-primary, .btn-secondary {
         padding: 12px 20px;
         font-size: 0.9rem;
     }
-    
+
     .action-card {
         padding: 20px;
     }
-} 
+}
