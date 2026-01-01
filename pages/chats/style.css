@@ -1,4 +1,4 @@
-/* Chat Page Specific Styles */
+/* Chat Page Specific Styles - FIXED */
 
 /* Modal styles */
 .modal-overlay {
@@ -100,6 +100,12 @@
     color: #28a745;
 }
 
+.user-info-status.offline {
+    background: rgba(108, 117, 125, 0.1);
+    border-color: rgba(108, 117, 125, 0.2);
+    color: #6c757d;
+}
+
 .user-info-actions {
     display: flex;
     flex-direction: column;
@@ -113,6 +119,7 @@
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s;
+    font-weight: 500;
 }
 
 .info-action-btn.primary {
@@ -134,6 +141,7 @@
 
 .info-action-btn:hover {
     transform: translateY(-2px);
+    opacity: 0.9;
 }
 
 /* Message animations */
@@ -165,6 +173,32 @@
 
 .message.received {
     animation: slideInLeft 0.3s ease;
+}
+
+/* Realtime Status Indicator - ADDED */
+#realtimeStatus {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    z-index: 9999;
+    color: white;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+/* Status dot styles */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #28a745;
+}
+
+.status-dot.offline {
+    background: #6c757d;
 }
 
 /* New message notification */
@@ -266,11 +300,11 @@
         padding: 20px;
         width: 95%;
     }
-    
+
     .message {
         max-width: 90%;
     }
-    
+
     .message-image {
         max-width: 200px;
     }
