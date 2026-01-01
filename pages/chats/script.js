@@ -8,7 +8,7 @@ let chatFriend = null;
 let chatChannel = null;
 let statusChannel = null;
 
-// Initialize - NO CHANGES
+// Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Check auth
@@ -65,16 +65,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Load old messages - FIXED: Better query
+// Load old messages - FIXED
 async function loadOldMessages(friendId) {
     try {
         console.log("Loading messages between:", currentUser.id, "and", friendId);
         
-        // FIXED: Direct query for messages between these two users
+        // Get messages using OR condition - SIMPLIFIED
         const { data: messages, error } = await supabase
             .from('direct_messages')
             .select('*')
-            .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`)
+            .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
             .order('created_at', { ascending: true });
 
         if (error) {
@@ -82,10 +82,16 @@ async function loadOldMessages(friendId) {
             throw error;
         }
 
-        console.log("Loaded", messages?.length || 0, "messages");
+        // Filter messages to only show messages between these two users
+        const filteredMessages = messages?.filter(msg => 
+            (msg.sender_id === currentUser.id && msg.receiver_id === friendId) ||
+            (msg.sender_id === friendId && msg.receiver_id === currentUser.id)
+        ) || [];
+
+        console.log("Loaded", filteredMessages.length, "messages");
 
         // Show them
-        showMessages(messages || []);
+        showMessages(filteredMessages);
 
     } catch (error) {
         console.error("Load error:", error);
@@ -94,7 +100,7 @@ async function loadOldMessages(friendId) {
     }
 }
 
-// Show messages in UI - FIXED: Better scroll
+// Show messages in UI - FIXED
 function showMessages(messages) {
     const container = document.getElementById('messagesContainer');
     if (!container) {
@@ -142,18 +148,13 @@ function showMessages(messages) {
 
     container.innerHTML = html;
 
-    // FIXED: Better scroll to bottom
+    // Scroll to bottom
     setTimeout(() => {
         container.scrollTop = container.scrollHeight;
-        // Make sure last message is visible
-        const lastMessage = container.querySelector('.message:last-child');
-        if (lastMessage) {
-            lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }
-    }, 150);
+    }, 100);
 }
 
-// REAL-TIME FIXED: Proper filter added
+// REAL-TIME FIXED
 function setupRealtime(friendId) {
     console.log("Setting realtime for friend:", friendId);
 
@@ -165,56 +166,30 @@ function setupRealtime(friendId) {
         supabase.removeChannel(statusChannel);
     }
 
-    // FIXED: Added proper filter to listen only to relevant messages
+    // Create message channel - SIMPLIFIED FILTER
     chatChannel = supabase.channel(`dm-${currentUser.id}-${friendId}`)
         .on('postgres_changes', {
-            event: 'INSERT',  // FIXED: Only listen to INSERT events
+            event: '*',  // Listen to all events
             schema: 'public',
-            table: 'direct_messages',
-            // FIXED: This filter tells Supabase to only send us messages in THIS chat
-            filter: `(sender_id=eq.${currentUser.id} and receiver_id=eq.${friendId}) or (sender_id=eq.${friendId} and receiver_id=eq.${currentUser.id})`
+            table: 'direct_messages'
         }, async (payload) => {
-            console.log("🔥 Real-time message received:", payload.new);
+            console.log("🔥 Database change:", payload.event, payload.new);
             
             // Check if this message is for our chat
             const newMsg = payload.new;
-            if (newMsg) {
-                console.log("✅ New message, reloading...");
+            if (newMsg && 
+                ((newMsg.sender_id === currentUser.id && newMsg.receiver_id === friendId) ||
+                 (newMsg.sender_id === friendId && newMsg.receiver_id === currentUser.id))) {
                 
-                // Remove empty state if present
-                const container = document.getElementById('messagesContainer');
-                const emptyChat = container.querySelector('.empty-chat');
-                if (emptyChat) emptyChat.remove();
+                console.log("✅ Relevant message, reloading...");
+                await loadOldMessages(friendId);
                 
-                // Create and append new message immediately
-                const isSent = newMsg.sender_id === currentUser.id;
-                const time = new Date(newMsg.created_at).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                const messageHTML = `
-                    <div class="message ${isSent ? 'sent' : 'received'}">
-                        <div class="message-content">${newMsg.content || ''}</div>
-                        <div class="message-time">${time}</div>
-                    </div>
-                `;
-                
-                container.insertAdjacentHTML('beforeend', messageHTML);
-                
-                // Scroll to new message
+                // Flash title
+                const originalTitle = document.title;
+                document.title = "💬 New Message!";
                 setTimeout(() => {
-                    container.scrollTop = container.scrollHeight;
-                }, 50);
-                
-                // Flash title only if message is from friend
-                if (newMsg.sender_id !== currentUser.id) {
-                    const originalTitle = document.title;
-                    document.title = "💬 New Message!";
-                    setTimeout(() => {
-                        document.title = originalTitle;
-                    }, 1000);
-                }
+                    document.title = originalTitle;
+                }, 1000);
             }
         })
         .subscribe((status) => {
@@ -287,7 +262,7 @@ function createStatus() {
     return div;
 }
 
-// Send message - FIXED: Optimistic update
+// Send message - FIXED
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
@@ -300,15 +275,6 @@ async function sendMessage() {
     try {
         console.log("Sending:", text, "to:", chatFriend.id);
 
-        // Clear input immediately
-        input.value = '';
-        input.style.height = 'auto';
-        
-        // Update send button
-        const sendBtn = document.getElementById('sendBtn');
-        if (sendBtn) sendBtn.disabled = true;
-
-        // Send to server
         const { data, error } = await supabase
             .from('direct_messages')
             .insert({
@@ -327,21 +293,23 @@ async function sendMessage() {
         }
 
         console.log("✅ Message sent:", data);
+        input.value = '';
+        input.style.height = 'auto';
+        
+        // Update send button
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) sendBtn.disabled = true;
 
-        // Real-time will handle the display via the subscription
-        // No need to reload all messages
+        // Update messages immediately
+        await loadOldMessages(chatFriend.id);
 
     } catch (error) {
         console.error("Send failed:", error);
         alert("Failed to send message");
-        // Restore text if failed
-        input.value = text;
-        autoResize(input);
-        if (sendBtn) sendBtn.disabled = false;
     }
 }
 
-// Handle Enter key - NO CHANGES
+// Handle Enter key
 function handleKeyPress(event) {
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
@@ -358,7 +326,7 @@ function handleKeyPress(event) {
     }
 }
 
-// Auto resize textarea - NO CHANGES
+// Auto resize textarea
 function autoResize(textarea) {
     textarea.style.height = 'auto';
     const newHeight = Math.min(textarea.scrollHeight, 100);
@@ -370,7 +338,7 @@ function autoResize(textarea) {
     }
 }
 
-// Go back - NO CHANGES
+// Go back
 function goBack() {
     if (chatChannel) {
         supabase.removeChannel(chatChannel);
@@ -381,7 +349,7 @@ function goBack() {
     window.location.href = '../home/index.html';
 }
 
-// Show user info modal - NO CHANGES
+// Show user info modal
 window.showUserInfo = function() {
     if (!chatFriend) {
         alert("User information not available");
@@ -480,7 +448,7 @@ window.debugMessages = async function() {
     const { data: ourMessages } = await supabase
         .from('direct_messages')
         .select('*')
-        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`);
+        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
     
     console.log("Our messages:", ourMessages);
 };
