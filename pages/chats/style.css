@@ -195,7 +195,6 @@
     height: 8px;
     border-radius: 50%;
     background: #28a745;
-    transition: background-color 0.3s ease;
 }
 
 .status-dot.offline {
@@ -293,11 +292,6 @@
     text-align: center;
     padding: 20px;
     color: #a0a0c0;
-}
-
-/* Typing indicator fix */
-.typing-indicator {
-    display: none;
 }
 
 /* Responsive */
