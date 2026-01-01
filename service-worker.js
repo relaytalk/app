@@ -1,5 +1,5 @@
 // Service Worker for RelayTalk - Caches Everything
-const CACHE_NAME = 'relaytalk-cache-v16';
+const CACHE_NAME = 'relaytalk-cache-v17';
 const APP_VERSION = '1.0.0';
 
 // Cache ALL files from these folders
