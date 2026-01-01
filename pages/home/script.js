@@ -8,79 +8,205 @@ let currentUser = null;
 let currentProfile = null;
 let requestsChannel = null;
 
-// ====== FIX: ADD MISSING FUNCTION FIRST ======
+// ====== FIX 1: Define functions BEFORE they're called ======
 function goToHome() {
     console.log("Already on home page");
-    // No action needed - we're already on home page
 }
 
-// Now the rest of your code continues...
-// Initialize home page
+function openSettings() {
+    alert("Settings page coming soon!");
+}
+
+function openSearch() {
+    console.log("Opening search modal");
+    const modal = document.getElementById('searchModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        
+        // Clear search input
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+        }
+        
+        loadSearchResults();
+        
+        // Close on outside click
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        };
+        
+        // ESC key to close
+        document.addEventListener('keydown', handleEscKey);
+    }
+}
+
+function openNotifications() {
+    console.log("Opening notifications modal");
+    const modal = document.getElementById('notificationsModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        loadNotifications();
+        
+        // Close on outside click
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        };
+        
+        // ESC key to close
+        document.addEventListener('keydown', handleEscKey);
+    }
+}
+
+function handleEscKey(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+}
+
+function closeModal() {
+    console.log("Closing modal");
+    const searchModal = document.getElementById('searchModal');
+    const notificationsModal = document.getElementById('notificationsModal');
+
+    if (searchModal) {
+        searchModal.style.display = 'none';
+        searchModal.onclick = null;
+    }
+    if (notificationsModal) {
+        notificationsModal.style.display = 'none';
+        notificationsModal.onclick = null;
+    }
+    
+    // Remove ESC key listener
+    document.removeEventListener('keydown', handleEscKey);
+}
+
+// ====== FIX 2: Attach to window IMMEDIATELY ======
+window.openSearch = openSearch;
+window.openNotifications = openNotifications;
+window.closeModal = closeModal;
+window.goToHome = goToHome;
+window.openSettings = openSettings;
+
+// ====== NOW the rest of your code ======
+// Initialize home page - FIXED: Better error handling
 async function initHomePage() {
     console.log("Initializing home page...");
 
-    // Check if user is logged in  
-    const { success, user } = await auth.getCurrentUser();  
+    // Show loading indicator
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    
+    try {
+        // Check if user is logged in - WITH RETRY
+        let authCheckAttempts = 0;
+        let authSuccess = false;
+        let user = null;
+        
+        while (authCheckAttempts < 3 && !authSuccess) {
+            authCheckAttempts++;
+            
+            try {
+                const { success, user: authUser, error } = await auth.getCurrentUser();
+                
+                if (success && authUser) {
+                    authSuccess = true;
+                    user = authUser;
+                    console.log("✅ Auth successful on attempt", authCheckAttempts);
+                } else if (error) {
+                    console.log("Auth attempt", authCheckAttempts, "failed:", error.message);
+                    
+                    // Wait a bit before retrying
+                    if (authCheckAttempts < 3) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+            } catch (authError) {
+                console.log("Auth error on attempt", authCheckAttempts, ":", authError.message);
+            }
+        }
 
-    if (!success || !user) {  
-        alert("Please login first!");  
-        window.location.href = '../auth/index.html';  
-        return;  
-    }  
+        if (!authSuccess || !user) {
+            console.error("❌ Could not authenticate after 3 attempts");
+            
+            // Check if there's a session in localStorage/sessionStorage as fallback
+            const storedUser = localStorage.getItem('supabase.auth.token') || 
+                              sessionStorage.getItem('supabase.auth.token');
+            
+            if (!storedUser) {
+                alert("Please login first!");
+                window.location.href = '../auth/index.html';
+                return;
+            } else {
+                console.log("Found stored auth token, but auth.getCurrentUser() failed");
+                // Try one more time with delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const { success: finalAttempt, user: finalUser } = await auth.getCurrentUser();
+                
+                if (!finalAttempt || !finalUser) {
+                    alert("Session expired. Please login again!");
+                    window.location.href = '../auth/index.html';
+                    return;
+                }
+                
+                user = finalUser;
+            }
+        }
 
-    currentUser = user;  
-    console.log("Logged in as:", currentUser.email);  
+        currentUser = user;  
+        console.log("Logged in as:", currentUser.email);  
 
-    // Get user profile  
-    await loadUserProfile();  
+        // Get user profile  
+        await loadUserProfile();  
 
-    // Update UI  
-    updateWelcomeMessage();  
-    await loadFriends();  
-    await updateNotificationsBadge();  
+        // Update UI  
+        updateWelcomeMessage();  
+        await loadFriends();  
+        await updateNotificationsBadge();  
 
-    // Setup realtime for new friend requests
-    setupRealtime();
+        // Setup realtime for new friend requests
+        setupRealtime();
 
-    // Set up event listeners  
-    setupEventListeners();  
+        // Set up event listeners  
+        setupEventListeners();  
 
-    console.log("Home page initialized for:", currentProfile?.username);
+        console.log("Home page initialized for:", currentProfile?.username);
 
-    // Hide loading indicator
-    setTimeout(() => {
-        const loadingIndicator = document.getElementById('loadingIndicator');
+    } catch (error) {
+        console.error("❌ Critical init error:", error);
+        alert("Error loading home page: " + error.message);
+        
+        // Try to redirect to auth page
+        setTimeout(() => {
+            window.location.href = '../auth/index.html';
+        }, 2000);
+        
+        return;
+    } finally {
+        // Always hide loading indicator
         if (loadingIndicator) {
             loadingIndicator.classList.add('hidden');
             setTimeout(() => {
                 loadingIndicator.style.display = 'none';
             }, 300);
         }
-    }, 100);
+    }
 }
 
-// ... [rest of your existing code remains exactly the same] ...
+// [REST OF THE CODE REMAINS EXACTLY THE SAME AS BEFORE...]
+// Load user profile, loadFriends, etc. - all the same functions
+// ... 
 
-// Remove the duplicate goToHome function at the bottom
-// Navigation functions - REMOVE THIS DUPLICATE
-// function goToHome() {
-//     console.log("Already on home page");
-// }
-
-function openSettings() {
-    alert("Settings page coming soon!");
-}
-
-// Make functions available globally
-window.openSearch = openSearch;
-window.openNotifications = openNotifications;
-window.closeModal = closeModal;
+// ====== FIX 3: Attach remaining functions to window ======
 window.openChat = openChat;
 window.sendFriendRequest = sendFriendRequest;
 window.acceptFriendRequest = acceptFriendRequest;
 window.declineFriendRequest = declineFriendRequest;
-window.goToHome = goToHome;  // This now references the function defined at top
-window.openSettings = openSettings;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initHomePage);
