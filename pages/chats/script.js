@@ -1,4 +1,4 @@
-// Chat Page Script - WITH WORKING REALTIME
+// Chat Page Script - FINAL WORKING VERSION
 import { auth } from '../../utils/auth.js'
 import { supabase } from '../../utils/supabase.js'
 
@@ -8,6 +8,7 @@ let currentUser = null;
 let chatFriend = null;
 let messages = [];
 let chatChannel = null;
+let isRealtimeConnected = false;
 
 // Initialize chat page
 async function initChatPage() {
@@ -46,6 +47,9 @@ async function initChatPage() {
 
     // Setup real-time listener
     setupRealtimeListener(friendId);
+
+    // Add visual indicator
+    addRealtimeIndicator();
 
     console.log("Chat page initialized");
 }
@@ -108,35 +112,28 @@ async function loadMessages(friendId) {
     if (!currentUser || !friendId) return;
 
     try {
-        // Get all messages between current user and friend
-        const { data: allMessages, error } = await supabase
+        // SIMPLE QUERY - No complex OR conditions
+        const { data: sentMessages } = await supabase
             .from('direct_messages')
             .select('*')
-            .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`)
-            .order('created_at', { ascending: true });
+            .eq('sender_id', currentUser.id)
+            .eq('receiver_id', friendId);
 
-        if (error) {
-            console.log("Using simple queries instead...");
-            // Simple separate queries
-            const { data: sentMessages } = await supabase
-                .from('direct_messages')
-                .select('*')
-                .eq('sender_id', currentUser.id)
-                .eq('receiver_id', friendId);
+        const { data: receivedMessages } = await supabase
+            .from('direct_messages')
+            .select('*')
+            .eq('sender_id', friendId)
+            .eq('receiver_id', currentUser.id);
 
-            const { data: receivedMessages } = await supabase
-                .from('direct_messages')
-                .select('*')
-                .eq('sender_id', friendId)
-                .eq('receiver_id', currentUser.id);
+        // Combine and sort
+        const allMessages = [
+            ...(sentMessages || []),
+            ...(receivedMessages || [])
+        ];
 
-            messages = [
-                ...(sentMessages || []),
-                ...(receivedMessages || [])
-            ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        } else {
-            messages = allMessages || [];
-        }
+        messages = allMessages.sort((a, b) => 
+            new Date(a.created_at) - new Date(b.created_at)
+        );
 
         console.log("Loaded", messages.length, "messages");
 
@@ -271,9 +268,10 @@ async function sendMessage() {
         const sendBtn = document.getElementById('sendBtn');
         if (sendBtn) sendBtn.disabled = true;
 
-        // Message will appear via realtime, but add locally for immediate feedback
-        if (!messages.some(m => m.id === newMessage.id)) {
+        // Add locally for immediate feedback
+        if (!messages.find(m => m.id === newMessage.id)) {
             messages.push(newMessage);
+            messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
             displayMessages();
             scrollToBottom();
         }
@@ -284,100 +282,106 @@ async function sendMessage() {
     }
 }
 
-// Setup real-time listener for new messages - SIMPLIFIED VERSION
+// Setup real-time listener - ULTRA SIMPLE VERSION
 function setupRealtimeListener(friendId) {
-    if (!friendId || !currentUser) {
-        console.error("Cannot setup realtime: missing friendId or currentUser");
-        return;
-    }
+    if (!friendId || !currentUser) return;
 
-    console.log("Setting up real-time for chat with:", friendId);
+    console.log("🔄 Setting up realtime for friend:", friendId);
 
     // Clean up previous channel
     if (chatChannel) {
         supabase.removeChannel(chatChannel);
+        chatChannel = null;
     }
 
-    // SIMPLER APPROACH: Listen to ALL messages and filter
-    chatChannel = supabase
-        .channel('direct-messages-all')
+    // Create SIMPLE channel
+    chatChannel = supabase.channel('chat-updates')
         .on(
             'postgres_changes',
             {
-                event: 'INSERT',
+                event: '*', // Listen to ALL events
                 schema: 'public',
                 table: 'direct_messages'
             },
-            (payload) => {
-                console.log("🔥 REALTIME INSERT DETECTED:", payload.new);
+            async (payload) => {
+                console.log("📢 Database change detected:", payload.event, payload.new);
                 
-                const newMessage = payload.new;
-                
-                // Check if this message belongs to current chat
-                const isRelevantMessage = 
-                    (newMessage.sender_id === currentUser.id && newMessage.receiver_id === friendId) ||
-                    (newMessage.sender_id === friendId && newMessage.receiver_id === currentUser.id);
-                
-                if (isRelevantMessage) {
-                    console.log("✅ Message is for this chat!");
+                // Only process INSERT events
+                if (payload.event === 'INSERT') {
+                    const newMessage = payload.new;
                     
-                    // Check if not already displayed
-                    const alreadyExists = messages.some(msg => msg.id === newMessage.id);
-                    if (!alreadyExists) {
-                        console.log("📨 Adding new message to display");
-                        messages.push(newMessage);
+                    // Check if message is for this chat
+                    const isOurMessage = 
+                        (newMessage.sender_id === currentUser.id && newMessage.receiver_id === friendId) ||
+                        (newMessage.sender_id === friendId && newMessage.receiver_id === currentUser.id);
+                    
+                    if (isOurMessage) {
+                        console.log("🎯 New message for our chat!");
                         
-                        // Sort by time
-                        messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-                        
-                        // Update UI
-                        displayMessages();
-                        scrollToBottom();
-                        
-                        // Play notification sound (optional)
-                        playMessageSound();
-                    } else {
-                        console.log("⚠️ Message already displayed");
+                        // Check if already displayed
+                        if (!messages.find(m => m.id === newMessage.id)) {
+                            console.log("➕ Adding to display");
+                            messages.push(newMessage);
+                            messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                            
+                            // Update UI
+                            displayMessages();
+                            scrollToBottom();
+                            
+                            // Update realtime indicator
+                            updateRealtimeIndicator(true);
+                        }
                     }
-                } else {
-                    console.log("❌ Message not for this chat (ignoring)");
                 }
             }
         )
         .subscribe((status) => {
-            console.log("📡 Realtime subscription status:", status);
+            console.log("📡 Realtime status:", status);
+            isRealtimeConnected = status === 'SUBSCRIBED';
+            updateRealtimeIndicator(isRealtimeConnected);
             
             if (status === 'SUBSCRIBED') {
-                console.log("✅ Successfully subscribed to realtime updates!");
+                console.log("✅ REALTIME CONNECTED!");
             } else if (status === 'CHANNEL_ERROR') {
-                console.error("❌ Realtime channel error");
-                // Try to reconnect after 3 seconds
+                console.warn("⚠️ Realtime error, reconnecting...");
                 setTimeout(() => setupRealtimeListener(friendId), 3000);
             }
         });
 }
 
-// Play sound for new messages
-function playMessageSound() {
-    try {
-        // Create a simple notification sound
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
-        
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.5);
-    } catch (error) {
-        console.log("Audio not supported");
+// Add realtime status indicator
+function addRealtimeIndicator() {
+    const indicator = document.createElement('div');
+    indicator.id = 'realtimeIndicator';
+    indicator.innerHTML = '🔴 Offline';
+    indicator.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    `;
+    document.body.appendChild(indicator);
+}
+
+// Update realtime indicator
+function updateRealtimeIndicator(connected) {
+    const indicator = document.getElementById('realtimeIndicator');
+    if (indicator) {
+        if (connected) {
+            indicator.innerHTML = '🟢 Live';
+            indicator.style.background = 'rgba(40, 167, 69, 0.8)';
+        } else {
+            indicator.innerHTML = '🔴 Offline';
+            indicator.style.background = 'rgba(220, 53, 69, 0.8)';
+        }
     }
 }
 
@@ -413,11 +417,7 @@ function autoResize(textarea) {
 function scrollToBottom() {
     const container = document.getElementById('messagesContainer');
     if (container) {
-        // Smooth scroll to bottom
-        container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'smooth'
-        });
+        container.scrollTop = container.scrollHeight;
     }
 }
 
@@ -496,11 +496,10 @@ function setupEventListeners() {
         const input = document.getElementById('messageInput');
         if (input) {
             input.focus();
-            input.value = '';
         }
     }, 500);
 
-    // Clean up channel on page unload
+    // Clean up on page unload
     window.addEventListener('beforeunload', () => {
         if (chatChannel) {
             supabase.removeChannel(chatChannel);
@@ -514,7 +513,7 @@ function attachFile() {
 }
 
 function blockUser() {
-    if (chatFriend && confirm(`Block ${chatFriend.username}? You won't be able to message each other.`)) {
+    if (chatFriend && confirm(`Block ${chatFriend.username}?`)) {
         alert(`${chatFriend.username} has been blocked.`);
         closeModal();
         goBack();
@@ -522,15 +521,8 @@ function blockUser() {
 }
 
 function clearChat() {
-    if (!chatFriend || !confirm("Clear all messages in this chat? This cannot be undone.")) {
-        return;
-    }
-    
-    // Note: In production, you would delete from database
-    // For now, just clear local messages
-    messages = [];
-    displayMessages();
-    closeModal();
+    if (!chatFriend || !confirm("Clear all messages?")) return;
+    alert("Clear chat feature coming soon!");
 }
 
 // Make functions available globally
