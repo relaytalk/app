@@ -1,24 +1,21 @@
-// Chat Page Script - UPDATED FOR SUPABASE
+// Chat Page Script - SIMPLIFIED FOR FRIENDS MESSAGING
 import { auth } from '../../utils/auth.js'
 import { supabase } from '../../utils/supabase.js'
 
-console.log("✨ Luster Chat Page Loaded (Supabase Version)");
+console.log("✨ Luster Chat Page Loaded");
 
 let currentUser = null;
-let currentConversationId = null;
 let chatFriend = null;
 let messages = [];
-let isTyping = false;
 
 // Initialize chat page
 async function initChatPage() {
-    console.log("Initializing chat page with Supabase...");
+    console.log("Initializing chat page...");
 
     // Check if user is logged in
     const { success, user } = await auth.getCurrentUser();
-    
+
     if (!success || !user) {
-        // No user found, redirect to auth
         alert("Please login first!");
         window.location.href = '../auth/index.html';
         return;
@@ -27,82 +24,51 @@ async function initChatPage() {
     currentUser = user;
     console.log("Logged in as:", currentUser.email);
 
-    // Get conversation ID from URL
+    // Get friend ID from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const conversationId = urlParams.get('conversation');
+    const friendId = urlParams.get('friendId');
 
-    if (!conversationId) {
-        // No conversation specified
-        alert("No conversation selected!");
+    if (!friendId) {
+        alert("No friend selected!");
         window.location.href = '../home/index.html';
         return;
     }
 
-    currentConversationId = conversationId;
-
-    // Load conversation data
-    await loadConversationData(conversationId);
+    // Load friend data
+    await loadFriendData(friendId);
 
     // Load messages
-    await loadMessages();
+    await loadMessages(friendId);
 
     // Set up event listeners
     setupEventListeners();
 
-    // Setup real-time listeners
-    setupRealtimeListeners();
+    // Setup real-time listener
+    setupRealtimeListener(friendId);
 
     console.log("Chat page initialized");
 }
 
-// Load conversation data
-async function loadConversationData(conversationId) {
+// Load friend data
+async function loadFriendData(friendId) {
     try {
-        // Get conversation info and other participant
-        const { data: conversation, error: convError } = await supabase
-            .from('conversations')
-            .select(`
-                *,
-                participants (
-                    user_id,
-                    profiles:user_id (
-                        username,
-                        full_name,
-                        avatar_url,
-                        status
-                    )
-                )
-            `)
-            .eq('id', conversationId)
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', friendId)
             .single();
 
-        if (convError) throw convError;
+        if (error) throw error;
 
-        // Find the other participant (not current user)
-        const otherParticipant = conversation.participants.find(
-            p => p.user_id !== currentUser.id
-        );
+        chatFriend = profile;
+        console.log("Chatting with:", profile.username);
 
-        if (!otherParticipant || !otherParticipant.profiles) {
-            alert("Conversation participant not found!");
-            window.location.href = '../home/index.html';
-            return;
-        }
-
-        chatFriend = {
-            id: otherParticipant.user_id,
-            username: otherParticipant.profiles.username,
-            full_name: otherParticipant.profiles.full_name,
-            avatar_url: otherParticipant.profiles.avatar_url,
-            status: otherParticipant.profiles.status
-        };
-
-        // Update UI with friend data
+        // Update UI
         updateChatHeader();
-        
+
     } catch (error) {
-        console.error("Error loading conversation:", error);
-        alert("Error loading conversation. Please try again.");
+        console.error("Error loading friend:", error);
+        alert("Error loading friend data!");
         window.location.href = '../home/index.html';
     }
 }
@@ -121,7 +87,7 @@ function updateChatHeader() {
     const chatUserAvatar = document.getElementById('chatUserAvatar');
     if (chatUserAvatar) {
         if (chatFriend.avatar_url) {
-            chatUserAvatar.innerHTML = `<img src="${chatFriend.avatar_url}" alt="${chatFriend.username}">`;
+            chatUserAvatar.innerHTML = `<img src="${chatFriend.avatar_url}" alt="${chatFriend.username}" style="width:100%;height:100%;border-radius:50%;">`;
         } else {
             // Fallback: first letter
             const firstLetter = chatFriend.username.charAt(0).toUpperCase();
@@ -133,7 +99,7 @@ function updateChatHeader() {
     // Update status
     const statusText = document.getElementById('statusText');
     const statusDot = document.getElementById('statusDot');
-    
+
     if (statusText && statusDot) {
         const isOnline = chatFriend.status === 'online';
         statusText.textContent = isOnline ? 'Online' : 'Offline';
@@ -141,27 +107,23 @@ function updateChatHeader() {
     }
 }
 
-// Load messages from Supabase
-async function loadMessages() {
-    if (!currentConversationId) return;
+// Load messages (direct messages between two users)
+async function loadMessages(friendId) {
+    if (!currentUser || !friendId) return;
 
     try {
-        const { data: chatMessages, error } = await supabase
+        // Get messages where current user is sender OR receiver
+        const { data: allMessages, error } = await supabase
             .from('messages')
-            .select(`
-                *,
-                sender:profiles!messages_sender_id_fkey (
-                    username,
-                    avatar_url
-                )
-            `)
-            .eq('conversation_id', currentConversationId)
+            .select('*')
+            .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`)
             .order('created_at', { ascending: true });
 
         if (error) throw error;
 
-        messages = chatMessages || [];
-        
+        messages = allMessages || [];
+        console.log("Loaded", messages.length, "messages");
+
         // Display messages
         displayMessages();
 
@@ -169,7 +131,10 @@ async function loadMessages() {
         setTimeout(() => {
             scrollToBottom();
         }, 100);
-        
+
+        // Mark unread messages as read
+        markMessagesAsRead(friendId);
+
     } catch (error) {
         console.error("Error loading messages:", error);
         messages = [];
@@ -183,7 +148,6 @@ function displayMessages() {
     if (!container) return;
 
     if (messages.length === 0) {
-        // Show empty state
         container.innerHTML = `
             <div class="empty-chat">
                 <div class="empty-chat-icon">💬</div>
@@ -198,7 +162,6 @@ function displayMessages() {
     let lastDate = null;
 
     messages.forEach((message) => {
-        // Check if we need a date separator
         const messageDate = new Date(message.created_at).toDateString();
         if (messageDate !== lastDate) {
             html += `
@@ -213,20 +176,15 @@ function displayMessages() {
         const time = formatTime(message.created_at);
 
         html += `
-            <div class="message ${isSent ? 'sent' : 'received'}" 
-                 data-message-id="${message.id}">
+            <div class="message ${isSent ? 'sent' : 'received'}">
                 <div class="message-content">
                     ${message.content || ''}
-                    ${message.attachment_url ? `
-                        <img src="${message.attachment_url}" class="message-image" 
-                             onclick="viewImage('${message.attachment_url}')">
-                    ` : ''}
                 </div>
                 <div class="message-time">
                     ${time}
                     ${isSent ? `
                         <div class="message-status">
-                            ${message.read_by && message.read_by.includes(chatFriend?.id) ? '✓✓' : '✓'}
+                            ${message.is_read ? '✓✓' : '✓'}
                         </div>
                     ` : ''}
                 </div>
@@ -267,23 +225,23 @@ function formatTime(timestamp) {
     }).toLowerCase();
 }
 
-// Send message via Supabase
+// Send message
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
 
-    if (!text || !currentConversationId || !chatFriend) return;
+    if (!text || !chatFriend) return;
 
     try {
         // Create message in Supabase
         const { data: newMessage, error } = await supabase
             .from('messages')
             .insert({
-                conversation_id: currentConversationId,
                 sender_id: currentUser.id,
+                receiver_id: chatFriend.id,
                 content: text,
-                message_type: 'text',
-                read_by: [currentUser.id] // Mark as read by sender
+                is_read: false,
+                created_at: new Date().toISOString()
             })
             .select()
             .single();
@@ -291,10 +249,7 @@ async function sendMessage() {
         if (error) throw error;
 
         // Add to local messages array
-        messages.push({
-            ...newMessage,
-            sender: { username: currentUser.user_metadata?.username }
-        });
+        messages.push(newMessage);
 
         // Clear input
         input.value = '';
@@ -302,18 +257,70 @@ async function sendMessage() {
         const sendBtn = document.getElementById('sendBtn');
         if (sendBtn) sendBtn.disabled = true;
 
-        // Display messages (will be updated via realtime anyway)
+        // Display messages
         displayMessages();
 
         // Scroll to bottom
         scrollToBottom();
 
-        console.log("Message sent:", newMessage);
-        
+        console.log("Message sent");
+
     } catch (error) {
         console.error("Error sending message:", error);
         alert("Could not send message. Please try again.");
     }
+}
+
+// Mark messages as read
+async function markMessagesAsRead(friendId) {
+    try {
+        // Mark all unread messages from this friend as read
+        await supabase
+            .from('messages')
+            .update({ is_read: true })
+            .eq('sender_id', friendId)
+            .eq('receiver_id', currentUser.id)
+            .eq('is_read', false);
+
+    } catch (error) {
+        console.error("Error marking messages as read:", error);
+    }
+}
+
+// Setup real-time listener for new messages
+function setupRealtimeListener(friendId) {
+    if (!friendId || !currentUser) return;
+
+    // Listen for new messages
+    supabase
+        .channel(`chat:${currentUser.id}:${friendId}`)
+        .on('postgres_changes', 
+            { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'messages',
+                filter: `or(and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id}),and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}))`
+            },
+            (payload) => {
+                console.log("New message:", payload.new);
+
+                // Add to messages array if not already there
+                if (!messages.some(m => m.id === payload.new.id)) {
+                    messages.push(payload.new);
+                    displayMessages();
+                    scrollToBottom();
+
+                    // Mark as read if it's from friend
+                    if (payload.new.sender_id === friendId) {
+                        supabase
+                            .from('messages')
+                            .update({ is_read: true })
+                            .eq('id', payload.new.id);
+                    }
+                }
+            }
+        )
+        .subscribe();
 }
 
 // Handle key press
@@ -321,7 +328,6 @@ function handleKeyPress(event) {
     const sendBtn = document.getElementById('sendBtn');
     const input = document.getElementById('messageInput');
 
-    // Enable/disable send button
     if (sendBtn) {
         sendBtn.disabled = !input || input.value.trim() === '';
     }
@@ -339,7 +345,6 @@ function autoResize(textarea) {
     textarea.style.height = 'auto';
     textarea.style.height = (textarea.scrollHeight) + 'px';
 
-    // Enable/disable send button
     const sendBtn = document.getElementById('sendBtn');
     if (sendBtn) {
         sendBtn.disabled = textarea.value.trim() === '';
@@ -371,30 +376,26 @@ function showUserInfo() {
     const isOnline = chatFriend.status === 'online';
 
     content.innerHTML = `
-        <div class="user-info-avatar">
-            ${chatFriend.avatar_url ? 
-                `<img src="${chatFriend.avatar_url}" alt="${chatFriend.username}">` : 
-                chatFriend.username.charAt(0).toUpperCase()
-            }
-        </div>
-        
-        <div class="user-info-details">
-            <h3 class="user-info-name">${chatFriend.username}</h3>
-            <p class="user-info-username">${chatFriend.full_name || ''}</p>
-            <div class="user-info-status">
-                <span class="status-dot ${isOnline ? '' : 'offline'}"></span>
-                ${isOnline ? 'Online' : 'Offline'}
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="width: 80px; height: 80px; background: linear-gradient(45deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; margin: 0 auto 15px;">
+                ${chatFriend.username.charAt(0).toUpperCase()}
+            </div>
+            <h3 style="margin-bottom: 5px;">${chatFriend.username}</h3>
+            <p style="color: #a0a0c0; margin-bottom: 10px;">${chatFriend.full_name || ''}</p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span class="status-dot ${isOnline ? '' : 'offline'}" style="margin: 0;"></span>
+                <span>${isOnline ? 'Online' : 'Offline'}</span>
             </div>
         </div>
         
-        <div class="user-info-actions">
-            <button class="info-action-btn primary" onclick="startVoiceCall()">
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+            <button class="action-btn accept-btn" onclick="startVoiceCall()" style="width: 100%;">
                 🎤 Voice Call
             </button>
-            <button class="info-action-btn secondary" onclick="viewSharedMedia()">
+            <button class="action-btn secondary" onclick="viewSharedMedia()" style="width: 100%;">
                 📷 Shared Media
             </button>
-            <button class="info-action-btn danger" onclick="blockUser()">
+            <button class="action-btn decline-btn" onclick="blockUser()" style="width: 100%;">
                 🚫 Block User
             </button>
         </div>
@@ -407,124 +408,6 @@ function showUserInfo() {
 function closeModal() {
     const modal = document.getElementById('userInfoModal');
     if (modal) modal.style.display = 'none';
-}
-
-// Setup realtime listeners
-function setupRealtimeListeners() {
-    if (!currentConversationId) return;
-
-    // Listen for new messages
-    supabase
-        .channel(`messages:${currentConversationId}`)
-        .on('postgres_changes', 
-            { 
-                event: 'INSERT', 
-                schema: 'public', 
-                table: 'messages',
-                filter: `conversation_id=eq.${currentConversationId}`
-            },
-            async (payload) => {
-                console.log("New message received:", payload.new);
-                
-                // Get sender info for the new message
-                const { data: sender } = await supabase
-                    .from('profiles')
-                    .select('username, avatar_url')
-                    .eq('id', payload.new.sender_id)
-                    .single();
-
-                // Add to messages array
-                messages.push({
-                    ...payload.new,
-                    sender: sender || { username: 'Unknown' }
-                });
-
-                // Display messages
-                displayMessages();
-
-                // Scroll to bottom
-                scrollToBottom();
-
-                // Mark as read if it's from the other person
-                if (payload.new.sender_id !== currentUser.id) {
-                    markMessageAsRead(payload.new.id);
-                }
-            }
-        )
-        .subscribe();
-
-    // Listen for message updates (read receipts)
-    supabase
-        .channel(`messages-updates:${currentConversationId}`)
-        .on('postgres_changes', 
-            { 
-                event: 'UPDATE', 
-                schema: 'public', 
-                table: 'messages',
-                filter: `conversation_id=eq.${currentConversationId}`
-            },
-            (payload) => {
-                console.log("Message updated:", payload.new);
-                
-                // Update message in array
-                const index = messages.findIndex(m => m.id === payload.new.id);
-                if (index !== -1) {
-                    messages[index] = payload.new;
-                    displayMessages();
-                }
-            }
-        )
-        .subscribe();
-
-    // Listen for user status changes
-    if (chatFriend) {
-        supabase
-            .channel(`user-status:${chatFriend.id}`)
-            .on('postgres_changes', 
-                { 
-                    event: 'UPDATE', 
-                    schema: 'public', 
-                    table: 'profiles',
-                    filter: `id=eq.${chatFriend.id}`
-                },
-                (payload) => {
-                    console.log("User status updated:", payload.new);
-                    chatFriend.status = payload.new.status;
-                    updateChatHeader();
-                }
-            )
-            .subscribe();
-    }
-}
-
-// Mark message as read
-async function markMessageAsRead(messageId) {
-    try {
-        // Get current read_by array
-        const { data: message, error: getError } = await supabase
-            .from('messages')
-            .select('read_by')
-            .eq('id', messageId)
-            .single();
-
-        if (getError) throw getError;
-
-        // Add current user to read_by if not already there
-        const readBy = message.read_by || [];
-        if (!readBy.includes(currentUser.id)) {
-            readBy.push(currentUser.id);
-
-            const { error: updateError } = await supabase
-                .from('messages')
-                .update({ read_by: readBy })
-                .eq('id', messageId);
-
-            if (updateError) throw updateError;
-        }
-        
-    } catch (error) {
-        console.error("Error marking message as read:", error);
-    }
 }
 
 // Set up event listeners
@@ -549,54 +432,34 @@ function setupEventListeners() {
         const input = document.getElementById('messageInput');
         if (input) input.focus();
     }, 500);
-
-    // Logout button (if exists)
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await auth.signOut();
-                window.location.href = '../auth/index.html';
-            } catch (error) {
-                console.error("Error logging out:", error);
-                alert("Error logging out. Please try again.");
-            }
-        });
-    }
 }
 
-// Placeholder functions (for future features)
+// Placeholder functions
 function attachFile() {
-    alert("File attachment feature coming soon!\n\nYou'll be able to send:\n• Images\n• Documents\n• Voice messages");
+    alert("File attachment coming soon!");
 }
 
 function startVoiceCall() {
-    alert("Voice call feature coming soon!");
+    alert("Voice call coming soon!");
     closeModal();
 }
 
 function viewSharedMedia() {
-    alert("Shared media feature coming soon!");
+    alert("Shared media coming soon!");
     closeModal();
 }
 
 function blockUser() {
-    if (chatFriend && confirm(`Block ${chatFriend.username}? You won't receive messages from them.`)) {
+    if (chatFriend && confirm(`Block ${chatFriend.username}?`)) {
         alert(`${chatFriend.username} has been blocked.`);
         closeModal();
         goBack();
     }
 }
 
-function viewImage(imageUrl) {
-    window.open(imageUrl, '_blank');
-}
-
 function clearChat() {
-    if (!chatFriend || !confirm("Clear all messages in this chat? This cannot be undone.")) {
-        return;
-    }
-    alert("Clear chat feature will be available in the database admin panel.");
+    if (!chatFriend || !confirm("Clear all messages?")) return;
+    alert("Clear chat feature coming soon!");
 }
 
 // Make functions available globally
@@ -611,11 +474,6 @@ window.clearChat = clearChat;
 window.startVoiceCall = startVoiceCall;
 window.viewSharedMedia = viewSharedMedia;
 window.blockUser = blockUser;
-window.viewImage = viewImage;
-// Add these if not already there
-window.togglePassword = togglePassword;
-window.showTerms = showTerms;
-window.showPrivacy = showPrivacy;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initChatPage);
