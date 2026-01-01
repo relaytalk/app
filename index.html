@@ -55,22 +55,51 @@
         </div>
     </div>
 
-    <script>
-        function goToLogin() {
-            // Redirect to login page (auth page handles both signup/login)
-            window.location.href = 'pages/login/index.html';
+    <script type="module">
+        import { auth } from './utils/auth.js';
+        
+        async function checkUserAndRedirect() {
+            try {
+                console.log("🔄 Checking login status...");
+                
+                const { success, user } = await auth.getCurrentUser();
+                
+                if (success && user) {
+                    // User IS logged in → Skip landing, go to home
+                    console.log("✅ User logged in, redirecting to home...");
+                    window.location.href = 'pages/home/index.html';
+                    return; // Stop here
+                }
+                
+                // User NOT logged in → Show landing page normally
+                console.log("❌ User not logged in, showing landing...");
+                showLandingPage();
+                
+            } catch (error) {
+                console.error("Auth check error:", error);
+                showLandingPage(); // Show landing on error
+            }
         }
-
-        // Check if user is already logged in
-        window.addEventListener('DOMContentLoaded', function() {
+        
+        function showLandingPage() {
+            // Original landing page logic
             const user = JSON.parse(localStorage.getItem('luster_user'));
             if (user) {
-                // User is logged in, redirect to home
                 setTimeout(() => {
                     window.location.href = 'pages/home/index.html';
                 }, 2000);
             }
-        });
+        }
+        
+        function goToLogin() {
+            window.location.href = 'pages/login/index.html';
+        }
+        
+        // Check on page load
+        document.addEventListener('DOMContentLoaded', checkUserAndRedirect);
+        
+        // Make functions global
+        window.goToLogin = goToLogin;
     </script>
 </body>
 </html>
