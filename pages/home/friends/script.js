@@ -1,4 +1,4 @@
-// Friends Page Script - FINAL POLISHED VERSION
+// Friends Page Script - WITH CORRECT PATHS
 import { auth } from '../../../utils/auth.js'
 import { supabase } from '../../../utils/supabase.js'
 
@@ -7,7 +7,7 @@ console.log("✨ Friends Page Loaded");
 // Current user
 let currentUser = null;
 let currentProfile = null;
-let allFriends = []; // Store all friends for search filtering
+let allFriends = [];
 
 // Toast Notification System
 class ToastNotification {
@@ -63,6 +63,10 @@ class ToastNotification {
     error(title, message = '') {
         return this.show({ title, message, type: 'error' });
     }
+
+    info(title, message = '') {
+        return this.show({ title, message, type: 'info' });
+    }
 }
 
 const toast = new ToastNotification();
@@ -97,9 +101,6 @@ async function initFriendsPage() {
         
         // Set up search
         setupSearch();
-        
-        // Set up real-time subscription for status updates
-        setupRealtimeUpdates();
         
         // Hide loading
         clearTimeout(loadingTimeout);
@@ -149,15 +150,18 @@ function showLoginPrompt() {
     }
 }
 
-// CORRECT PATHS - Adjust these based on your actual structure
+// ==================== CORRECT PATHS ====================
+
 function goToLogin() {
-    // If your auth is at: app/pages/auth/index.html
-    window.location.href = '../../auth/index.html';  
+    // From: app/pages/home/friends/
+    // To: app/pages/login/
+    window.location.href = '../../../login/index.html';  
 }
 
 function goToSignup() {
-    // If your auth is at: app/pages/auth/index.html
-    window.location.href = '../../auth/index.html?signup=true';  
+    // From: app/pages/home/friends/
+    // To: app/pages/auth/
+    window.location.href = '../../../auth/index.html';  
 }
 
 // Load friends list
@@ -208,8 +212,7 @@ async function loadFriendsList(searchTerm = '') {
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
             filteredFriends = allFriends.filter(friend => 
-                friend.username.toLowerCase().includes(term) ||
-                (friend.full_name && friend.full_name.toLowerCase().includes(term))
+                friend.username.toLowerCase().includes(term)
             );
         }
 
@@ -258,7 +261,6 @@ async function getUnreadMessageCounts(friendIds) {
     const unreadCounts = {};
     
     try {
-        // Try to get unread counts from messages table
         const { data: unreadMessages, error } = await supabase
             .from('messages')
             .select('sender_id')
@@ -347,7 +349,7 @@ function showEmptyFriends(container) {
             <div class="empty-icon">👥</div>  
             <h3 class="empty-title">No Friends Yet</h3>  
             <p class="empty-desc">Add friends to start chatting</p>  
-            <button class="search-btn" onclick="openSearch()" style="margin-top: 20px;">  
+            <button class="search-btn" onclick="openSearchModal()" style="margin-top: 20px;">  
                 <i class="fas fa-search"></i> Find Friends  
             </button>  
         </div>  
@@ -401,39 +403,6 @@ function setupSearch() {
     });
 }
 
-// Set up real-time updates for online status
-function setupRealtimeUpdates() {
-    // Subscribe to profile changes (for online status)
-    const subscription = supabase
-        .channel('profiles-changes')
-        .on('postgres_changes', 
-            { 
-                event: 'UPDATE', 
-                schema: 'public', 
-                table: 'profiles',
-                filter: `id=in.(${allFriends.map(f => f.id).join(',')})`
-            }, 
-            (payload) => {
-                console.log('Profile updated:', payload.new);
-                // Update the specific friend in our list
-                const updatedFriend = allFriends.find(f => f.id === payload.new.id);
-                if (updatedFriend) {
-                    updatedFriend.status = payload.new.status;
-                    updatedFriend.last_seen = payload.new.last_seen;
-                    // Re-render the list
-                    displayFriendsWhatsAppStyle(allFriends, document.getElementById('friendsContainer'));
-                    updateFriendsStats(allFriends);
-                }
-            }
-        )
-        .subscribe();
-    
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        supabase.removeChannel(subscription);
-    });
-}
-
 // CORRECT PATH for chats page
 async function openChat(friendId, friendUsername = 'Friend') {
     console.log("Opening chat with:", friendId);
@@ -447,9 +416,8 @@ async function openChat(friendId, friendUsername = 'Friend') {
         username: friendUsername  
     }));  
     
-    // CORRECT PATH - Adjust based on your structure
-    // If chats are at: app/pages/chats/index.html
-    window.location.href = '../chats/index.html?friendId=' + friendId;
+    // CORRECT PATH: From app/pages/home/friends/ to app/pages/chats/
+    window.location.href = '../../../chats/index.html?friendId=' + friendId;
 }
 
 // Mark messages as read
@@ -473,17 +441,22 @@ async function markMessagesAsRead(friendId) {
     }
 }
 
-// Navigation functions
+// ==================== NAVIGATION FUNCTIONS ====================
+
 function goToHome() {
-    // If home is at: app/pages/home/index.html
+    // From: app/pages/home/friends/
+    // To: app/pages/home/
     window.location.href = '../index.html';
 }
 
-function openSearch() {
+function openSearchModal() {
     const modal = document.getElementById('searchModal');
     if (modal) {
         modal.style.display = 'flex';
         loadSearchResults();
+    } else {
+        // Redirect to home page search
+        window.location.href = '../index.html';
     }
 }
 
@@ -501,25 +474,232 @@ function closeModal() {
     });
 }
 
-// Search modal functions (for adding new friends)
+// Search modal functions
 async function loadSearchResults() {
-    // Implementation for adding new friends
-    toast.info("Search", "Find new friends feature");
+    try {
+        if (!currentUser) return;
+        
+        const container = document.getElementById('searchResults');
+        if (!container) return;
+        
+        // Get all users except current user
+        const { data: users, error } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .neq('id', currentUser.id)
+            .limit(20);
+        
+        if (error) throw error;
+        
+        if (!users || users.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="padding: 30px 20px;">
+                    <div class="empty-icon">👥</div>
+                    <p>No users found</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Display users
+        let html = '';
+        users.forEach(user => {
+            const firstLetter = user.username.charAt(0).toUpperCase();
+            html += `
+                <div class="search-result">
+                    <div class="search-avatar">${firstLetter}</div>
+                    <div class="search-info">
+                        <div class="search-name">${user.username}</div>
+                    </div>
+                    <button class="send-request-btn" onclick="sendFriendRequest('${user.id}', '${user.username}', this)">
+                        Add Friend
+                    </button>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error("Search error:", error);
+        toast.error("Search", "Could not load users");
+    }
+}
+
+async function sendFriendRequest(toUserId, toUsername, button) {
+    if (!currentUser) return;
+    
+    button.textContent = 'Sending...';
+    button.disabled = true;
+    
+    try {
+        const { error } = await supabase
+            .from('friend_requests')
+            .insert({
+                sender_id: currentUser.id,
+                receiver_id: toUserId,
+                status: 'pending'
+            });
+        
+        if (error) throw error;
+        
+        button.textContent = '✓ Sent';
+        button.classList.add('sent');
+        toast.success("Request Sent", `Friend request sent to ${toUsername}`);
+        
+    } catch (error) {
+        console.error("Send request error:", error);
+        button.textContent = 'Add Friend';
+        button.disabled = false;
+        toast.error("Error", "Could not send request");
+    }
 }
 
 async function loadNotifications() {
-    // Implementation for notifications
-    toast.info("Notifications", "View friend requests");
+    const container = document.getElementById('notificationsList');
+    if (!container || !currentUser) return;
+    
+    try {
+        const { data: requests, error } = await supabase
+            .from('friend_requests')
+            .select('id, sender_id, created_at')
+            .eq('receiver_id', currentUser.id)
+            .eq('status', 'pending');
+        
+        if (error) throw error;
+        
+        if (!requests || requests.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="padding: 40px 20px;">
+                    <div class="empty-icon">🔔</div>
+                    <p>No notifications</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Get sender usernames
+       const senderIds = requests.map(r => r.sender_id);
+        const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .in('id', senderIds);
+        
+        const profileMap = {};
+        if (profiles) {
+            profiles.forEach(p => profileMap[p.id] = p.username);
+        }
+        
+        let html = '';
+        requests.forEach(request => {
+            const senderName = profileMap[request.sender_id] || 'Unknown';
+            const timeAgo = getTimeAgo(request.created_at);
+            
+            html += `
+                <div class="notification-item">
+                    <div class="notification-avatar">${senderName.charAt(0)}</div>
+                    <div class="notification-content">
+                        <div class="notification-text">
+                            <div class="notification-title">${senderName} wants to be friends</div>
+                            <div class="notification-time">${timeAgo}</div>
+                        </div>
+                        <div class="notification-actions">
+                            <button class="accept-btn" onclick="acceptRequest('${request.id}', '${request.sender_id}', this)">
+                                Accept
+                            </button>
+                            <button class="decline-btn" onclick="declineRequest('${request.id}', this)">
+                                Decline
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error("Notifications error:", error);
+        container.innerHTML = `
+            <div class="empty-state" style="padding: 40px 20px;">
+                <div class="empty-icon">⚠️</div>
+                <p>Error loading notifications</p>
+            </div>
+        `;
+    }
 }
 
-// Make functions available globally
+async function acceptRequest(requestId, senderId, button) {
+    button.textContent = 'Accepting...';
+    button.disabled = true;
+    
+    try {
+        // Update request status
+        await supabase
+            .from('friend_requests')
+            .update({ status: 'accepted' })
+            .eq('id', requestId);
+        
+        // Add to friends table
+        await supabase
+            .from('friends')
+            .insert([
+                { user_id: currentUser.id, friend_id: senderId },
+                { user_id: senderId, friend_id: currentUser.id }
+            ]);
+        
+        button.textContent = '✓ Accepted';
+        toast.success("Friend Added", "You are now friends!");
+        
+        // Reload friends list
+        setTimeout(() => {
+            loadFriendsList();
+            loadNotifications();
+        }, 1000);
+        
+    } catch (error) {
+        console.error("Accept error:", error);
+        button.textContent = 'Accept';
+        button.disabled = false;
+        toast.error("Error", "Could not accept request");
+    }
+}
+
+async function declineRequest(requestId, button) {
+    button.textContent = 'Declining...';
+    button.disabled = true;
+    
+    try {
+        await supabase
+            .from('friend_requests')
+            .update({ status: 'rejected' })
+            .eq('id', requestId);
+        
+        button.textContent = '✗ Declined';
+        toast.info("Request Declined", "Friend request declined");
+        
+        setTimeout(() => loadNotifications(), 500);
+        
+    } catch (error) {
+        console.error("Decline error:", error);
+        button.textContent = 'Decline';
+        button.disabled = false;
+        toast.error("Error", "Could not decline request");
+    }
+}
+
+// ==================== GLOBAL FUNCTIONS ====================
+
 window.goToHome = goToHome;
-window.openSearch = openSearch;
+window.openSearchModal = openSearchModal;
 window.openNotifications = openNotifications;
 window.closeModal = closeModal;
 window.openChat = openChat;
 window.goToLogin = goToLogin;
 window.goToSignup = goToSignup;
+window.sendFriendRequest = sendFriendRequest;
+window.acceptRequest = acceptRequest;
+window.declineRequest = declineRequest;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initFriendsPage);
