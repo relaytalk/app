@@ -227,7 +227,7 @@ body {
     font-weight: 300;
 }
 
-/* Message Input */
+/* Message Input - NO ATTACH BUTTON */
 .message-input-wrapper {
     position: fixed;
     bottom: 0;
@@ -292,7 +292,6 @@ body {
     justify-content: center;
     transition: all 0.3s;
     flex-shrink: 0;
-    margin-bottom: 2px;
 }
 
 .send-btn:hover {
@@ -305,29 +304,6 @@ body {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
-}
-
-.attach-btn {
-    background: none;
-    border: none;
-    color: #a0a0c0;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    width: 46px;
-    height: 46px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s;
-    flex-shrink: 0;
-    margin-bottom: 2px;
-}
-
-.attach-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
 }
 
 /* Empty Chat State */
@@ -536,7 +512,7 @@ body {
     border-radius: 2px;
 }
 
-/* Modal styles (from previous style.css) */
+/* Modal styles */
 .modal-overlay {
     position: fixed;
     top: 0;
