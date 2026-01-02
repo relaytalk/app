@@ -1,9 +1,34 @@
 // ===== RELAYTALK HOME PAGE - MIDNIGHT AURORA =====
 // Using global variables from your existing auth.js and supabase.js
 
-// Get auth and supabase from global window object
-const auth = window.auth;
-const supabase = window.supabase;
+// ===== RELAYTALK HOME PAGE - MIDNIGHT AURORA =====
+// Using global variables from your existing auth.js and supabase.js
+
+// Wait a moment for scripts to load
+setTimeout(() => {
+    // Get auth and supabase from global window object
+    const auth = window.auth;
+    const supabase = window.supabase;
+    
+    if (!auth) {
+        console.error("❌ Auth not found!");
+        alert("Auth not loaded. Please refresh.");
+        location.reload();
+        return;
+    }
+    
+    if (!supabase) {
+        console.error("❌ Supabase not found!");
+        alert("Supabase not loaded. Please refresh.");
+        location.reload();
+        return;
+    }
+    
+    // Now initialize
+    initHomePage();
+}, 1000);
+
+// ... rest of your functions ...
 
 // Global variables
 let currentUser = null;
