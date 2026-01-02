@@ -24,6 +24,12 @@
     max-width: 400px;
     max-height: 80vh;
     overflow-y: auto;
+    animation: slideUp 0.3s ease; /* ADDED ANIMATION */
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header {
@@ -189,6 +195,18 @@
     transition: all 0.3s;
 }
 
+/* Status dot styles */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #28a745;
+}
+
+.status-dot.offline {
+    background: #6c757d;
+}
+
 /* New message notification */
 .new-message-notification {
     position: fixed;
@@ -296,4 +314,14 @@
     .message-image {
         max-width: 200px;
     }
+}
+
+/* NEW: Scroll hint for messages */
+.messages-container.has-messages {
+    padding-bottom: 70px !important; /* Extra space at bottom */
+}
+
+/* NEW: Last message spacing */
+.message:last-child {
+    margin-bottom: 10px !important;
 }
