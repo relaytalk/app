@@ -1,5 +1,11 @@
 // File: utils/auth.js - SIMPLE USERNAME-ONLY AUTH SYSTEM (CLEAN VERSION)
-import { supabase } from './supabase.js'
+// Get supabase from global window object
+const supabase = window.supabase;
+
+// Check if supabase is available
+if (!supabase) {
+    console.error('❌ Supabase not found in window.supabase');
+}
 
 let heartbeatInterval = null;
 let currentUserId = null;
@@ -63,7 +69,7 @@ const heartbeat = {
 };
 
 // MAIN AUTH OBJECT
-export const auth = {
+const auth = {
     // Sign in existing user (MAIN LOGIN FUNCTION)
     async signIn(username, password) {
         try {
@@ -285,18 +291,10 @@ window.addEventListener('beforeunload', () => {
     heartbeat.stop();
 });
 
-// Export heartbeat separately if needed
-export { heartbeat };
-
 // ================================================
-// 🔥 ADD THESE LINES AT THE VERY END OF THE FILE
+// 🔥 EXPOSE AUTH GLOBALLY
 // ================================================
-// Export for ES6 modules (already exists - keep it!)
-// export { auth };
-
-// Expose globally for regular scripts (IMPORTANT!)
 if (typeof window !== 'undefined') {
     window.auth = auth;
     console.log('✅ Auth exposed globally as window.auth');
 }
-// ================================================
