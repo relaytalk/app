@@ -1,8 +1,158 @@
-// Home Page Script - FINAL WORKING VERSION
+// Home Page Script - FINAL WORKING VERSION WITH TOAST NOTIFICATIONS
 import { auth } from '../../utils/auth.js'
 import { supabase } from '../../utils/supabase.js'
 
-console.log("✨ Luster Home Page Loaded");
+console.log("✨ Relay Home Page Loaded");
+
+// ==================== TOAST NOTIFICATION SYSTEM ====================
+class ToastNotification {
+    constructor() {
+        this.container = document.getElementById('toastContainer');
+        if (!this.container) {
+            this.createToastContainer();
+        }
+    }
+
+    createToastContainer() {
+        this.container = document.createElement('div');
+        this.container.className = 'toast-container';
+        this.container.id = 'toastContainer';
+        document.body.prepend(this.container);
+    }
+
+    show(options) {
+        const {
+            title = '',
+            message = '',
+            type = 'info',
+            duration = 5000,
+            icon = null
+        } = options;
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        let iconHtml = icon;
+        if (!iconHtml) {
+            switch(type) {
+                case 'success': iconHtml = '✨'; break;
+                case 'error': iconHtml = '❌'; break;
+                case 'warning': iconHtml = '⚠️'; break;
+                case 'info': iconHtml = '💬'; break;
+                default: iconHtml = '💬';
+            }
+        }
+
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        toast.innerHTML = `
+            <div class="toast-icon">${iconHtml}</div>
+            <div class="toast-content">
+                <div class="toast-title">
+                    ${title}
+                    <span style="color: #a0a0c0; font-size: 0.8rem; font-weight: normal; margin-left: auto;">${timeString}</span>
+                </div>
+                ${message ? `<div class="toast-message">${message}</div>` : ''}
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            <div class="toast-progress">
+                <div class="toast-progress-bar"></div>
+            </div>
+        `;
+
+        this.container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+
+        if (duration > 0) {
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.add('hide');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 300);
+            }, duration);
+        }
+
+        return toast;
+    }
+
+    success(title, message = '', duration = 5000) {
+        return this.show({ 
+            title, 
+            message, 
+            type: 'success', 
+            duration, 
+            icon: '✨' 
+        });
+    }
+
+    error(title, message = '', duration = 7000) {
+        return this.show({ 
+            title, 
+            message, 
+            type: 'error', 
+            duration, 
+            icon: '❌' 
+        });
+    }
+
+    warning(title, message = '', duration = 6000) {
+        return this.show({ 
+            title, 
+            message, 
+            type: 'warning', 
+            duration, 
+            icon: '⚠️' 
+        });
+    }
+
+    info(title, message = '', duration = 4000) {
+        return this.show({ 
+            title, 
+            message, 
+            type: 'info', 
+            duration, 
+            icon: '💬' 
+        });
+    }
+
+    friendRequest(title, message = '', duration = 6000) {
+        return this.show({ 
+            title, 
+            message, 
+            type: 'info', 
+            duration, 
+            icon: '👋' 
+        });
+    }
+
+    friendAdded(title, message = '', duration = 5000) {
+        return this.show({ 
+            title, 
+            message, 
+            type: 'success', 
+            duration, 
+            icon: '🤝' 
+        });
+    }
+}
+
+// Initialize toast system
+const toast = new ToastNotification();
+
+// Make toast available globally
+window.showToast = toast.show.bind(toast);
+window.showSuccess = toast.success.bind(toast);
+window.showError = toast.error.bind(toast);
+window.showWarning = toast.warning.bind(toast);
+window.showInfo = toast.info.bind(toast);
+window.showFriendRequest = toast.friendRequest.bind(toast);
+window.showFriendAdded = toast.friendAdded.bind(toast);
+
+// ==================== END TOAST SYSTEM ====================
 
 // Current user
 let currentUser = null;
@@ -16,8 +166,10 @@ async function initHomePage() {
     const { success, user } = await auth.getCurrentUser();  
 
     if (!success || !user) {  
-        alert("Please login first!");  
-        window.location.href = '../auth/index.html';  
+        showError("Login Required", "Please login to continue");
+        setTimeout(() => {
+            window.location.href = '../auth/index.html';  
+        }, 1500);
         return;  
     }  
 
@@ -42,9 +194,18 @@ async function initHomePage() {
         const loadingIndicator = document.getElementById('loadingIndicator');
         if (loadingIndicator) {
             loadingIndicator.classList.add('hidden');
-            // Remove from DOM after animation completes
             setTimeout(() => {
                 loadingIndicator.style.display = 'none';
+                
+                // Show welcome toast
+                if (currentProfile) {
+                    setTimeout(() => {
+                        showSuccess(
+                            "Welcome to Relay!",
+                            `Good to see you, ${currentProfile.username} 👋`
+                        );
+                    }, 300);
+                }
             }, 300);
         }
     }, 100);
@@ -194,15 +355,25 @@ function getTimeAgo(date) {
     return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// Open chat with friend - UPDATED WITH CORRECT URL
+// Open chat with friend
 async function openChat(friendId, friendUsername = 'Friend') {
     console.log("Opening chat with:", friendId, friendUsername);
+
+    // Show loading toast
+    const loadingToast = showInfo("Opening Chat", `Connecting with ${friendUsername}...`);
 
     // Store friend info in session storage for chat page  
     sessionStorage.setItem('currentChatFriend', JSON.stringify({  
         id: friendId,  
         username: friendUsername  
     }));  
+
+    // Remove loading toast
+    setTimeout(() => {
+        if (loadingToast && loadingToast.parentNode) {
+            loadingToast.remove();
+        }
+    }, 500);
 
     // Redirect to chat page  
     window.location.href = `../chats/index.html?friendId=${friendId}`;
@@ -238,12 +409,16 @@ function updateBadgeDisplay(count) {
         if (count > 0) {
             badge.textContent = count > 9 ? '9+' : count;
             badge.style.display = 'block';
-            console.log("Badge updated:", count);
+            
+            // Show subtle notification toast for first notification
+            if (count === 1) {
+                setTimeout(() => {
+                    showInfo("New Notification", "You have a new friend request");
+                }, 1000);
+            }
         } else {
             badge.style.display = 'none';
         }
-    } else {
-        console.error("Notification badge element not found!");
     }
 }
 
@@ -263,7 +438,7 @@ function openSearch() {
         loadSearchResults();
     } else {
         console.error("Search modal not found!");
-        alert("Search feature not available. Please check console.");
+        showError("Search Unavailable", "The search feature is currently unavailable");
     }
 }
 
@@ -276,7 +451,7 @@ function openNotifications() {
         loadNotifications();
     } else {
         console.error("Notifications modal not found!");
-        alert("Notifications not available. Please check console.");
+        showError("Notifications Unavailable", "Unable to load notifications");
     }
 }
 
@@ -347,6 +522,7 @@ async function loadSearchResults() {
                 <p style="font-size: 0.9rem;">${error.message}</p>  
             </div>  
         `;  
+        showError("Connection Error", "Unable to load users list");
     }
 }
 
@@ -430,9 +606,17 @@ async function displaySearchResults(users) {
 async function sendFriendRequest(toUserId, toUsername) {
     if (!currentUser) return;
 
+    // Show loading state
+    const sendBtn = event?.target;
+    if (sendBtn) {
+        const originalText = sendBtn.textContent;
+        sendBtn.textContent = 'Sending...';
+        sendBtn.disabled = true;
+    }
+
     try {  
         // Check if request already exists  
-        const { data: existingRequest, error: checkError } = await supabase  
+const { data: existingRequest, error: checkError } = await supabase  
             .from('friend_requests')  
             .select('id')  
             .eq('sender_id', currentUser.id)  
@@ -441,7 +625,15 @@ async function sendFriendRequest(toUserId, toUsername) {
             .maybeSingle();  
 
         if (existingRequest) {  
-            alert(`Friend request already sent to ${toUsername}!`);  
+            showInfo("Request Already Sent", `You've already sent a friend request to ${toUsername}`);
+            
+            // Reset button
+            if (sendBtn) {
+                sendBtn.textContent = '✓ Sent';
+                setTimeout(() => {
+                    sendBtn.disabled = false;
+                }, 1000);
+            }
             return;  
         }  
 
@@ -457,7 +649,13 @@ async function sendFriendRequest(toUserId, toUsername) {
 
         if (error) {  
             console.error("Error sending request:", error);  
-            alert("Could not send friend request.");  
+            showError("Request Failed", "Could not send friend request");
+            
+            // Reset button
+            if (sendBtn) {
+                sendBtn.textContent = 'Add Friend';
+                sendBtn.disabled = false;
+            }
             return;  
         }  
 
@@ -465,11 +663,25 @@ async function sendFriendRequest(toUserId, toUsername) {
         loadSearchResults();  
         updateNotificationsBadge();  
 
-        alert(`Friend request sent to ${toUsername}!`);  
+        // Show success toast
+        showFriendRequest("Friend Request Sent", `Your request has been sent to ${toUsername}!`);
+        
+        // Update button
+        if (sendBtn) {
+            sendBtn.textContent = '✓ Sent';
+            sendBtn.disabled = true;
+            sendBtn.classList.add('sent');
+        }
 
     } catch (error) {  
         console.error("Error sending friend request:", error);  
-        alert("Could not send friend request. Please try again.");  
+        showError("Request Failed", "Please check your connection and try again");
+        
+        // Reset button
+        if (sendBtn) {
+            sendBtn.textContent = 'Add Friend';
+            sendBtn.disabled = false;
+        }
     }
 }
 
@@ -519,7 +731,6 @@ async function loadNotifications() {
             const timeAgo = getTimeAgo(notification.created_at);  
             const senderName = profileMap[notification.sender_id] || 'Unknown User';  
             const firstLetter = senderName.charAt(0).toUpperCase();  
-
             html += `  
                 <div class="notification-item">  
                     <div class="notification-avatar" style="background: linear-gradient(45deg, #667eea, #764ba2);">  
@@ -530,10 +741,10 @@ async function loadNotifications() {
                         <small>${timeAgo}</small>  
                     </div>  
                     <div class="notification-actions">  
-                        <button class="btn-small btn-success" onclick="window.acceptFriendRequest('${notification.id}', '${notification.sender_id}', '${senderName}')">  
+                        <button class="btn-small btn-success" onclick="window.acceptFriendRequest('${notification.id}', '${notification.sender_id}', '${senderName}', this)">  
                             ✓  
                         </button>  
-                        <button class="btn-small btn-danger" onclick="window.declineFriendRequest('${notification.id}')">  
+                        <button class="btn-small btn-danger" onclick="window.declineFriendRequest('${notification.id}', this)">  
                             ✗  
                         </button>  
                     </div>  
@@ -559,8 +770,15 @@ function showEmptyNotifications(container) {
 }
 
 // Accept friend request
-async function acceptFriendRequest(requestId, senderId, senderName = 'User') {
+async function acceptFriendRequest(requestId, senderId, senderName = 'User', button = null) {
     console.log("Accepting request:", requestId, "from:", senderId);
+
+    // Show loading state on button
+    if (button) {
+        const originalText = button.textContent;
+        button.textContent = '...';
+        button.disabled = true;
+    }
 
     try {  
         // 1. Update friend request status  
@@ -598,16 +816,36 @@ async function acceptFriendRequest(requestId, senderId, senderName = 'User') {
         await loadFriends();  
         await updateNotificationsBadge();  
 
-        alert(`You are now friends with ${senderName}!`);  
+        // Show success toast
+        showFriendAdded("New Friend!", `You are now connected with ${senderName}! 🎉`);
+
+        // Update button
+        if (button) {
+            button.textContent = '✓ Accepted';
+            button.style.background = 'rgba(40, 167, 69, 0.3)';
+        }
 
     } catch (error) {  
         console.error("Error accepting friend request:", error);  
-        alert("Could not accept friend request.");  
+        showError("Connection Failed", "Could not accept friend request");
+        
+        // Reset button
+        if (button) {
+            button.textContent = '✓';
+            button.disabled = false;
+        }
     }
 }
 
 // Decline friend request
-async function declineFriendRequest(requestId) {
+async function declineFriendRequest(requestId, button = null) {
+    // Show loading state on button
+    if (button) {
+        const originalText = button.textContent;
+        button.textContent = '...';
+        button.disabled = true;
+    }
+
     try {
         const { error } = await supabase
             .from('friend_requests')
@@ -619,11 +857,24 @@ async function declineFriendRequest(requestId) {
         await loadNotifications();  
         await updateNotificationsBadge();  
 
-        alert(`Friend request declined.`);  
+        // Show info toast
+        showInfo("Request Declined", "Friend request has been declined");
+
+        // Update button
+        if (button) {
+            button.textContent = '✗ Declined';
+            button.style.background = 'rgba(220, 53, 69, 0.3)';
+        }
 
     } catch (error) {  
         console.error("Error declining friend request:", error);  
-        alert("Could not decline friend request.");  
+        showError("Action Failed", "Could not decline friend request");
+        
+        // Reset button
+        if (button) {
+            button.textContent = '✗';
+            button.disabled = false;
+        }
     }
 }
 
@@ -636,11 +887,26 @@ function setupEventListeners() {
     if (logoutBtn) {  
         logoutBtn.addEventListener('click', async () => {  
             try {  
+                // Show loading toast
+                const loadingToast = showInfo("Logging Out", "Please wait...");
+                
                 await auth.signOut();  
-                window.location.href = '../auth/index.html';  
+                
+                // Remove loading toast
+                if (loadingToast && loadingToast.parentNode) {
+                    loadingToast.remove();
+                }
+                
+                // Show success toast
+                showSuccess("Logged Out", "See you soon! 👋");
+                
+                setTimeout(() => {
+                    window.location.href = '../auth/index.html';  
+                }, 1000);
+                
             } catch (error) {  
                 console.error("Error logging out:", error);  
-                alert("Error logging out. Please try again.");  
+                showError("Logout Failed", "Please try again");
             }  
         });  
     }  
@@ -654,8 +920,19 @@ function goToHome() {
 }
 
 function openSettings() {
-    alert("Settings page coming soon!");
-    // window.location.href = '../profile/index.html';
+    showInfo("Coming Soon", "Settings page is under development! Stay tuned ✨");
+}
+
+// Function to navigate to Friends page
+function viewFriendsPage() {
+    // Check if we're already on the friends page
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('friends')) {
+        return; // Already on friends page
+    }
+    
+    // Navigate to friends page
+    window.location.href = 'friends/index.html';
 }
 
 // Make functions available globally
@@ -668,6 +945,8 @@ window.acceptFriendRequest = acceptFriendRequest;
 window.declineFriendRequest = declineFriendRequest;
 window.goToHome = goToHome;
 window.openSettings = openSettings;
+window.viewFriendsPage = viewFriendsPage;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initHomePage);
+        
