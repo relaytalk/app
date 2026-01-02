@@ -1,4 +1,34 @@
-/* friends/style.css - FINAL VERSION */
+/* friends/style.css - FINAL WITH FIXES */
+
+/* Prevent text selection and blue tap highlight */
+* {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+
+/* Allow selection only for inputs */
+input, textarea {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+}
+
+/* Remove focus outlines and blue tap */
+button:focus,
+button:active,
+input:focus,
+input:active,
+a:focus,
+a:active {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
 
 /* WhatsApp Style Friend Items */
 .friend-item-whatsapp {
@@ -12,12 +42,17 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.friend-item-whatsapp:active {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(0.98);
 }
 
 .friend-item-whatsapp:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(102, 126, 234, 0.2);
-    transform: translateY(-2px);
 }
 
 .friend-avatar-whatsapp {
@@ -46,16 +81,10 @@
 .status-indicator-whatsapp.online {
     background: #28a745;
     box-shadow: 0 0 8px #28a745;
-    animation: pulse-online 2s infinite;
 }
 
 .status-indicator-whatsapp.offline {
     background: #6c757d;
-}
-
-@keyframes pulse-online {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
 }
 
 .friend-info-whatsapp {
@@ -103,13 +132,6 @@
     justify-content: center;
     padding: 0 6px;
     flex-shrink: 0;
-    animation: badge-pulse 2s infinite;
-    box-shadow: 0 3px 10px rgba(255, 107, 139, 0.3);
-}
-
-@keyframes badge-pulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 3px 10px rgba(255, 107, 139, 0.3); }
-    50% { transform: scale(1.1); box-shadow: 0 5px 15px rgba(255, 107, 139, 0.5); }
 }
 
 /* Loading Skeleton */
@@ -121,12 +143,6 @@
     background: rgba(255, 255, 255, 0.05);
     border-radius: 15px;
     margin-bottom: 10px;
-    animation: skeleton-pulse 1.5s infinite;
-}
-
-@keyframes skeleton-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
 }
 
 .skeleton-avatar {
@@ -193,20 +209,27 @@
     margin: 0 auto;
 }
 
-.login-btn {
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    color: white;
-    border: none;
+.login-btn, .signup-btn {
     padding: 15px 25px;
     border-radius: 12px;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    border: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.login-btn:active, .signup-btn:active {
+    transform: scale(0.98);
+}
+
+.login-btn {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
 }
 
 .login-btn:hover {
-    transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
 }
 
@@ -214,17 +237,10 @@
     background: rgba(255, 255, 255, 0.1);
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 15px 25px;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
 }
 
 .signup-btn:hover {
     background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
 }
 
 /* Update container */
@@ -234,8 +250,37 @@
     gap: 10px;
 }
 
-/* Keep existing styles for stats, search, etc. */
-/* ... (keep all your existing styles from before) ... */
+/* Search input */
+.search-friends-input {
+    width: 100%;
+    padding: 16px 20px 16px 55px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    color: white;
+    font-size: 1rem;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.search-friends-input:focus {
+    outline: none;
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* All buttons in the page */
+button, .search-btn, .view-all-btn, .nav-btn, .back-btn,
+.send-request-btn, .accept-btn, .decline-btn, .modal-close,
+.toast-close {
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
+}
+
+button:active, .search-btn:active, .nav-btn:active, 
+.back-btn:active, .send-request-btn:active {
+    transform: scale(0.98) !important;
+}
 
 /* Responsive */
 @media (max-width: 768px) {
