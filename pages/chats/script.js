@@ -79,16 +79,16 @@ function showLoginAlert() {
     alertIcon.textContent = "🔐";
     alertTitle.textContent = "Login Required";
     alertMessage.textContent = "Please login or signup to continue chatting!";
-    
+
     // Show both buttons
     alertCancel.style.display = 'inline-block';
-    
+
     // FIXED: Login button redirects to pages/login/index.html
     alertConfirm.textContent = "Login";
     alertConfirm.className = "alert-btn confirm";
     alertConfirm.onclick = () => {
         alertOverlay.style.display = 'none';
-        window.location.href = '../../auth/index.html'; // FIXED PATH
+     window.location.href = '../../login/index.html';
     };
 
     // Signup button
@@ -246,22 +246,22 @@ function setupRealtime(friendId) {
             table: 'direct_messages'
         }, (payload) => {
             console.log("📨 Realtime INSERT detected:", payload.new);
-            
+
             const newMsg = payload.new;
-            
+
             // Check if this message is for our chat
             const isOurMessage = 
                 (newMsg.sender_id === currentUser.id && newMsg.receiver_id === friendId) ||
                 (newMsg.sender_id === friendId && newMsg.receiver_id === currentUser.id);
-            
+
             if (isOurMessage) {
                 // Check for duplicates
                 const isDuplicate = currentMessages.some(msg => msg.id === newMsg.id);
-                
+
                 if (!isDuplicate) {
                     console.log("✅ Adding new message to UI");
                     addMessageToUI(newMsg);
-                    
+
                     // Notification for incoming messages only
                     if (newMsg.sender_id === friendId) {
                         const originalTitle = document.title;
@@ -285,13 +285,13 @@ function setupRealtime(friendId) {
             table: 'profiles'
         }, (payload) => {
             console.log("🔄 Profile UPDATE detected:", payload.new);
-            
+
             // Check if this update is for our friend
             if (payload.new.id === friendId) {
                 console.log("✅ Friend status updated:", payload.new.status);
                 chatFriend.status = payload.new.status;
                 updateFriendStatus(payload.new.status);
-                
+
                 // Show toast for status change
                 if (payload.new.status === 'online') {
                     showToast(`${chatFriend.username} is now online`, "🟢");
@@ -316,14 +316,14 @@ function updateRealtimeStatus(status, type = 'message') {
     }
 
     const now = new Date().toLocaleTimeString();
-    
+
     if (status === 'SUBSCRIBED') {
         statusEl.innerHTML = `🟢 Live`;
         statusEl.style.background = '#28a745';
     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         statusEl.innerHTML = `🔴 Error`;
         statusEl.style.background = '#dc3545';
-        
+
         // Retry after 5 seconds
         setTimeout(() => {
             const friendId = new URLSearchParams(window.location.search).get('friendId');
@@ -387,16 +387,16 @@ async function sendMessage() {
         if (error) throw error;
 
         console.log("✅ Message sent to database:", data.id);
-        
+
         // FIX: Clear input WITHOUT losing focus (keyboard stays open)
         input.value = '';
         input.style.height = 'auto';
-        
+
         // IMPORTANT: Schedule focus for next event cycle to prevent keyboard flash
         setTimeout(() => {
             input.focus();
         }, 0);
-        
+
         // Update send button
         document.getElementById('sendBtn').disabled = true;
 
