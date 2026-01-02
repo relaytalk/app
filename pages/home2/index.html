@@ -11,17 +11,10 @@
     <!-- Loading Screen -->
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-content">
-            <div class="loading-logo">
-                <div class="logo-circle">
-                    <i class="fas fa-bolt"></i>
-                </div>
-                <h1>RelayTalk</h1>
+            <div class="logo-circle loading-pulse">
+                <i class="fas fa-bolt"></i>
             </div>
-            <div class="loading-dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
+            <h1 class="app-title">RelayTalk</h1>
             <p class="loading-text">Connecting you...</p>
         </div>
     </div>
@@ -29,137 +22,112 @@
     <!-- Main App Container -->
     <div class="app-container" id="appContainer">
         <!-- Header -->
-        <header class="main-header">
+        <header class="app-header">
             <div class="header-left">
-                <div class="app-logo">
-                    <i class="fas fa-bolt"></i>
-                    <span>RelayTalk</span>
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h1>RelayTalk</h1>
                 </div>
             </div>
             <div class="header-right">
-                <button class="icon-btn" id="searchBtn" onclick="window.location.href='subpages/search.html'">
-                    <i class="fas fa-search"></i>
-                </button>
-                <button class="icon-btn notification-btn" id="notificationBtn" onclick="window.location.href='subpages/notifications.html'">
+                <button class="icon-btn" id="notificationsBtn">
                     <i class="fas fa-bell"></i>
-                    <span class="notification-badge" id="headerNotificationBadge">0</span>
+                    <span class="notification-badge" id="notificationBadge">0</span>
                 </button>
                 <div class="user-avatar" id="userAvatar">
-                    <span id="avatarInitial">U</span>
+                    <i class="fas fa-user"></i>
                 </div>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Welcome Section -->
-            <section class="welcome-section">
-                <h1 class="welcome-title" id="welcomeTitle">Welcome back!</h1>
-                <p class="welcome-subtitle" id="welcomeSubtitle">Your conversations are waiting</p>
-            </section>
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" 
+                       class="search-input" 
+                       id="searchInput" 
+                       placeholder="Search chats or messages..."
+                       autocomplete="off">
+                <button class="search-clear" id="clearSearch">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
 
-            <!-- Quick Actions -->
-            <section class="quick-actions">
-                <button class="quick-action-btn" onclick="window.location.href='subpages/friends.html'">
-                    <div class="quick-action-icon">
-                        <i class="fas fa-user-friends"></i>
-                    </div>
-                    <span>Friends</span>
-                </button>
-                <button class="quick-action-btn" onclick="window.location.href='subpages/search.html'">
-                    <div class="quick-action-icon">
-                        <i class="fas fa-search-plus"></i>
-                    </div>
-                    <span>Discover</span>
-                </button>
-                <button class="quick-action-btn" id="newChatBtn">
-                    <div class="quick-action-icon">
-                        <i class="fas fa-plus"></i>
-                    </div>
-                    <span>New Chat</span>
-                </button>
-            </section>
-
-            <!-- Chats Section -->
-            <section class="chats-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fas fa-comments"></i>
-                        Recent Chats
-                    </h2>
-                    <button class="refresh-btn" id="refreshChats">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+        <!-- Chat List -->
+        <main class="chat-list-container" id="chatListContainer">
+            <!-- Chats will be loaded here -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">
+                    <i class="fas fa-comments"></i>
                 </div>
+                <h3>No chats yet</h3>
+                <p>Start a conversation with your friends!</p>
+                <button class="btn-primary" onclick="window.location.href='search.html'">
+                    <i class="fas fa-user-plus"></i>
+                    Find Friends
+                </button>
+            </div>
 
-                <!-- Chat List -->
-                <div class="chats-list" id="chatsList">
-                    <!-- Chats will be loaded here dynamically -->
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <i class="fas fa-comment-slash"></i>
-                        </div>
-                        <h3>No conversations yet</h3>
-                        <p>Start by adding friends or sending your first message!</p>
-                        <button class="btn-primary" onclick="window.location.href='subpages/search.html'">
-                            <i class="fas fa-user-plus"></i>
-                            Find Friends
-                        </button>
-                    </div>
-                </div>
-            </section>
+            <!-- Chat Items Container -->
+            <div class="chats-list" id="chatsList">
+                <!-- Chat items will be dynamically added here -->
+            </div>
         </main>
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
             <a href="index.html" class="nav-item active">
-                <i class="fas fa-home"></i>
-                <span>Home</span>
+                <i class="fas fa-comment-dots"></i>
+                <span>Chats</span>
             </a>
-            <a href="subpages/friends.html" class="nav-item">
+            <a href="friends.html" class="nav-item">
                 <i class="fas fa-user-friends"></i>
                 <span>Friends</span>
             </a>
-            <a href="subpages/search.html" class="nav-item">
+            <a href="search.html" class="nav-item">
                 <i class="fas fa-search"></i>
                 <span>Search</span>
             </a>
-            <a href="subpages/notifications.html" class="nav-item">
+            <a href="notifications.html" class="nav-item">
                 <i class="fas fa-bell"></i>
                 <span>Alerts</span>
-                <span class="nav-badge" id="bottomNavBadge">0</span>
+                <span class="nav-badge" id="navNotificationBadge">0</span>
             </a>
         </nav>
 
-        <!-- New Chat Modal -->
-        <div class="modal-overlay" id="newChatModal">
-            <div class="modal-container">
-                <div class="modal-header">
-                    <h3>New Conversation</h3>
-                    <button class="modal-close" onclick="closeModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
+        <!-- Floating Action Button -->
+        <button class="fab" id="newChatFab">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- New Chat Modal -->
+    <div class="modal-overlay" id="newChatModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>New Chat</h2>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="newChatSearch" placeholder="Search friends...">
                 </div>
-                <div class="modal-content">
-                    <div class="search-container">
-                        <i class="fas fa-search"></i>
-                        <input type="text" 
-                               id="newChatSearch" 
-                               placeholder="Search friends to chat with..."
-                               autocomplete="off">
-                    </div>
-                    <div class="friends-list-modal" id="friendsListModal">
-                        <!-- Friends will load here -->
-                    </div>
+                <div class="friends-list-modal" id="friendsListModal">
+                    <!-- Friends will be loaded here -->
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="../../utils/auth.js"></script>
-    <script src="../../utils/supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
 </html>
