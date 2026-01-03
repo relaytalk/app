@@ -9,6 +9,86 @@
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+/* Add these styles to call.html's <style> section */
+
+.call-toast {
+    position: fixed;
+    bottom: 150px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    z-index: 10000;
+    animation: fadeInOut 3s ease;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+}
+
+/* Video toggle button */
+#video-toggle {
+    display: none; /* Hidden by default, shown for video calls */
+    position: absolute;
+    top: 20px;
+    right: 100px;
+    gap: 10px;
+}
+
+.video-control-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.video-control-btn:active {
+    transform: scale(0.95);
+}
+
+.video-control-btn i {
+    font-size: 1.2rem;
+}
+
+/* Remote video element */
+#remote-video {
+    display: none; /* Hidden by default, shown when video stream arrives */
+    width: 200px;
+    height: 150px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    border-radius: 15px;
+    border: 2px solid rgba(255,255,255,0.2);
+    object-fit: cover;
+    background: #000;
+}
+
+/* Quality dots */
+.quality-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.quality-dot.good { background: #4CAF50; }
+.quality-dot.average { background: #FF9500; }
+.quality-dot.poor { background: #FF3B30; }
         /* Active Call Specific Styles */
         .call-screen {
             position: fixed;
