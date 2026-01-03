@@ -1,0 +1,301 @@
+<!-- /app/pages/phone/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📞 Relay - Calls</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Prevent text selection */
+        * {
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+        }
+
+        /* Loading indicator */
+        .loading-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Indicator -->
+    <div class="loading-indicator" id="loadingIndicator">
+        <div class="loading-text">📞 Loading Calls...</div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Top Header -->
+    <header class="top-header">
+        <button class="back-btn" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <div class="logo-top">📞 Relay Calls</div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Quick Actions -->
+        <section class="quick-actions">
+            <div class="action-buttons">
+                <button class="action-btn voice-call-btn" onclick="showDialPad()">
+                    <i class="fas fa-phone"></i>
+                    <span>Voice Call</span>
+                </button>
+                <button class="action-btn video-call-btn" onclick="showVideoDial()">
+                    <i class="fas fa-video"></i>
+                    <span>Video Call</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Dial Pad (Hidden by default) -->
+        <div class="dial-pad-container" id="dialPad" style="display: none;">
+            <div class="dial-pad-header">
+                <h3><i class="fas fa-dial"></i> Dial a Number</h3>
+                <button class="close-dial" onclick="hideDialPad()">×</button>
+            </div>
+            <div class="number-display" id="dialNumber">+91</div>
+            <div class="dial-keys">
+                <div class="dial-row">
+                    <button class="dial-key" onclick="addNumber('1')">1</button>
+                    <button class="dial-key" onclick="addNumber('2')">2</button>
+                    <button class="dial-key" onclick="addNumber('3')">3</button>
+                </div>
+                <div class="dial-row">
+                    <button class="dial-key" onclick="addNumber('4')">4</button>
+                    <button class="dial-key" onclick="addNumber('5')">5</button>
+                    <button class="dial-key" onclick="addNumber('6')">6</button>
+                </div>
+                <div class="dial-row">
+                    <button class="dial-key" onclick="addNumber('7')">7</button>
+                    <button class="dial-key" onclick="addNumber('8')">8</button>
+                    <button class="dial-key" onclick="addNumber('9')">9</button>
+                </div>
+                <div class="dial-row">
+                    <button class="dial-key special">*</button>
+                    <button class="dial-key" onclick="addNumber('0')">0</button>
+                    <button class="dial-key special">#</button>
+                </div>
+            </div>
+            <div class="dial-controls">
+                <button class="dial-clear" onclick="clearNumber()">
+                    <i class="fas fa-backspace"></i> Clear
+                </button>
+                <button class="dial-call" onclick="makeExternalCall()">
+                    <i class="fas fa-phone"></i> Call
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Calls Section -->
+        <section class="calls-section">
+            <div class="section-header">
+                <h2><i class="fas fa-history"></i> Recent Calls</h2>
+                <button class="clear-all" onclick="clearCallHistory()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="call-tabs">
+                <button class="tab-btn active" onclick="showTab('all')">All</button>
+                <button class="tab-btn" onclick="showTab('missed')">Missed</button>
+                <button class="tab-btn" onclick="showTab('outgoing')">Outgoing</button>
+                <button class="tab-btn" onclick="showTab('incoming')">Incoming</button>
+            </div>
+
+            <!-- Calls List -->
+            <div class="calls-list" id="callsList">
+                <!-- Calls will load here -->
+                <div class="empty-state">
+                    <div class="empty-icon">📞</div>
+                    <h3>No Call History</h3>
+                    <p>Start making calls to see them here</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Contacts -->
+        <section class="contacts-section">
+            <div class="section-header">
+                <h2><i class="fas fa-users"></i> Quick Contacts</h2>
+                <button class="refresh-btn" onclick="loadQuickContacts()">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div class="quick-contacts" id="quickContacts">
+                <!-- Quick contacts will load here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-btn" onclick="goToHome()">
+            <span class="nav-icon"><i class="fas fa-home"></i></span>
+            Home
+        </button>
+        <button class="nav-btn" onclick="goToCalls()">
+            <span class="nav-icon"><i class="fas fa-phone"></i></span>
+            Calls
+        </button>
+        <button class="nav-btn" onclick="goToContacts()">
+            <span class="nav-icon"><i class="fas fa-users"></i></span>
+            Contacts
+        </button>
+        <button class="nav-btn" onclick="openSettings()">
+            <span class="nav-icon"><i class="fas fa-cog"></i></span>
+            Settings
+        </button>
+    </nav>
+
+    <!-- Call Modal -->
+    <div class="modal-overlay" id="callModal" style="display: none;">
+        <div class="modal-content call-modal">
+            <div class="call-modal-header">
+                <div class="call-modal-avatar" id="callModalAvatar">U</div>
+                <div class="call-modal-info">
+                    <h3 id="callModalName">Unknown</h3>
+                    <p id="callModalStatus">Ready to call</p>
+                </div>
+            </div>
+            
+            <div class="call-modal-options">
+                <button class="call-option" onclick="startVoiceCall()">
+                    <i class="fas fa-phone"></i>
+                    <span>Voice Call</span>
+                </button>
+                <button class="call-option" onclick="startVideoCall()">
+                    <i class="fas fa-video"></i>
+                    <span>Video Call</span>
+                </button>
+                <button class="call-option" onclick="sendMessageInstead()">
+                    <i class="fas fa-comment"></i>
+                    <span>Message</span>
+                </button>
+            </div>
+            
+            <div class="call-modal-actions">
+                <button class="modal-close-btn" onclick="closeCallModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="script.js"></script>
+    <script>
+        // Navigation functions
+        function goBack() {
+            if (document.getElementById('dialPad').style.display === 'block') {
+                hideDialPad();
+            } else {
+                window.history.back();
+            }
+        }
+
+        function goToHome() {
+            window.location.href = '/app/pages/home/index.html';
+        }
+
+        function goToCalls() {
+            // Already on calls page
+            console.log("Already on calls page");
+        }
+
+        function goToContacts() {
+            window.location.href = '/app/pages/home/friends/index.html';
+        }
+
+        function openSettings() {
+            alert('Settings page coming soon!');
+        }
+
+        // Dial pad functions
+        let dialNumber = '+91';
+
+        function showDialPad() {
+            document.getElementById('dialPad').style.display = 'block';
+            dialNumber = '+91';
+            document.getElementById('dialNumber').textContent = dialNumber;
+        }
+
+        function hideDialPad() {
+            document.getElementById('dialPad').style.display = 'none';
+        }
+
+        function addNumber(num) {
+            if (dialNumber.length < 15) {
+                dialNumber += num;
+                document.getElementById('dialNumber').textContent = dialNumber;
+            }
+        }
+
+        function clearNumber() {
+            dialNumber = '+91';
+            document.getElementById('dialNumber').textContent = dialNumber;
+        }
+
+        function makeExternalCall() {
+            const number = dialNumber.replace('+91', '');
+            if (number.length >= 10) {
+                window.open(`tel:${dialNumber}`, '_blank');
+                toast.success("Dialing", `Calling ${dialNumber}`);
+                hideDialPad();
+            } else {
+                toast.error("Invalid", "Please enter a valid number");
+            }
+        }
+
+        // Tab switching
+        function showTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            // In real app, filter calls by tab
+            console.log("Switched to tab:", tab);
+        }
+
+        // Toast system
+        const toast = {
+            show: function(type, title, message) {
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                toast.innerHTML = `
+                    <div class="toast-icon">${type === 'success' ? '✅' : '⚠️'}</div>
+                    <div class="toast-content">
+                        <div class="toast-title">${title}</div>
+                        <div class="toast-message">${message}</div>
+                    </div>
+                    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+                `;
+                document.getElementById('toastContainer').appendChild(toast);
+                setTimeout(() => toast.remove(), 4000);
+            },
+            success: function(title, message) { this.show('success', title, message); },
+            error: function(title, message) { this.show('error', title, message); }
+        };
+    </script>
+</body>
+</html>
