@@ -16,6 +16,25 @@ const PATHS = {
     PHONE_CALL: '/app/pages/phone/call.html'
 };
 // ==================== END PATHS CONFIG ====================
+import presenceTracker from '/app/utils/presence.js';
+
+// In initFriendsPage():
+async function initFriendsPage() {
+    // ... auth code ...
+    
+    currentUser = user;
+    
+    // Start presence tracking
+    await presenceTracker.start(currentUser.id);
+    
+    // ... rest of code ...
+}
+
+
+
+
+
+
 
 // Current user
 let currentUser = null;
