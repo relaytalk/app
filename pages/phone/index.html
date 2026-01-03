@@ -1,301 +1,252 @@
-<!-- /app/pages/phone/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📞 Relay - Calls</title>
+    <title>📞 Relay Calls</title>
     <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Prevent text selection */
-        * {
-            -webkit-tap-highlight-color: transparent !important;
-            -webkit-touch-callout: none !important;
-            -webkit-user-select: none !important;
-            -moz-user-select: none !important;
-            -ms-user-select: none !important;
-            user-select: none !important;
+        /* Phone-specific styles matching your theme */
+        .phone-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
         }
 
-        /* Loading indicator */
-        .loading-indicator {
-            position: fixed;
-            top: 0;
-            left: 0;
+        .call-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .call-title {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        /* Dial Pad */
+        .dial-pad {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+        }
+
+        .user-input {
             width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            padding: 18px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        /* Call Buttons */
+        .call-btn-group {
+            display: grid;
+            gap: 15px;
+        }
+
+        .call-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            gap: 10px;
+        }
+
+        .call-btn.voice {
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
-            font-size: 1.2rem;
+        }
+
+        .call-btn.video {
+            background: linear-gradient(45deg, #ff6b8b, #ff8e53);
+            color: white;
+        }
+
+        .call-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Active Call UI */
+        .call-ui {
+            display: none;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 40px 30px;
+            backdrop-filter: blur(10px);
+            margin-top: 30px;
+        }
+
+        .call-status {
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .call-timer {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 30px 0;
+        }
+
+        .call-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 40px;
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mute-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .video-btn {
+            background: linear-gradient(45deg, #ff6b8b, #ff8e53);
+            color: white;
+        }
+
+        .end-btn {
+            background: linear-gradient(45deg, #ff3b30, #ff5e3a);
+            color: white;
+        }
+
+        /* Incoming Call */
+        .incoming-call {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+            box-shadow: 0 30px 60px rgba(245, 87, 108, 0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.03); }
+        }
+
+        /* Audio element */
+        #remoteAudio {
+            width: 100%;
+            margin: 20px 0;
+            border-radius: 15px;
         }
     </style>
 </head>
 <body>
-    <!-- Loading Indicator -->
-    <div class="loading-indicator" id="loadingIndicator">
-        <div class="loading-text">📞 Loading Calls...</div>
-    </div>
+    <!-- Back Button -->
+    <a href="../home/index.html" class="back-button">←</a>
 
-    <!-- Toast Notifications -->
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- Main Phone Container -->
+    <div class="phone-container">
+        <!-- Header -->
+        <div class="call-header">
+            <h1 class="call-title">📞 Relay Calls</h1>
+            <p style="color: #a0a0c0;">Connect with voice & video</p>
+        </div>
 
-    <!-- Top Header -->
-    <header class="top-header">
-        <button class="back-btn" onclick="goBack()">
-            <i class="fas fa-arrow-left"></i> Back
-        </button>
-        <div class="logo-top">📞 Relay Calls</div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Quick Actions -->
-        <section class="quick-actions">
-            <div class="action-buttons">
-                <button class="action-btn voice-call-btn" onclick="showDialPad()">
-                    <i class="fas fa-phone"></i>
-                    <span>Voice Call</span>
+        <!-- Dial Pad -->
+        <div class="dial-pad">
+            <h3 style="color: white; margin-bottom: 20px;">Call a Friend</h3>
+            <input 
+                type="text" 
+                class="user-input" 
+                id="friendId" 
+                placeholder="Enter friend's user ID"
+            >
+            
+            <div class="call-btn-group">
+                <button class="call-btn voice" onclick="startVoiceCall()">
+                    <span>📞</span> Voice Call
                 </button>
-                <button class="action-btn video-call-btn" onclick="showVideoDial()">
-                    <i class="fas fa-video"></i>
-                    <span>Video Call</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- Dial Pad (Hidden by default) -->
-        <div class="dial-pad-container" id="dialPad" style="display: none;">
-            <div class="dial-pad-header">
-                <h3><i class="fas fa-dial"></i> Dial a Number</h3>
-                <button class="close-dial" onclick="hideDialPad()">×</button>
-            </div>
-            <div class="number-display" id="dialNumber">+91</div>
-            <div class="dial-keys">
-                <div class="dial-row">
-                    <button class="dial-key" onclick="addNumber('1')">1</button>
-                    <button class="dial-key" onclick="addNumber('2')">2</button>
-                    <button class="dial-key" onclick="addNumber('3')">3</button>
-                </div>
-                <div class="dial-row">
-                    <button class="dial-key" onclick="addNumber('4')">4</button>
-                    <button class="dial-key" onclick="addNumber('5')">5</button>
-                    <button class="dial-key" onclick="addNumber('6')">6</button>
-                </div>
-                <div class="dial-row">
-                    <button class="dial-key" onclick="addNumber('7')">7</button>
-                    <button class="dial-key" onclick="addNumber('8')">8</button>
-                    <button class="dial-key" onclick="addNumber('9')">9</button>
-                </div>
-                <div class="dial-row">
-                    <button class="dial-key special">*</button>
-                    <button class="dial-key" onclick="addNumber('0')">0</button>
-                    <button class="dial-key special">#</button>
-                </div>
-            </div>
-            <div class="dial-controls">
-                <button class="dial-clear" onclick="clearNumber()">
-                    <i class="fas fa-backspace"></i> Clear
-                </button>
-                <button class="dial-call" onclick="makeExternalCall()">
-                    <i class="fas fa-phone"></i> Call
+                <button class="call-btn video" onclick="startVideoCall()">
+                    <span>📹</span> Video Call
                 </button>
             </div>
         </div>
 
-        <!-- Recent Calls Section -->
-        <section class="calls-section">
-            <div class="section-header">
-                <h2><i class="fas fa-history"></i> Recent Calls</h2>
-                <button class="clear-all" onclick="clearCallHistory()">
-                    <i class="fas fa-trash"></i> Clear
-                </button>
-            </div>
-
-            <!-- Tabs -->
-            <div class="call-tabs">
-                <button class="tab-btn active" onclick="showTab('all')">All</button>
-                <button class="tab-btn" onclick="showTab('missed')">Missed</button>
-                <button class="tab-btn" onclick="showTab('outgoing')">Outgoing</button>
-                <button class="tab-btn" onclick="showTab('incoming')">Incoming</button>
-            </div>
-
-            <!-- Calls List -->
-            <div class="calls-list" id="callsList">
-                <!-- Calls will load here -->
-                <div class="empty-state">
-                    <div class="empty-icon">📞</div>
-                    <h3>No Call History</h3>
-                    <p>Start making calls to see them here</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Quick Contacts -->
-        <section class="contacts-section">
-            <div class="section-header">
-                <h2><i class="fas fa-users"></i> Quick Contacts</h2>
-                <button class="refresh-btn" onclick="loadQuickContacts()">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
-            <div class="quick-contacts" id="quickContacts">
-                <!-- Quick contacts will load here -->
-            </div>
-        </section>
-    </main>
-
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
-        <button class="nav-btn" onclick="goToHome()">
-            <span class="nav-icon"><i class="fas fa-home"></i></span>
-            Home
-        </button>
-        <button class="nav-btn" onclick="goToCalls()">
-            <span class="nav-icon"><i class="fas fa-phone"></i></span>
-            Calls
-        </button>
-        <button class="nav-btn" onclick="goToContacts()">
-            <span class="nav-icon"><i class="fas fa-users"></i></span>
-            Contacts
-        </button>
-        <button class="nav-btn" onclick="openSettings()">
-            <span class="nav-icon"><i class="fas fa-cog"></i></span>
-            Settings
-        </button>
-    </nav>
-
-    <!-- Call Modal -->
-    <div class="modal-overlay" id="callModal" style="display: none;">
-        <div class="modal-content call-modal">
-            <div class="call-modal-header">
-                <div class="call-modal-avatar" id="callModalAvatar">U</div>
-                <div class="call-modal-info">
-                    <h3 id="callModalName">Unknown</h3>
-                    <p id="callModalStatus">Ready to call</p>
-                </div>
-            </div>
+        <!-- Active Call UI -->
+        <div class="call-ui" id="callUI">
+            <h2 class="call-status" id="callStatus">Calling...</h2>
+            <div class="call-timer" id="callTimer">00:00</div>
             
-            <div class="call-modal-options">
-                <button class="call-option" onclick="startVoiceCall()">
-                    <i class="fas fa-phone"></i>
-                    <span>Voice Call</span>
-                </button>
-                <button class="call-option" onclick="startVideoCall()">
-                    <i class="fas fa-video"></i>
-                    <span>Video Call</span>
-                </button>
-                <button class="call-option" onclick="sendMessageInstead()">
-                    <i class="fas fa-comment"></i>
-                    <span>Message</span>
-                </button>
-            </div>
+            <audio id="remoteAudio" autoplay></audio>
             
-            <div class="call-modal-actions">
-                <button class="modal-close-btn" onclick="closeCallModal()">Cancel</button>
+            <div class="call-controls">
+                <button class="control-btn mute-btn" onclick="toggleMute()" id="muteBtn">
+                    🔇
+                </button>
+                <button class="control-btn video-btn" onclick="toggleVideo()" id="videoBtn">
+                    📹
+                </button>
+                <button class="control-btn end-btn" onclick="endCall()" id="endBtn">
+                    ❌
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Incoming Call -->
+    <div class="incoming-call" id="incomingCall">
+        <h1 style="font-size: 4rem;">📞</h1>
+        <h2 style="color: white; margin: 20px 0;">Incoming Call</h2>
+        <p id="callerName" style="color: white; font-size: 1.2rem;">Loading...</p>
+        
+        <div style="margin-top: 40px; display: flex; gap: 20px;">
+            <button class="call-btn voice" onclick="answerCall()" style="padding: 15px 30px;">
+                ✅ Answer
+            </button>
+            <button class="call-btn video" onclick="rejectCall()" 
+                    style="padding: 15px 30px; background: linear-gradient(45deg, #ff3b30, #ff5e3a);">
+                ❌ Reject
+            </button>
+        </div>
+    </div>
+
     <script type="module" src="script.js"></script>
-    <script>
-        // Navigation functions
-        function goBack() {
-            if (document.getElementById('dialPad').style.display === 'block') {
-                hideDialPad();
-            } else {
-                window.history.back();
-            }
-        }
-
-        function goToHome() {
-            window.location.href = '/app/pages/home/index.html';
-        }
-
-        function goToCalls() {
-            // Already on calls page
-            console.log("Already on calls page");
-        }
-
-        function goToContacts() {
-            window.location.href = '/app/pages/home/friends/index.html';
-        }
-
-        function openSettings() {
-            alert('Settings page coming soon!');
-        }
-
-        // Dial pad functions
-        let dialNumber = '+91';
-
-        function showDialPad() {
-            document.getElementById('dialPad').style.display = 'block';
-            dialNumber = '+91';
-            document.getElementById('dialNumber').textContent = dialNumber;
-        }
-
-        function hideDialPad() {
-            document.getElementById('dialPad').style.display = 'none';
-        }
-
-        function addNumber(num) {
-            if (dialNumber.length < 15) {
-                dialNumber += num;
-                document.getElementById('dialNumber').textContent = dialNumber;
-            }
-        }
-
-        function clearNumber() {
-            dialNumber = '+91';
-            document.getElementById('dialNumber').textContent = dialNumber;
-        }
-
-        function makeExternalCall() {
-            const number = dialNumber.replace('+91', '');
-            if (number.length >= 10) {
-                window.open(`tel:${dialNumber}`, '_blank');
-                toast.success("Dialing", `Calling ${dialNumber}`);
-                hideDialPad();
-            } else {
-                toast.error("Invalid", "Please enter a valid number");
-            }
-        }
-
-        // Tab switching
-        function showTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            // In real app, filter calls by tab
-            console.log("Switched to tab:", tab);
-        }
-
-        // Toast system
-        const toast = {
-            show: function(type, title, message) {
-                const toast = document.createElement('div');
-                toast.className = `toast toast-${type}`;
-                toast.innerHTML = `
-                    <div class="toast-icon">${type === 'success' ? '✅' : '⚠️'}</div>
-                    <div class="toast-content">
-                        <div class="toast-title">${title}</div>
-                        <div class="toast-message">${message}</div>
-                    </div>
-                    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-                `;
-                document.getElementById('toastContainer').appendChild(toast);
-                setTimeout(() => toast.remove(), 4000);
-            },
-            success: function(title, message) { this.show('success', title, message); },
-            error: function(title, message) { this.show('error', title, message); }
-        };
-    </script>
 </body>
 </html>
