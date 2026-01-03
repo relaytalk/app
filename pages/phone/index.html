@@ -6,247 +6,323 @@
     <title>📞 Relay Calls</title>
     <link rel="stylesheet" href="../style.css">
     <style>
-        /* Phone-specific styles matching your theme */
-        .phone-container {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            min-height: 100vh;
+        /* Phone Page Specific Styles */
+        .phone-page {
             background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-        .call-header {
+        /* Header */
+        .phone-header {
             text-align: center;
-            margin-bottom: 40px;
+            padding: 30px 0 40px;
         }
 
-        .call-title {
-            font-size: 2.5rem;
-            background: linear-gradient(45deg, #667eea, #764ba2);
+        .phone-title {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #ff6b8b);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
+            background-clip: text;
+            animation: gradientShift 3s infinite alternate;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .phone-subtitle {
+            color: #a0a0c0;
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
         /* Dial Pad */
-        .dial-pad {
+        .dial-pad-container {
+            max-width: 500px;
+            margin: 0 auto 40px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 25px;
-            padding: 30px;
-            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 40px 30px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .dial-input-group {
+            position: relative;
             margin-bottom: 30px;
         }
 
-        .user-input {
+        .dial-input {
             width: 100%;
-            padding: 18px;
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.1);
+            padding: 22px 25px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
             color: white;
-            font-size: 1.1rem;
-            margin-bottom: 25px;
+            font-size: 1.3rem;
             text-align: center;
+            transition: all 0.3s;
         }
 
-        /* Call Buttons */
-        .call-btn-group {
-            display: grid;
+        .dial-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .dial-input-label {
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: #1a1a2e;
+            padding: 0 10px;
+            color: #a0a0c0;
+            font-size: 0.9rem;
+        }
+
+        /* Call Options */
+        .call-options {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .call-option-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 15px;
-        }
-
-        .call-btn {
-            padding: 20px;
+            padding: 22px 30px;
+            border-radius: 20px;
             border: none;
-            border-radius: 15px;
             font-size: 1.2rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .call-option-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: 0.5s;
+        }
+
+        .call-option-btn:hover::before {
+            left: 100%;
+        }
+
+        .call-option-btn:active {
+            transform: scale(0.98);
+        }
+
+        .call-option-btn.voice {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+        }
+
+        .call-option-btn.video {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .call-option-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Recent Calls Section */
+        .recent-calls {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 25px;
+            padding: 25px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+            color: white;
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 10px;
         }
 
-        .call-btn.voice {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
+        .section-title::before {
+            content: '📞';
+            font-size: 1.3rem;
         }
 
-        .call-btn.video {
-            background: linear-gradient(45deg, #ff6b8b, #ff8e53);
-            color: white;
-        }
-
-        .call-btn:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Active Call UI */
-        .call-ui {
-            display: none;
+        /* No Recent Calls */
+        .empty-state {
             text-align: center;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 25px;
-            padding: 40px 30px;
-            backdrop-filter: blur(10px);
-            margin-top: 30px;
+            padding: 40px 20px;
+            color: #a0a0c0;
         }
 
-        .call-status {
-            font-size: 1.8rem;
-            color: white;
-            margin-bottom: 20px;
-        }
-
-        .call-timer {
+        .empty-icon {
             font-size: 3rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 30px 0;
+            margin-bottom: 15px;
+            opacity: 0.5;
         }
 
-        .call-controls {
+        /* Navigation Buttons */
+        .nav-buttons {
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: 20px;
             margin-top: 40px;
         }
 
-        .control-btn {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: none;
-            font-size: 1.8rem;
+        .nav-btn {
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            color: white;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 10px;
         }
 
-        .mute-btn {
+        .nav-btn:hover {
             background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
         }
 
-        .video-btn {
-            background: linear-gradient(45deg, #ff6b8b, #ff8e53);
-            color: white;
+        /* Responsive */
+        @media (max-width: 480px) {
+            .phone-title {
+                font-size: 2.8rem;
+            }
+            
+            .dial-pad-container {
+                padding: 30px 20px;
+            }
+            
+            .dial-input {
+                padding: 18px 20px;
+                font-size: 1.1rem;
+            }
+            
+            .call-option-btn {
+                padding: 18px 25px;
+                font-size: 1.1rem;
+            }
         }
 
-        .end-btn {
-            background: linear-gradient(45deg, #ff3b30, #ff5e3a);
-            color: white;
+        /* Animation for page load */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        /* Incoming Call */
-        .incoming-call {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            padding: 50px;
-            border-radius: 30px;
-            text-align: center;
-            z-index: 1000;
-            animation: pulse 2s infinite;
-            box-shadow: 0 30px 60px rgba(245, 87, 108, 0.4);
+        .phone-page > * {
+            animation: slideUp 0.5s ease-out;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.03); }
+        .phone-page > *:nth-child(2) {
+            animation-delay: 0.1s;
         }
 
-        /* Audio element */
-        #remoteAudio {
-            width: 100%;
-            margin: 20px 0;
-            border-radius: 15px;
+        .phone-page > *:nth-child(3) {
+            animation-delay: 0.2s;
         }
     </style>
 </head>
 <body>
-    <!-- Back Button -->
-    <a href="../home/index.html" class="back-button">←</a>
+    <div class="phone-page">
+        <!-- Back Button -->
+        <a href="../home/index.html" class="back-button">← Back</a>
 
-    <!-- Main Phone Container -->
-    <div class="phone-container">
         <!-- Header -->
-        <div class="call-header">
-            <h1 class="call-title">📞 Relay Calls</h1>
-            <p style="color: #a0a0c0;">Connect with voice & video</p>
-        </div>
+        <header class="phone-header">
+            <h1 class="phone-title">📞 Relay Calls</h1>
+            <p class="phone-subtitle">High-quality voice & video calls with your friends</p>
+        </header>
 
         <!-- Dial Pad -->
-        <div class="dial-pad">
-            <h3 style="color: white; margin-bottom: 20px;">Call a Friend</h3>
-            <input 
-                type="text" 
-                class="user-input" 
-                id="friendId" 
-                placeholder="Enter friend's user ID"
-            >
-            
-            <div class="call-btn-group">
-                <button class="call-btn voice" onclick="startVoiceCall()">
+        <section class="dial-pad-container">
+            <div class="dial-input-group">
+                <div class="dial-input-label">Friend's Username</div>
+                <input 
+                    type="text" 
+                    class="dial-input" 
+                    id="friendUsername" 
+                    placeholder="Enter username..."
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="call-options">
+                <button class="call-option-btn voice" onclick="startVoiceCall()">
                     <span>📞</span> Voice Call
+                    <span style="font-size: 0.9rem; opacity: 0.9;">(Free)</span>
                 </button>
-                <button class="call-btn video" onclick="startVideoCall()">
+                
+                <button class="call-option-btn video" onclick="startVideoCall()">
                     <span>📹</span> Video Call
+                    <span style="font-size: 0.9rem; opacity: 0.9;">(HD)</span>
                 </button>
             </div>
-        </div>
+        </section>
 
-        <!-- Active Call UI -->
-        <div class="call-ui" id="callUI">
-            <h2 class="call-status" id="callStatus">Calling...</h2>
-            <div class="call-timer" id="callTimer">00:00</div>
-            
-            <audio id="remoteAudio" autoplay></audio>
-            
-            <div class="call-controls">
-                <button class="control-btn mute-btn" onclick="toggleMute()" id="muteBtn">
-                    🔇
-                </button>
-                <button class="control-btn video-btn" onclick="toggleVideo()" id="videoBtn">
-                    📹
-                </button>
-                <button class="control-btn end-btn" onclick="endCall()" id="endBtn">
-                    ❌
-                </button>
+        <!-- Recent Calls -->
+        <section class="recent-calls">
+            <h2 class="section-title">Recent Calls</h2>
+            <div id="recentCallsList">
+                <!-- Calls will be loaded here -->
+                <div class="empty-state">
+                    <div class="empty-icon">📱</div>
+                    <h3 style="color: white; margin-bottom: 10px;">No Recent Calls</h3>
+                    <p>Start calling your friends to see them here</p>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- Incoming Call -->
-    <div class="incoming-call" id="incomingCall">
-        <h1 style="font-size: 4rem;">📞</h1>
-        <h2 style="color: white; margin: 20px 0;">Incoming Call</h2>
-        <p id="callerName" style="color: white; font-size: 1.2rem;">Loading...</p>
-        
-        <div style="margin-top: 40px; display: flex; gap: 20px;">
-            <button class="call-btn voice" onclick="answerCall()" style="padding: 15px 30px;">
-                ✅ Answer
+        <!-- Navigation -->
+        <div class="nav-buttons">
+            <button class="nav-btn" onclick="goToFriends()">
+                <span>👥</span> Friends
             </button>
-            <button class="call-btn video" onclick="rejectCall()" 
-                    style="padding: 15px 30px; background: linear-gradient(45deg, #ff3b30, #ff5e3a);">
-                ❌ Reject
+            <button class="nav-btn" onclick="goToChats()">
+                <span>💬</span> Chats
+            </button>
+            <button class="nav-btn" onclick="goToHome()">
+                <span>🏠</span> Home
             </button>
         </div>
     </div>
 
+    <!-- Script -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
