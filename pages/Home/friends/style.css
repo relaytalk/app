@@ -179,19 +179,18 @@ a:active {
 }
 
 .call-button.offline {
-    background: linear-gradient(135deg, #757575, #5a5a5a);
-    opacity: 0.6;
-    cursor: not-allowed;
+    background: linear-gradient(135deg, #5856d6, #4a4a9e);
+    opacity: 0.9;
 }
 
 .call-button.offline:active {
-    transform: none;
-    box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+    transform: scale(0.92);
+    box-shadow: 0 1px 5px rgba(88, 86, 214, 0.4);
 }
 
 .call-button.offline:hover {
-    transform: none;
-    box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(88, 86, 214, 0.4);
 }
 
 .phone-icon {
@@ -772,7 +771,6 @@ button:active, .search-btn:active, .nav-btn:active,
 .toast-info {
     border-left: 4px solid #007AFF;
 }
-
 
 /* ==================== CALL SCREEN STYLES ==================== */
 
