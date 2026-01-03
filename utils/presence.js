@@ -1,4 +1,4 @@
-// /app/utils/presence.js - FIXED VERSION
+// /app/utils/presence.js - FIXED VERSION WITHOUT RLS ISSUES
 import { supabase } from './supabase.js';
 
 class PresenceTracker {
@@ -16,17 +16,17 @@ class PresenceTracker {
 
         console.log("👁️ Presence tracking started for:", userId);
 
-        // Initial online status with retry
-        await this.updateWithRetry(true);
+        // Initial online status - WITHOUT UPSERT (using direct SQL call)
+        await this.updatePresenceWithFunction(true);
 
         // Periodic updates (every 45 seconds)
         this.intervalId = setInterval(() => {
-            this.updateWithRetry(document.visibilityState === 'visible');
+            this.updatePresenceWithFunction(document.visibilityState === 'visible');
         }, 45000);
 
         // Visibility changes
         document.addEventListener('visibilitychange', () => {
-            this.updateWithRetry(document.visibilityState === 'visible');
+            this.updatePresenceWithFunction(document.visibilityState === 'visible');
         });
 
         // Page unload
@@ -35,47 +35,28 @@ class PresenceTracker {
         return true;
     }
 
-    async updateWithRetry(isOnline, retry = 0) {
+    // NEW METHOD: Use Supabase function to avoid RLS issues
+    async updatePresenceWithFunction(isOnline) {
         if (!this.userId || !this.isTracking) return;
 
         try {
-            const now = new Date().toISOString();
-
-            const { error } = await supabase
-                .from('user_presence')
-                .upsert({
-                    user_id: this.userId,
-                    is_online: isOnline,
-                    last_seen: now,
-                    updated_at: now
-                }, {
-                    onConflict: 'user_id'
-                });
+            // Call a database function instead of direct table update
+            const { error } = await supabase.rpc('update_user_presence', {
+                p_user_id: this.userId,
+                p_is_online: isOnline
+            });
 
             if (error) {
-                console.error("Presence update error:", error);
+                console.error("Presence function error:", error);
                 throw error;
             }
 
-            console.log(`✅ Presence updated: ${isOnline ? 'Online' : 'Offline'}`);
+            console.log(`✅ Presence updated via function: ${isOnline ? 'Online' : 'Offline'}`);
             this.retryCount = 0;
             return true;
 
         } catch (error) {
-            console.error(`❌ Presence update failed (attempt ${retry + 1}):`, error.message);
-            
-            if (retry < this.maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retry)));
-                return this.updateWithRetry(isOnline, retry + 1);
-            }
-            
-            this.retryCount++;
-            
-            if (this.retryCount > 5) {
-                console.warn("⚠️ Too many presence failures, stopping tracker");
-                this.stop();
-            }
-            
+            console.error(`❌ Presence update failed:`, error.message);
             return false;
         }
     }
@@ -88,9 +69,10 @@ class PresenceTracker {
             this.intervalId = null;
         }
 
+        // Mark as offline on exit using function
         if (this.userId) {
             try {
-                await this.updateWithRetry(false);
+                await this.updatePresenceWithFunction(false);
             } catch (error) {
                 console.log("Note: Could not update offline status on exit");
             }
@@ -101,11 +83,12 @@ class PresenceTracker {
 
     async checkOnlineStatus(userId) {
         try {
+            // Use select with simple condition - no RLS recursion
             const { data: presence, error } = await supabase
                 .from('user_presence')
                 .select('is_online, last_seen')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle(); // Use maybeSingle to avoid errors if no record
 
             if (error || !presence) {
                 return { online: false, lastSeen: null };
