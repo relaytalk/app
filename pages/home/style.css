@@ -1001,3 +1001,361 @@ body {
         max-width: 100%;
     }
 }
+
+
+/* ==================== HOME PAGE TEXT OVERFLOW FIXES ==================== */
+
+/* Friend card in home page */
+.friend-info {
+    flex: 1;
+    min-width: 0; /* This allows text truncation */
+}
+
+/* Friend name - single line with ellipsis */
+.friend-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: white;
+    max-width: 180px; /* Limit width */
+}
+
+/* Friend status - single line */
+.friend-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #a0a0c0;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    margin-top: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Status dot stays visible */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0; /* Don't shrink */
+}
+
+/* For search results in home page */
+.search-user-details {
+    flex: 1;
+    min-width: 0; /* Allow truncation */
+}
+
+.search-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.search-username {
+    color: #a0a0c0;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+/* Action cards in home page */
+.action-title {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.action-desc {
+    color: #a0a0c0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    max-height: 2.8em; /* 2 lines max */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+}
+
+/* Welcome section */
+.welcome-title {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.welcome-subtitle {
+    color: #a0a0c0;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    line-height: 1.4;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Section titles */
+.section-title {
+    font-size: 1.5rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Online counter */
+.online-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    margin-left: 15px;
+    flex-shrink: 0; /* Don't shrink */
+    white-space: nowrap;
+}
+
+/* ==================== NOTIFICATION BUTTONS IN HOME PAGE ==================== */
+
+/* Make sure notification buttons in home page are also styled */
+.notification-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Accept Button - Beautiful green */
+.accept-btn {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+    -webkit-tap-highlight-color: transparent;
+    flex: 1;
+    min-width: 90px; /* Minimum width */
+}
+
+.accept-btn:hover {
+    background: linear-gradient(45deg, #218838, #1ba87e);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(40, 167, 69, 0.3);
+}
+
+.accept-btn:active {
+    transform: scale(0.95);
+}
+
+/* Decline Button - Beautiful red */
+.decline-btn {
+    background: linear-gradient(45deg, #dc3545, #e83e8c);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2);
+    -webkit-tap-highlight-color: transparent;
+    flex: 1;
+    min-width: 90px; /* Minimum width */
+}
+
+.decline-btn:hover {
+    background: linear-gradient(45deg, #c82333, #d63384);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
+}
+
+.decline-btn:active {
+    transform: scale(0.95);
+}
+
+/* Add icons to buttons */
+.accept-btn::before {
+    content: "✓";
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.decline-btn::before {
+    content: "✗";
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+/* Button loading states */
+.accept-btn:disabled, .decline-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* ==================== RESPONSIVE FOR HOME PAGE ==================== */
+
+@media (max-width: 768px) {
+    /* Adjust text widths for mobile */
+    .friend-name {
+        max-width: 150px;
+        font-size: 1.1rem;
+    }
+    
+    .friend-status {
+        font-size: 0.85rem;
+        padding: 6px 10px;
+    }
+    
+    .search-name, .search-username {
+        max-width: 150px;
+    }
+    
+    .welcome-title {
+        font-size: 1.6rem;
+    }
+    
+    .section-title {
+        font-size: 1.3rem;
+    }
+    
+    /* Stack buttons on small screens */
+    .notification-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .accept-btn, .decline-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .friend-name {
+        max-width: 120px;
+        font-size: 1rem;
+    }
+    
+    .friend-status {
+        font-size: 0.8rem;
+        padding: 5px 8px;
+    }
+    
+    .search-name, .search-username {
+        max-width: 120px;
+    }
+    
+    .welcome-title {
+        font-size: 1.4rem;
+    }
+    
+    .section-title {
+        font-size: 1.2rem;
+        flex-wrap: wrap;
+    }
+    
+    .online-counter {
+        margin-left: 10px;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+    }
+    
+    .action-title {
+        font-size: 1.1rem;
+    }
+    
+    .action-desc {
+        font-size: 0.85rem;
+    }
+}
+
+/* ==================== GRID FIXES ==================== */
+
+/* Make sure friend cards don't overflow grid */
+.friends-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.friend-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 120px; /* Minimum height */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Ensure content stays within card */
+.friend-card-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    min-width: 0; /* Important for nested text truncation */
+}
+
+/* Avatar stays fixed size */
+.friend-avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: bold;
+    position: relative;
+    flex-shrink: 0; /* Don't shrink */
+}
