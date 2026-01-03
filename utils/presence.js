@@ -37,29 +37,43 @@ class PresenceTracker {
 
     // NEW METHOD: Use Supabase function to avoid RLS issues
     async updatePresenceWithFunction(isOnline) {
-        if (!this.userId || !this.isTracking) return;
+    if (!this.userId || !this.isTracking) return;
 
-        try {
-            // Call a database function instead of direct table update
-            const { error } = await supabase.rpc('update_user_presence', {
-                p_user_id: this.userId,
-                p_is_online: isOnline
-            });
-
-            if (error) {
-                console.error("Presence function error:", error);
-                throw error;
+    try {
+        // Convert userId to UUID format if needed
+        const userId = this.userId;
+        
+        // If userId is not a valid UUID (like email), get the actual user UUID
+        let userUuid = userId;
+        
+        // If it's not a valid UUID format, try to get from auth
+        if (!userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                userUuid = user.id;
             }
-
-            console.log(`✅ Presence updated via function: ${isOnline ? 'Online' : 'Offline'}`);
-            this.retryCount = 0;
-            return true;
-
-        } catch (error) {
-            console.error(`❌ Presence update failed:`, error.message);
-            return false;
         }
+
+        // Call database function
+        const { error } = await supabase.rpc('update_user_presence', {
+            p_user_id: userUuid,
+            p_is_online: isOnline
+        });
+
+        if (error) {
+            console.error("Presence function error:", error);
+            throw error;
+        }
+
+        console.log(`✅ Presence updated via function: ${isOnline ? 'Online' : 'Offline'}`);
+        this.retryCount = 0;
+        return true;
+
+    } catch (error) {
+        console.error(`❌ Presence update failed:`, error.message);
+        return false;
     }
+}
 
     async stop() {
         this.isTracking = false;
