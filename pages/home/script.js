@@ -31,7 +31,7 @@ class ToastNotification {
 
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        
+
         let iconHtml = icon;
         if (!iconHtml) {
             switch(type) {
@@ -196,7 +196,7 @@ async function initHomePage() {
             loadingIndicator.classList.add('hidden');
             setTimeout(() => {
                 loadingIndicator.style.display = 'none';
-                
+
                 // Show welcome toast
                 if (currentProfile) {
                     setTimeout(() => {
@@ -402,14 +402,13 @@ async function updateNotificationsBadge() {
         hideNotificationBadge();  
     }
 }
-
 function updateBadgeDisplay(count) {
     const badge = document.getElementById('notificationBadge');
     if (badge) {
         if (count > 0) {
             badge.textContent = count > 9 ? '9+' : count;
             badge.style.display = 'block';
-            
+
             // Show subtle notification toast for first notification
             if (count === 1) {
                 setTimeout(() => {
@@ -626,7 +625,7 @@ const { data: existingRequest, error: checkError } = await supabase
 
         if (existingRequest) {  
             showInfo("Request Already Sent", `You've already sent a friend request to ${toUsername}`);
-            
+
             // Reset button
             if (sendBtn) {
                 sendBtn.textContent = '✓ Sent';
@@ -650,7 +649,7 @@ const { data: existingRequest, error: checkError } = await supabase
         if (error) {  
             console.error("Error sending request:", error);  
             showError("Request Failed", "Could not send friend request");
-            
+
             // Reset button
             if (sendBtn) {
                 sendBtn.textContent = 'Add Friend';
@@ -665,7 +664,7 @@ const { data: existingRequest, error: checkError } = await supabase
 
         // Show success toast
         showFriendRequest("Friend Request Sent", `Your request has been sent to ${toUsername}!`);
-        
+
         // Update button
         if (sendBtn) {
             sendBtn.textContent = '✓ Sent';
@@ -676,7 +675,7 @@ const { data: existingRequest, error: checkError } = await supabase
     } catch (error) {  
         console.error("Error sending friend request:", error);  
         showError("Request Failed", "Please check your connection and try again");
-        
+
         // Reset button
         if (sendBtn) {
             sendBtn.textContent = 'Add Friend';
@@ -726,30 +725,24 @@ async function loadNotifications() {
             profiles.forEach(p => profileMap[p.id] = p.username);  
         }  
 
-        let html = '';  
-        notifications.forEach(notification => {  
-            const timeAgo = getTimeAgo(notification.created_at);  
-            const senderName = profileMap[notification.sender_id] || 'Unknown User';  
-            const firstLetter = senderName.charAt(0).toUpperCase();  
-            html += `  
-                <div class="notification-item">  
-                    <div class="notification-avatar" style="background: linear-gradient(45deg, #667eea, #764ba2);">  
-                        ${firstLetter}  
-                    </div>  
-                    <div class="notification-content">  
-                        <strong>${senderName}</strong> wants to be friends  
-                        <small>${timeAgo}</small>  
-                    </div>  
-                    <div class="notification-actions">  
-                        <button class="btn-small btn-success" onclick="window.acceptFriendRequest('${notification.id}', '${notification.sender_id}', '${senderName}', this)">  
-                            ✓  
-                        </button>  
-                        <button class="btn-small btn-danger" onclick="window.declineFriendRequest('${notification.id}', this)">  
-                            ✗  
-                        </button>  
-                    </div>  
-                </div>  
-            `;  
+html += `  
+    <div class="notification-item">  
+        <div class="notification-content">  
+            <div class="notification-text">  
+                <div class="notification-title">${senderName} wants to be friends</div>  
+                <div class="notification-time">${timeAgo}</div>  
+            </div>  
+            <div class="notification-actions">  
+                <button class="accept-btn" onclick="window.acceptFriendRequest('${notification.id}', '${notification.sender_id}', '${senderName}', this)">  
+                    Accept  
+                </button>  
+                <button class="decline-btn" onclick="window.declineFriendRequest('${notification.id}', this)">  
+                    Decline  
+                </button>  
+            </div>  
+        </div>  
+    </div>  
+`; 
         });  
 
         container.innerHTML = html;  
@@ -828,7 +821,7 @@ async function acceptFriendRequest(requestId, senderId, senderName = 'User', but
     } catch (error) {  
         console.error("Error accepting friend request:", error);  
         showError("Connection Failed", "Could not accept friend request");
-        
+
         // Reset button
         if (button) {
             button.textContent = '✓';
@@ -869,7 +862,7 @@ async function declineFriendRequest(requestId, button = null) {
     } catch (error) {  
         console.error("Error declining friend request:", error);  
         showError("Action Failed", "Could not decline friend request");
-        
+
         // Reset button
         if (button) {
             button.textContent = '✗';
@@ -889,21 +882,21 @@ function setupEventListeners() {
             try {  
                 // Show loading toast
                 const loadingToast = showInfo("Logging Out", "Please wait...");
-                
+
                 await auth.signOut();  
-                
+
                 // Remove loading toast
                 if (loadingToast && loadingToast.parentNode) {
                     loadingToast.remove();
                 }
-                
+
                 // Show success toast
                 showSuccess("Logged Out", "See you soon! 👋");
-                
+
                 setTimeout(() => {
                     window.location.href = '../auth/index.html';  
                 }, 1000);
-                
+
             } catch (error) {  
                 console.error("Error logging out:", error);  
                 showError("Logout Failed", "Please try again");
@@ -930,7 +923,7 @@ function viewFriendsPage() {
     if (currentPath.includes('friends')) {
         return; // Already on friends page
     }
-    
+
     // Navigate to friends page
     window.location.href = 'friends/index.html';
 }
@@ -949,4 +942,3 @@ window.viewFriendsPage = viewFriendsPage;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initHomePage);
-        
