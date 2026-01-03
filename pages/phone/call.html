@@ -1,0 +1,586 @@
+<!-- /app/pages/phone/call.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📞 Active Call - Relay</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Active Call Specific Styles */
+        .call-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 9999;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .call-top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .call-info {
+            text-align: center;
+            margin-top: 60px;
+            margin-bottom: 40px;
+        }
+
+        .caller-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .caller-name {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .call-status {
+            font-size: 1.2rem;
+            color: #a0a0c0;
+            margin-bottom: 10px;
+        }
+
+        .call-timer {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #4CAF50;
+            font-family: monospace;
+        }
+
+        /* Audio Visualizer */
+        .audio-visualizer {
+            width: 300px;
+            height: 100px;
+            margin: 30px auto;
+            position: relative;
+        }
+
+        .visualizer-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.05);
+        }
+
+        /* Call Controls */
+        .call-controls {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            padding: 0 20px;
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .control-btn:active {
+            transform: scale(0.92);
+        }
+
+        .control-btn i {
+            font-size: 1.8rem;
+        }
+
+        .mute-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .mute-btn.active {
+            background: #ff9500;
+            color: white;
+        }
+
+        .speaker-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .speaker-btn.active {
+            background: #007AFF;
+            color: white;
+        }
+
+        .end-call-btn {
+            background: #ff3b30;
+            color: white;
+            width: 80px;
+            height: 80px;
+        }
+
+        .end-call-btn i {
+            font-size: 2rem;
+        }
+
+        /* Incoming Call Screen */
+        .incoming-call {
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .call-actions {
+            display: flex;
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .accept-btn, .reject-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .accept-btn:active, .reject-btn:active {
+            transform: scale(0.92);
+        }
+
+        .accept-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .reject-btn {
+            background: #ff3b30;
+            color: white;
+        }
+
+        /* Call Quality Indicator */
+        .call-quality {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quality-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        .quality-dot.good { background: #4CAF50; }
+        .quality-dot.average { background: #FF9500; }
+        .quality-dot.poor { background: #ff3b30; }
+
+        /* Minimized Call */
+        .minimized-call {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 200px;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 15px;
+            display: none;
+            z-index: 9998;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .caller-avatar {
+                width: 100px;
+                height: 100px;
+                font-size: 2.5rem;
+            }
+
+            .caller-name {
+                font-size: 1.8rem;
+            }
+
+            .audio-visualizer {
+                width: 250px;
+                height: 80px;
+            }
+
+            .control-btn {
+                width: 60px;
+                height: 60px;
+            }
+
+            .end-call-btn {
+                width: 70px;
+                height: 70px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .call-controls {
+                gap: 15px;
+            }
+
+            .caller-avatar {
+                width: 80px;
+                height: 80px;
+                font-size: 2rem;
+            }
+
+            .caller-name {
+                font-size: 1.5rem;
+            }
+
+            .audio-visualizer {
+                width: 200px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Active Call Screen -->
+    <div class="call-screen" id="callScreen">
+        <!-- Top Bar -->
+        <div class="call-top-bar" id="callTopBar">
+            <div class="network-info">
+                <i class="fas fa-signal"></i> 5G
+            </div>
+            <div class="call-duration" id="callDuration">
+                00:00
+            </div>
+            <div class="battery-info">
+                <i class="fas fa-battery-full"></i> 85%
+            </div>
+        </div>
+
+        <!-- Call Info -->
+        <div class="call-info">
+            <div class="caller-avatar" id="callerAvatar">
+                U
+            </div>
+            <div class="caller-name" id="callerName">
+                Unknown
+            </div>
+            <div class="call-status" id="callStatus">
+                Connecting...
+            </div>
+            <div class="call-timer" id="callTimer">
+                00:00
+            </div>
+        </div>
+
+        <!-- Audio Visualizer -->
+        <div class="audio-visualizer">
+            <canvas class="visualizer-canvas" id="visualizerCanvas"></canvas>
+        </div>
+
+        <!-- Call Quality -->
+        <div class="call-quality" id="callQuality">
+            <span class="quality-dot good"></span>
+            <span>Good</span>
+        </div>
+
+        <!-- Call Controls -->
+        <div class="call-controls">
+            <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <button class="control-btn speaker-btn" id="speakerBtn" onclick="toggleSpeaker()">
+                <i class="fas fa-volume-up"></i>
+            </button>
+            <button class="control-btn end-call-btn" onclick="endCall()">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+        </div>
+
+        <!-- Additional Options (Hidden by default) -->
+        <div class="extra-options" id="extraOptions" style="display: none;">
+            <button class="option-btn" onclick="toggleVideo()">
+                <i class="fas fa-video"></i>
+            </button>
+            <button class="option-btn" onclick="toggleHold()">
+                <i class="fas fa-pause"></i>
+            </button>
+            <button class="option-btn" onclick="showKeypad()">
+                <i class="fas fa-dialpad"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Incoming Call Screen (Hidden by default) -->
+    <div class="call-screen incoming-call" id="incomingCallScreen" style="display: none;">
+        <div class="call-info">
+            <div class="caller-avatar" id="incomingAvatar">
+                F
+            </div>
+            <div class="caller-name" id="incomingName">
+                Friend Name
+            </div>
+            <div class="call-status">
+                Incoming Voice Call
+            </div>
+        </div>
+
+        <div class="call-actions">
+            <button class="reject-btn" onclick="rejectCall()">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+            <button class="accept-btn" onclick="acceptCall()">
+                <i class="fas fa-phone"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Minimized Call (Hidden by default) -->
+    <div class="minimized-call" id="minimizedCall">
+        <div class="minimized-header">
+            <div class="minimized-avatar">U</div>
+            <div class="minimized-info">
+                <div class="minimized-name">Call Active</div>
+                <div class="minimized-timer">00:45</div>
+            </div>
+            <button class="minimized-expand" onclick="expandCall()">
+                <i class="fas fa-expand"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const callType = urlParams.get('type'); // 'outgoing' or 'incoming'
+        const contactId = urlParams.get('contactId');
+        const contactName = urlParams.get('name') || 'Friend';
+
+        // Initialize call
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set caller info
+            document.getElementById('callerName').textContent = contactName;
+            document.getElementById('callerAvatar').textContent = contactName.charAt(0).toUpperCase();
+            
+            // Show appropriate screen
+            if (callType === 'incoming') {
+                showIncomingCall();
+            } else {
+                startOutgoingCall();
+            }
+            
+            // Start timer
+            startCallTimer();
+            
+            // Setup audio visualizer
+            setupAudioVisualizer();
+        });
+
+        // Call timer
+        let callSeconds = 0;
+        let callTimer;
+
+        function startCallTimer() {
+            callSeconds = 0;
+            callTimer = setInterval(function() {
+                callSeconds++;
+                const minutes = Math.floor(callSeconds / 60);
+                const seconds = callSeconds % 60;
+                const timerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                document.getElementById('callTimer').textContent = timerText;
+                document.getElementById('callDuration').textContent = timerText;
+            }, 1000);
+        }
+
+        // Call controls
+        function toggleMute() {
+            const btn = document.getElementById('muteBtn');
+            const isMuted = btn.classList.contains('active');
+            
+            if (isMuted) {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fas fa-microphone"></i>';
+                // Unmute audio
+            } else {
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                // Mute audio
+            }
+        }
+
+        function toggleSpeaker() {
+            const btn = document.getElementById('speakerBtn');
+            const isSpeaker = btn.classList.contains('active');
+            
+            if (isSpeaker) {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                // Switch to earpiece
+            } else {
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-volume-high"></i>';
+                // Switch to speaker
+            }
+        }
+
+        function endCall() {
+            clearInterval(callTimer);
+            
+            // Show call ended animation
+            document.getElementById('callStatus').textContent = 'Call Ended';
+            document.getElementById('callStatus').style.color = '#ff3b30';
+            
+            // Wait 2 seconds then go back
+            setTimeout(function() {
+                window.history.back();
+            }, 2000);
+        }
+
+        // Incoming call functions
+        function showIncomingCall() {
+            document.getElementById('callScreen').style.display = 'none';
+            document.getElementById('incomingCallScreen').style.display = 'flex';
+            
+            // Set incoming caller info
+            document.getElementById('incomingName').textContent = contactName;
+            document.getElementById('incomingAvatar').textContent = contactName.charAt(0).toUpperCase();
+        }
+
+        function acceptCall() {
+            document.getElementById('incomingCallScreen').style.display = 'none';
+            document.getElementById('callScreen').style.display = 'flex';
+            document.getElementById('callStatus').textContent = 'Connected';
+            startCallTimer();
+        }
+
+        function rejectCall() {
+            document.getElementById('callStatus').textContent = 'Call Rejected';
+            setTimeout(function() {
+                window.history.back();
+            }, 1000);
+        }
+
+        // Audio visualizer
+        function setupAudioVisualizer() {
+            const canvas = document.getElementById('visualizerCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            // Create gradient
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            
+            // Animation loop
+            function draw() {
+                requestAnimationFrame(draw);
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw bars (simulated audio data)
+                const barCount = 50;
+                const barWidth = canvas.width / barCount;
+                
+                for (let i = 0; i < barCount; i++) {
+                    const barHeight = Math.random() * canvas.height * 0.8;
+                    const x = i * barWidth;
+                    const y = (canvas.height - barHeight) / 2;
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x, y, barWidth - 2, barHeight);
+                }
+            }
+            
+            draw();
+        }
+
+        // Navigation
+        function minimizeCall() {
+            document.getElementById('callScreen').style.display = 'none';
+            document.getElementById('minimizedCall').style.display = 'block';
+        }
+
+        function expandCall() {
+            document.getElementById('minimizedCall').style.display = 'none';
+            document.getElementById('callScreen').style.display = 'flex';
+        }
+
+        function startOutgoingCall() {
+            document.getElementById('callStatus').textContent = 'Calling...';
+            
+            // Simulate call connection
+            setTimeout(function() {
+                document.getElementById('callStatus').textContent = 'Connected';
+            }, 2000);
+        }
+
+        // Handle back button
+        window.addEventListener('popstate', function() {
+            clearInterval(callTimer);
+        });
+    </script>
+</body>
+</html>
