@@ -1,4 +1,4 @@
-// /app/pages/home/friends/script.js - COMPLETE WITH OFFLINE CALLING
+// /app/pages/home/friends/script.js - COMPLETE WITH INCOMING CALLS
 console.log("✨ Friends Page Loaded");
 
 // ==================== PATHS CONFIG ====================
@@ -47,6 +47,8 @@ async function initializeModules() {
 let currentUser = null;
 let allFriends = [];
 let presenceChannel = null;
+let incomingCallChannel = null;
+let currentIncomingCall = null;
 
 // ==================== TOAST SYSTEM ====================
 class ToastNotification {
@@ -201,8 +203,6 @@ function updateFriendOnlineStatus(friendId, isOnline) {
             }
             
             if (callButton) {
-                // ✅ IMPORTANT: Don't disable call button even if offline
-                // Just show different styling
                 callButton.classList.toggle('offline', !isOnline);
                 callButton.title = isOnline ? 
                     `Call ${item.querySelector('.friend-name-clean')?.textContent}` : 
@@ -212,23 +212,355 @@ function updateFriendOnlineStatus(friendId, isOnline) {
     });
 }
 
+// ==================== INCOMING CALL NOTIFICATION SYSTEM ====================
+function setupIncomingCallListener() {
+    if (!currentUser) return;
+    
+    console.log("🔔 Setting up incoming call listener for user:", currentUser.id);
+    
+    // 1. Listen for real-time call invitations
+    incomingCallChannel = supabase
+        .channel(`call-invitations-${currentUser.id}`)
+        .on('broadcast', { event: 'call_invitation' }, (payload) => {
+            console.log("📨 Received call invitation:", payload);
+            handleIncomingCall(payload.payload);
+        })
+        .on('broadcast', { event: 'call_cancelled' }, (payload) => {
+            console.log("📞 Call cancelled:", payload);
+            if (currentIncomingCall && currentIncomingCall.callId === payload.payload.callId) {
+                hideIncomingCallNotification();
+                toast.info("Call Ended", "Caller hung up");
+            }
+        })
+        .subscribe((status) => {
+            console.log(`📡 Call invitation channel: ${status}`);
+        });
+    
+    // 2. Also listen for database changes (backup)
+    supabase
+        .channel(`db-calls-${currentUser.id}`)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'calls',
+            filter: `receiver_id=eq.${currentUser.id}`
+        }, async (payload) => {
+            const call = payload.new;
+            if (call.status === 'ringing') {
+                console.log("📞 Database call detected:", call);
+                await showIncomingCallFromDB(call);
+            }
+        })
+        .subscribe();
+}
+
+async function showIncomingCallFromDB(call) {
+    try {
+        const { data: caller } = await supabase
+            .from('profiles')
+            .select('username, avatar_url')
+            .eq('id', call.caller_id)
+            .single();
+        
+        if (caller) {
+            const callData = {
+                callId: call.id,
+                callerId: call.caller_id,
+                callerUsername: caller.username,
+                callerAvatar: caller.avatar_url,
+                roomId: call.room_id,
+                callType: call.call_type,
+                timestamp: Date.now(),
+                isInitiator: false
+            };
+            
+            showIncomingCallNotification(callData);
+        }
+    } catch (error) {
+        console.error("Error showing incoming call from DB:", error);
+    }
+}
+
+function handleIncomingCall(callData) {
+    console.log("🔔 Handling incoming call:", callData);
+    currentIncomingCall = callData;
+    showIncomingCallNotification(callData);
+}
+
+function showIncomingCallNotification(callData) {
+    hideIncomingCallNotification();
+    
+    console.log("🔔 Showing incoming call notification for:", callData.callerUsername);
+    
+    const notification = document.createElement('div');
+    notification.id = 'incomingCallNotification';
+    notification.className = 'incoming-call-notification';
+    
+    const firstLetter = callData.callerUsername.charAt(0).toUpperCase();
+    
+    notification.innerHTML = `
+        <div class="call-notification-content">
+            <div class="caller-avatar-notification">${firstLetter}</div>
+            <div class="call-notification-info">
+                <div class="caller-name-notification">${callData.callerUsername}</div>
+                <div class="call-status-notification">Incoming ${callData.callType || 'voice'} call...</div>
+            </div>
+            <div class="call-notification-actions">
+                <button class="accept-call-btn" onclick="acceptIncomingCall('${callData.callId}')">
+                    <i class="fas fa-phone"></i>
+                </button>
+                <button class="decline-call-btn" onclick="declineIncomingCall('${callData.callId}')">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+            </div>
+        </div>
+        <audio id="incomingCallRingtone" loop>
+            <source src="https://assets.mixkit.co/active_storage/sfx/266/266-preview.mp3" type="audio/mpeg">
+        </audio>
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = `
+        .incoming-call-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        
+        .call-notification-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .caller-avatar-notification {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .call-notification-info {
+            flex-grow: 1;
+        }
+        
+        .caller-name-notification {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 5px;
+        }
+        
+        .call-status-notification {
+            font-size: 0.9rem;
+            color: #a0a0c0;
+        }
+        
+        .call-notification-actions {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        
+        .accept-call-btn, .decline-call-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        .accept-call-btn:active, .decline-call-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .accept-call-btn {
+            background: linear-gradient(45deg, #4cd964, #5ac8fa);
+        }
+        
+        .decline-call-btn {
+            background: linear-gradient(45deg, #ff3b30, #ff5e3a);
+        }
+    `;
+    
+    document.head.appendChild(style);
+    document.body.appendChild(notification);
+    
+    const ringtone = document.getElementById('incomingCallRingtone');
+    if (ringtone) {
+        ringtone.volume = 0.5;
+        ringtone.play().catch(e => console.log("Could not play ringtone:", e));
+    }
+    
+    setTimeout(() => {
+        if (document.getElementById('incomingCallNotification')) {
+            autoDeclineCall(callData.callId);
+        }
+    }, 30000);
+}
+
+function hideIncomingCallNotification() {
+    const notification = document.getElementById('incomingCallNotification');
+    if (notification) notification.remove();
+    
+    const ringtone = document.getElementById('incomingCallRingtone');
+    if (ringtone) {
+        ringtone.pause();
+        ringtone.currentTime = 0;
+    }
+    
+    currentIncomingCall = null;
+}
+
+window.acceptIncomingCall = async function(callId) {
+    console.log("✅ Accepting call:", callId);
+    
+    if (!callId) {
+        toast.error("Error", "No call ID provided");
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('calls')
+            .update({
+                status: 'active',
+                started_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', callId);
+        
+        if (error) throw error;
+        
+        hideIncomingCallNotification();
+        
+        const callData = {
+            callId: callId,
+            isInitiator: false,
+            timestamp: Date.now()
+        };
+        
+        sessionStorage.setItem('incomingCall', JSON.stringify(callData));
+        window.location.href = `${PATHS.PHONE_CALL}?call=${callId}&incoming=true`;
+        
+    } catch (error) {
+        console.error("❌ Error accepting call:", error);
+        toast.error("Error", "Failed to accept call");
+        hideIncomingCallNotification();
+    }
+};
+
+window.declineIncomingCall = async function(callId) {
+    console.log("❌ Declining call:", callId);
+    
+    try {
+        const { error } = await supabase
+            .from('calls')
+            .update({
+                status: 'rejected',
+                ended_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', callId);
+        
+        if (error) throw error;
+        
+        if (currentIncomingCall) {
+            await supabase
+                .channel(`call-invitations-${currentIncomingCall.callerId}`)
+                .send({
+                    type: 'broadcast',
+                    event: 'call_cancelled',
+                    payload: {
+                        callId: callId,
+                        reason: 'rejected'
+                    }
+                });
+        }
+        
+        toast.info("Call Declined", "You declined the call");
+        
+    } catch (error) {
+        console.error("Error declining call:", error);
+    } finally {
+        hideIncomingCallNotification();
+    }
+};
+
+async function autoDeclineCall(callId) {
+    console.log("⏰ Auto-declining call:", callId);
+    
+    try {
+        await supabase
+            .from('calls')
+            .update({
+                status: 'missed',
+                ended_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', callId);
+        
+        if (currentIncomingCall) {
+            await supabase
+                .channel(`call-invitations-${currentIncomingCall.callerId}`)
+                .send({
+                    type: 'broadcast',
+                    event: 'call_cancelled',
+                    payload: {
+                        callId: callId,
+                        reason: 'missed'
+                    }
+                });
+        }
+        
+    } catch (error) {
+        console.error("Error auto-declining call:", error);
+    } finally {
+        hideIncomingCallNotification();
+    }
+}
+
 // ==================== FIX ALL CALL BUTTONS ====================
 function fixAllCallButtons() {
     console.log("🔧 Fixing all call buttons...");
     
     document.querySelectorAll('.call-button').forEach(btn => {
-        // ✅ CRITICAL: NEVER disable call buttons
         btn.disabled = false;
-        
-        // Remove old onclick
         btn.removeAttribute('onclick');
         
-        // Add proper event listener
         btn.addEventListener('click', function(e) {
             handleCallButtonClick(this, e);
         });
         
-        // Update tooltip
         const friendName = btn.closest('.friend-item-clean')?.querySelector('.friend-name-clean')?.textContent;
         if (friendName) {
             btn.title = `Call ${friendName}`;
@@ -247,32 +579,25 @@ function handleCallButtonClick(button, event) {
     const friendName = friendItem?.querySelector('.friend-name-clean')?.textContent;
     const isOnline = !button.classList.contains('offline');
     
-    console.log("📞 Call button clicked:", {
-        friendName,
-        friendId,
-        isOnline
-    });
+    console.log("📞 Call button clicked:", { friendName, friendId, isOnline });
     
     if (!friendId || !friendName) {
         toast.error("Error", "Could not find friend information");
         return;
     }
     
-    // Show different message based on online status
     if (isOnline) {
         toast.info("Calling", `Starting call with ${friendName}...`);
     } else {
         toast.info("Calling", `Calling ${friendName} (offline - they'll see missed call when back online)`);
     }
     
-    // Start the call
     startCallDirect(friendId, friendName, isOnline);
 }
 
 // ==================== DIRECT CALL FUNCTION ====================
 async function startCallDirect(friendId, friendName, isOnline) {
     try {
-        // Create call record in database (this works even if friend is offline)
         const roomId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
         const { data: call, error } = await supabase
@@ -289,12 +614,39 @@ async function startCallDirect(friendId, friendName, isOnline) {
             .select()
             .single();
         
-        if (error) {
-            console.error("Call creation error:", error);
-            // Even if database fails, still navigate to call page
+        if (error) console.error("Call creation error:", error);
+        
+        // ✅ CRITICAL: Send real-time invitation to friend
+        if (isOnline) {
+            try {
+                // Get caller username
+                const { data: callerProfile } = await supabase
+                    .from('profiles')
+                    .select('username')
+                    .eq('id', currentUser.id)
+                    .single();
+                
+                await supabase
+                    .channel(`call-invitations-${friendId}`)
+                    .send({
+                        type: 'broadcast',
+                        event: 'call_invitation',
+                        payload: {
+                            callId: call?.id,
+                            roomId: roomId,
+                            callerId: currentUser.id,
+                            callerUsername: callerProfile?.username || currentUser.email,
+                            callType: 'voice',
+                            timestamp: Date.now()
+                        }
+                    });
+                
+                console.log("✅ Call invitation sent to:", friendId);
+            } catch (inviteError) {
+                console.log("Note: Could not send real-time invitation:", inviteError.message);
+            }
         }
         
-        // Store call data
         const callData = {
             callId: call?.id,
             roomId: roomId,
@@ -311,7 +663,6 @@ async function startCallDirect(friendId, friendName, isOnline) {
         
         console.log("📦 Call data stored:", callData);
         
-        // Navigate to call page
         const callUrl = `${PATHS.PHONE_CALL}?friend=${friendId}&name=${encodeURIComponent(friendName)}&room=${roomId}&online=${isOnline}`;
         
         setTimeout(() => {
@@ -375,46 +726,6 @@ window.openChat = async (friendId, friendUsername) => {
     }
 };
 
-// ==================== INCOMING CALL HANDLER ====================
-function setupIncomingCallListener() {
-    if (!currentUser) return;
-    
-    supabase
-        .channel(`user-calls-${currentUser.id}`)
-        .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'calls',
-            filter: `receiver_id=eq.${currentUser.id}`
-        }, async (payload) => {
-            const call = payload.new;
-            if (call.status === 'ringing') {
-                const { data: caller } = await supabase
-                    .from('profiles')
-                    .select('username')
-                    .eq('id', call.caller_id)
-                    .single();
-                
-                if (caller) {
-                    const callData = {
-                        callId: call.id,
-                        callerId: call.caller_id,
-                        callerUsername: caller.username,
-                        roomId: call.room_id,
-                        timestamp: Date.now(),
-                        type: call.call_type,
-                        isInitiator: false
-                    };
-                    
-                    sessionStorage.setItem('incomingCall', JSON.stringify(callData));
-                    
-                    window.location.href = `${PATHS.PHONE_CALL}?call=${call.id}&incoming=true`;
-                }
-            }
-        })
-        .subscribe();
-}
-
 // ==================== MODAL FUNCTIONS ====================
 window.openNotifications = () => {
     const modal = document.getElementById('notificationsModal');
@@ -457,7 +768,6 @@ async function loadFriendsList(searchTerm = '') {
         
         if (profilesError) throw profilesError;  
         
-        // Check presence but don't rely on it for calls
         const presencePromises = profiles.map(async (profile) => {
             try {
                 const status = await presenceTracker.checkOnlineStatus(profile.id);
@@ -669,6 +979,10 @@ window.addEventListener('beforeunload', async () => {
     
     if (presenceChannel) {
         supabase.removeChannel(presenceChannel);
+    }
+    
+    if (incomingCallChannel) {
+        supabase.removeChannel(incomingCallChannel);
     }
 });
 
