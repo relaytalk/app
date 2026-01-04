@@ -1,4 +1,4 @@
-// /app/pages/home/friends/script.js - COMPLETE FIXED VERSION
+// /app/pages/home/friends/script.js - COMPLETE WITH ALL FUNCTIONS
 import { auth } from '/app/utils/auth.js';
 import { supabase } from '/app/utils/supabase.js';
 import presenceTracker from '/app/utils/presence.js';
@@ -11,7 +11,9 @@ const PATHS = {
     LOGIN: '/app/pages/login/index.html',  
     SIGNUP: '/app/pages/auth/index.html',
     CHATS: '/app/pages/chats/index.html',
-    FRIENDS: '/app/pages/home/friends/index.html'
+    FRIENDS: '/app/pages/home/friends/index.html',
+    PHONE: '/app/pages/phone/index.html',
+    PHONE_CALL: '/app/pages/phone/call.html'
 };
 
 // ==================== GLOBAL VARIABLES ====================
@@ -19,6 +21,7 @@ let currentUser = null;
 let allFriends = [];
 let callService = null;
 let presenceChannel = null;
+let currentCallScreen = null;
 
 // ==================== TOAST SYSTEM ====================
 class ToastNotification {
@@ -102,6 +105,9 @@ async function initFriendsPage() {
         // Setup presence listener
         setupFriendPresenceListener();
 
+        // Setup incoming call listener
+        setupIncomingCallListener();
+
         // Hide loading
         clearTimeout(loadingTimeout);
         const loadingIndicator = document.getElementById('loadingIndicator');
@@ -182,6 +188,7 @@ window.goToLogin = () => window.location.href = PATHS.LOGIN;
 window.goToSignup = () => window.location.href = PATHS.SIGNUP;
 window.goToHome = () => window.location.href = PATHS.HOME;
 window.goToFriends = () => window.location.href = PATHS.FRIENDS;
+window.goToChats = () => window.location.href = PATHS.CHATS;
 
 function showLoginPrompt() {
     const mainContent = document.querySelector('.main-content');
@@ -240,66 +247,309 @@ window.startCall = async (friendId, friendUsername, event) => {
     console.log("📞 Starting call with:", friendUsername);
     
     try {
+        // Check if friend is online
+        const { data: presence } = await supabase
+            .from('user_presence')
+            .select('is_online')
+            .eq('user_id', friendId)
+            .single();
+            
+        if (!presence?.is_online) {
+            toast.error("Friend Offline", `${friendUsername} is offline`);
+            return;
+        }
+        
         // Initialize call service
         if (!callService) {
             const module = await import('/app/utils/callService.js');
             callService = module.default;
             await callService.initialize(currentUser.id);
+            
+            // Setup callbacks
+            callService.setOnCallStateChange((state) => {
+                console.log("Call state:", state);
+                updateCallScreenStatus(state);
+            });
+            
+            callService.setOnRemoteStream((stream) => {
+                console.log("Remote stream received:", stream);
+                const audio = document.getElementById('remoteAudio');
+                if (audio) audio.srcObject = stream;
+            });
+            
+            callService.setOnCallEvent((event, data) => {
+                console.log("Call event:", event, data);
+                if (event === 'call_ended') {
+                    hideCallScreen();
+                }
+            });
         }
         
-        // Setup callbacks
-        callService.setOnCallStateChange((state) => {
-            console.log("Call state:", state);
-        });
-        
-        callService.setOnRemoteStream((stream) => {
-            console.log("Remote stream received:", stream);
-        });
+        // Show call screen
+        showCallScreen(friendUsername, friendId, 'outgoing');
         
         // Start the call
-        await callService.initiateCall(friendId, 'voice');
+        const call = await callService.initiateCall(friendId, 'voice');
         
-        toast.success("Call Started", `Calling ${friendUsername}...`);
+        console.log("✅ Call started:", call);
         
     } catch (error) {
         console.error("❌ Call failed:", error);
         toast.error("Call Failed", error.message || "Could not start call");
+        hideCallScreen();
     }
+};
+
+function showCallScreen(friendName, friendId, type = 'outgoing') {
+    // Remove existing call screen
+    if (currentCallScreen) {
+        currentCallScreen.remove();
+    }
+    
+    const firstLetter = friendName.charAt(0).toUpperCase();
+    
+    const callScreen = document.createElement('div');
+    callScreen.id = 'callScreen';
+    currentCallScreen = callScreen;
+    
+    callScreen.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        animation: fadeIn 0.3s ease;
+    `;
+    
+    callScreen.innerHTML = `
+        <div style="text-align: center; padding: 30px; width: 100%; max-width: 500px;">
+            <div style="
+                width: 150px;
+                height: 150px;
+                border-radius: 50%;
+                background: linear-gradient(45deg, #667eea, #764ba2);
+                margin: 0 auto 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 3.5rem;
+                font-weight: bold;
+                color: white;
+                position: relative;
+            ">
+                ${firstLetter}
+            </div>
+            
+            <h2 style="font-size: 2.5rem; margin-bottom: 15px; color: white;">${friendName}</h2>
+            
+            <p id="callStatusText" style="color: #a0a0c0; margin-bottom: 40px; font-size: 1.3rem;">
+                ${type === 'outgoing' ? 'Calling...' : 'Incoming call...'}
+            </p>
+            
+            <div id="callTimer" style="
+                font-size: 3rem;
+                font-weight: bold;
+                margin-bottom: 50px;
+                background: linear-gradient(45deg, #667eea, #764ba2);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                display: none;
+            ">00:00</div>
+            
+            <audio id="remoteAudio" autoplay style="display: none;"></audio>
+            
+            <div style="display: flex; justify-content: center; gap: 30px; margin-top: 50px;">
+                <button onclick="toggleMuteCall()" id="muteCallBtn" style="
+                    width: 80px;
+                    height: 80px;
+                    border-radius: 50%;
+                    background: rgba(255,255,255,0.1);
+                    border: 2px solid rgba(255,255,255,0.2);
+                    color: white;
+                    font-size: 2rem;
+                    cursor: pointer;
+                    display: none;
+                ">
+                    🔇
+                </button>
+                
+                <button onclick="endCurrentCall()" style="
+                    width: 80px;
+                    height: 80px;
+                    border-radius: 50%;
+                    background: linear-gradient(45deg, #ff3b30, #ff5e3a);
+                    border: none;
+                    color: white;
+                    font-size: 2rem;
+                    cursor: pointer;
+                ">
+                    ❌
+                </button>
+            </div>
+        </div>
+        
+        <style>
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+        </style>
+    `;
+    
+    document.body.appendChild(callScreen);
+}
+
+function updateCallScreenStatus(state) {
+    const statusText = document.getElementById('callStatusText');
+    const timer = document.getElementById('callTimer');
+    const muteBtn = document.getElementById('muteCallBtn');
+    
+    if (!statusText) return;
+    
+    switch(state) {
+        case 'ringing':
+            statusText.textContent = 'Calling...';
+            break;
+        case 'connecting':
+            statusText.textContent = 'Connecting...';
+            break;
+        case 'active':
+            statusText.textContent = 'Call Connected';
+            if (timer) {
+                timer.style.display = 'block';
+                startCallTimer();
+            }
+            if (muteBtn) muteBtn.style.display = 'block';
+            break;
+        case 'ending':
+            statusText.textContent = 'Ending call...';
+            break;
+    }
+}
+
+let callTimerInterval = null;
+function startCallTimer() {
+    let seconds = 0;
+    const timerEl = document.getElementById('callTimer');
+    if (!timerEl) return;
+    
+    clearInterval(callTimerInterval);
+    callTimerInterval = setInterval(() => {
+        seconds++;
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }, 1000);
+}
+
+window.hideCallScreen = () => {
+    if (currentCallScreen) {
+        currentCallScreen.remove();
+        currentCallScreen = null;
+    }
+    if (callTimerInterval) {
+        clearInterval(callTimerInterval);
+        callTimerInterval = null;
+    }
+    if (callService) {
+        callService.endCall();
+    }
+};
+
+window.endCurrentCall = window.hideCallScreen;
+
+window.toggleMuteCall = async () => {
+    if (!callService) return;
+    const isMuted = await callService.toggleMute();
+    const muteBtn = document.getElementById('muteCallBtn');
+    if (muteBtn) {
+        muteBtn.textContent = isMuted ? '🔊' : '🔇';
+    }
+};
+
+// ==================== INCOMING CALL HANDLER ====================
+function setupIncomingCallListener() {
+    if (!currentUser) return;
+    
+    supabase
+        .channel(`user-calls-${currentUser.id}`)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'calls',
+            filter: `receiver_id=eq.${currentUser.id}`
+        }, async (payload) => {
+            const call = payload.new;
+            if (call.status === 'ringing') {
+                showIncomingCallScreen(call);
+            }
+        })
+        .subscribe();
+}
+
+async function showIncomingCallScreen(call) {
+    const { data: caller } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', call.caller_id)
+        .single();
+    
+    if (!caller) return;
+    
+    showCallScreen(caller.username, call.id, 'incoming');
+}
+
+// ==================== MODAL FUNCTIONS ====================
+window.openNotifications = () => {
+    const modal = document.getElementById('notificationsModal');
+    if (modal) modal.style.display = 'block';
+};
+
+window.closeModal = () => {
+    const modals = document.querySelectorAll('.modal-overlay');
+    modals.forEach(modal => modal.style.display = 'none');
 };
 
 // ==================== FRIEND LIST FUNCTIONS ====================
 async function loadFriendsList(searchTerm = '') {
     if (!currentUser) return;
-
+    
     const container = document.getElementById('friendsContainer');  
     if (!container) return;  
-
+    
     try {  
         showLoadingSkeleton(container);
-
+        
         // Get friend IDs  
         const { data: friends, error } = await supabase  
             .from('friends')  
             .select('friend_id')  
             .eq('user_id', currentUser.id);  
-
+        
         if (error) throw error;  
-
+        
         if (!friends || friends.length === 0) {  
             showEmptyFriends(container);  
             allFriends = [];
             return;  
         }  
-
+        
         // Get profiles for each friend  
         const friendIds = friends.map(f => f.friend_id);  
         const { data: profiles, error: profilesError } = await supabase  
             .from('profiles')  
             .select('id, username, avatar_url')  
             .in('id', friendIds);  
-
+        
         if (profilesError) throw profilesError;  
-
+        
         // Get presence data for each friend
         const presencePromises = profiles.map(async (profile) => {
             const status = await presenceTracker.checkOnlineStatus(profile.id);
@@ -311,16 +561,16 @@ async function loadFriendsList(searchTerm = '') {
         });
         
         const profilesWithPresence = await Promise.all(presencePromises);
-
+        
         // Get unread message counts
         const unreadCounts = await getUnreadMessageCounts(friendIds);
-
+        
         // Store all friends for search filtering
         allFriends = profilesWithPresence.map(profile => ({
             ...profile,
             unreadCount: unreadCounts[profile.id] || 0
         }));
-
+        
         // Filter by search term
         let filteredFriends = allFriends;
         if (searchTerm) {
@@ -329,10 +579,10 @@ async function loadFriendsList(searchTerm = '') {
                 friend.username.toLowerCase().includes(term)
             );
         }
-
+        
         // Update stats
         updateFriendsStats(filteredFriends);
-
+        
         // Display friends
         if (filteredFriends.length === 0) {
             container.innerHTML = `
@@ -344,9 +594,9 @@ async function loadFriendsList(searchTerm = '') {
             `;
             return;
         }
-
+        
         displayFriendsCleanStyle(filteredFriends, container);
-
+        
     } catch (error) {  
         console.error("Error loading friends:", error);  
         showErrorState(container, error.message);  
@@ -371,7 +621,7 @@ function showLoadingSkeleton(container) {
 
 async function getUnreadMessageCounts(friendIds) {
     const unreadCounts = {};
-
+    
     try {
         const { data: unreadMessages, error } = await supabase
             .from('messages')
@@ -379,7 +629,7 @@ async function getUnreadMessageCounts(friendIds) {
             .eq('receiver_id', currentUser.id)
             .in('sender_id', friendIds)
             .eq('read', false);
-
+        
         if (!error && unreadMessages) {
             unreadMessages.forEach(msg => {
                 unreadCounts[msg.sender_id] = (unreadCounts[msg.sender_id] || 0) + 1;
@@ -388,14 +638,14 @@ async function getUnreadMessageCounts(friendIds) {
     } catch (error) {
         console.log("Note: Could not load unread counts", error.message);
     }
-
+    
     return unreadCounts;
 }
 
 function updateFriendsStats(friends) {
     const totalFriends = document.getElementById('totalFriends');
     const onlineFriends = document.getElementById('onlineFriends');
-
+    
     if (totalFriends) totalFriends.textContent = friends.length;
     if (onlineFriends) {
         const onlineCount = friends.filter(f => f.is_online).length;
@@ -412,17 +662,17 @@ function displayFriendsCleanStyle(friends, container) {
         if (a.unreadCount < b.unreadCount) return 1;
         return a.username.localeCompare(b.username);
     });
-
+    
     let html = '';  
     friends.forEach(friend => {  
         const isOnline = friend.is_online || false;  
         const firstLetter = friend.username ? friend.username.charAt(0).toUpperCase() : '?';  
         const avatarColor = '#667eea';
-
+        
         const phoneIconSVG = `<svg class="phone-icon" viewBox="0 0 24 24" width="20" height="20">
             <path fill="white" d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
         </svg>`;
-
+        
         html += `  
             <div class="friend-item-clean" onclick="openChat('${friend.id}', '${friend.username}')">  
                 <div class="friend-avatar-clean" style="background: ${avatarColor};" data-user-id="${friend.id}">  
@@ -453,7 +703,7 @@ function displayFriendsCleanStyle(friends, container) {
             </div>  
         `;  
     });  
-
+    
     container.innerHTML = html;  
 }
 
@@ -485,13 +735,13 @@ function getTimeAgo(date) {
     const now = new Date();
     const diff = now - new Date(date);
     const minutes = Math.floor(diff / 60000);
-
+    
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
-
+    
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
-
+    
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
 }
@@ -517,4 +767,4 @@ window.addEventListener('beforeunload', async () => {
 });
 
 // ==================== INITIALIZE ====================
-document.addEventListener('DOMContentLoaded', initFriendsPage);
+document.addEventListener('DOMContentLoaded', initFriendsPage); 
