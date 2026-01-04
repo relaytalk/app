@@ -1,38 +1,44 @@
 // /app/pages/phone/call.js
 console.log("📞 Call Page Loaded");
 
-// Wait for supabase
+// Global references
 let supabase;
 let callService;
+let currentCallId = null;
 
 async function initCallPage() {
     console.log("Initializing call page...");
-    
+
     // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const friendId = urlParams.get('friend');
     const friendName = urlParams.get('name');
-    const callId = urlParams.get('call');
+    currentCallId = urlParams.get('call');
     const isIncoming = urlParams.get('incoming') === 'true';
     const callType = urlParams.get('type') || 'voice';
-    
-    console.log("Call parameters:", { friendId, friendName, callId, isIncoming, callType });
-    
+
+    console.log("Call parameters:", { friendId, friendName, currentCallId, isIncoming, callType });
+
+    // Store in global for inline handlers
+    window.currentCallId = currentCallId;
+
     // Get supabase
     if (window.supabase) {
         supabase = window.supabase;
+        window.globalSupabase = supabase;
         console.log("✅ Using window.supabase");
     } else {
         try {
             const module = await import('/app/utils/supabase.js');
             supabase = module.supabase;
+            window.globalSupabase = supabase;
             console.log("✅ Loaded supabase from module");
         } catch (error) {
             showError("Failed to load Supabase: " + error.message);
             return;
         }
     }
-    
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -40,32 +46,33 @@ async function initCallPage() {
         setTimeout(() => window.location.href = '/app/pages/login/index.html', 2000);
         return;
     }
-    
+
     console.log("Current user:", user.email);
-    
+
     // Update UI
     if (friendName) {
         document.getElementById('callerName').textContent = friendName;
         document.getElementById('callerAvatar').textContent = friendName.charAt(0).toUpperCase();
     }
-    
+
     // Initialize call service
     try {
         const module = await import('/app/utils/callService.js');
         callService = module.default;
+        window.globalCallService = callService;
         await callService.initialize(user.id);
         console.log("✅ Call service initialized");
-        
+
         // Setup callbacks
         callService.setOnCallStateChange(handleCallStateChange);
         callService.setOnRemoteStream(handleRemoteStream);
         callService.setOnCallEvent(handleCallEvent);
-        
+
         // Start or answer call
-        if (isIncoming && callId) {
+        if (isIncoming && currentCallId) {
             // Incoming call
             document.getElementById('callStatus').textContent = 'Incoming call...';
-            setupIncomingCallControls(callId);
+            setupIncomingCallControls(currentCallId);
         } else if (friendId) {
             // Outgoing call
             document.getElementById('callStatus').textContent = 'Calling...';
@@ -73,7 +80,7 @@ async function initCallPage() {
         } else {
             showError("No call information provided");
         }
-        
+
     } catch (error) {
         console.error("❌ Call setup failed:", error);
         showError("Call setup failed: " + error.message);
@@ -82,18 +89,18 @@ async function initCallPage() {
 
 function startOutgoingCall(friendId, friendName, type) {
     console.log("Starting outgoing call to:", friendName);
-    
+
     // Show calling UI
     const controls = document.getElementById('callControls');
     controls.innerHTML = `
-        <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
+        <button class="control-btn mute-btn" onclick="window.toggleMute()">
             <i class="fas fa-microphone"></i>
         </button>
-        <button class="control-btn end-btn" onclick="endCall()">
+        <button class="control-btn end-btn" onclick="window.endCall()">
             <i class="fas fa-phone-slash"></i>
         </button>
     `;
-    
+
     // Start the call
     callService.initiateCall(friendId, type).catch(error => {
         console.error("Call initiation failed:", error);
@@ -103,64 +110,16 @@ function startOutgoingCall(friendId, friendName, type) {
 
 function setupIncomingCallControls(callId) {
     console.log("Setting up incoming call controls");
-    
+
     const controls = document.getElementById('callControls');
     controls.innerHTML = `
-        <button class="control-btn accept-btn" onclick="answerCall('${callId}')">
+        <button class="control-btn accept-btn" onclick="window.answerCall()">
             <i class="fas fa-phone"></i>
         </button>
-        <button class="control-btn decline-btn" onclick="declineCall('${callId}')">
+        <button class="control-btn decline-btn" onclick="window.declineCall()">
             <i class="fas fa-phone-slash"></i>
         </button>
     `;
-}
-
-async function answerCall(callId) {
-    console.log("Answering call:", callId);
-    
-    document.getElementById('callStatus').textContent = 'Answering...';
-    
-    try {
-        await callService.answerCall(callId);
-        
-        // Update controls to show mute/end
-        const controls = document.getElementById('callControls');
-        controls.innerHTML = `
-            <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
-                <i class="fas fa-microphone"></i>
-            </button>
-            <button class="control-btn end-btn" onclick="endCall()">
-                <i class="fas fa-phone-slash"></i>
-            </button>
-        `;
-        
-    } catch (error) {
-        console.error("Answer call failed:", error);
-        showError("Failed to answer: " + error.message);
-    }
-}
-
-async function declineCall(callId) {
-    console.log("Declining call:", callId);
-    
-    try {
-        // Update call status to rejected
-        await supabase
-            .from('calls')
-            .update({ 
-                status: 'rejected',
-                ended_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', callId);
-            
-        // Go back
-        window.history.back();
-        
-    } catch (error) {
-        console.error("Decline failed:", error);
-        showError("Failed to decline call");
-    }
 }
 
 function handleCallStateChange(state) {
@@ -168,9 +127,9 @@ function handleCallStateChange(state) {
     const statusEl = document.getElementById('callStatus');
     const timerEl = document.getElementById('callTimer');
     const loadingEl = document.getElementById('loadingMessage');
-    
+
     if (loadingEl) loadingEl.style.display = 'none';
-    
+
     switch(state) {
         case 'ringing':
             statusEl.textContent = 'Ringing...';
@@ -202,48 +161,18 @@ function handleRemoteStream(stream) {
 
 function handleCallEvent(event, data) {
     console.log("Call event:", event, data);
-    
+
     if (event === 'call_ended') {
         endCall();
     }
 }
-
-window.toggleMute = async () => {
-    if (!callService) return;
-    
-    const isMuted = await callService.toggleMute();
-    const muteBtn = document.getElementById('muteBtn');
-    
-    if (muteBtn) {
-        if (isMuted) {
-            muteBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
-            muteBtn.style.background = 'linear-gradient(45deg, #ff9500, #ff5e3a)';
-        } else {
-            muteBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-            muteBtn.style.background = 'rgba(255, 255, 255, 0.1)';
-        }
-    }
-};
-
-window.endCall = () => {
-    console.log("Ending call");
-    
-    if (callService) {
-        callService.endCall();
-    }
-    
-    // Go back after a delay
-    setTimeout(() => {
-        window.history.back();
-    }, 1000);
-};
 
 let callTimerInterval = null;
 function startCallTimer() {
     let seconds = 0;
     const timerEl = document.getElementById('callTimer');
     if (!timerEl) return;
-    
+
     clearInterval(callTimerInterval);
     callTimerInterval = setInterval(() => {
         seconds++;
@@ -255,13 +184,13 @@ function startCallTimer() {
 
 function showError(message) {
     console.error("Error:", message);
-    
+
     const errorEl = document.getElementById('errorMessage');
     if (errorEl) {
         errorEl.textContent = message;
         errorEl.style.display = 'block';
     }
-    
+
     document.getElementById('callStatus').textContent = 'Error';
     document.getElementById('loadingMessage').style.display = 'none';
 }
