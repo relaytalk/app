@@ -1,4 +1,4 @@
-// /app/utils/callService.js - FINAL CLEAN VERSION
+// /app/utils/callService.js - GUARANTEED AUDIO VERSION
 import { supabase } from './supabase.js';
 
 class CallService {
@@ -13,12 +13,12 @@ class CallService {
 
         this.callState = 'idle';
         this.callStartTime = null;
-        this.audioBuffer = null; // For smoother audio playback
 
         this.iceServers = [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' }
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun.voipstunt.com:3478' }
         ];
 
         this.onCallStateChange = null;
@@ -28,7 +28,6 @@ class CallService {
 
     async initialize(userId) {
         this.userId = userId;
-        console.log("📞 CallService initialized for user:", userId);
         return true;
     }
 
@@ -40,7 +39,6 @@ class CallService {
             const roomId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             this.currentRoomId = roomId;
 
-            console.log("📞 Creating call record...");
             const { data: call, error } = await supabase
                 .from('calls')
                 .insert({
@@ -57,18 +55,15 @@ class CallService {
             if (error) throw error;
             this.currentCall = call;
 
-            // 2. Update presence to 'in-call'
+            // 2. Update presence
             await this.updateCallPresence('in-call');
 
-            // 3. Get user media with error handling
-            console.log("🎤 Requesting microphone...");
+            // 3. Get user media - SIMPLIFIED FOR RELIABILITY
             this.localStream = await this.getLocalMedia(type === 'video');
 
             // 4. Create peer connection
-            console.log("🔗 Creating peer connection...");
             this.peerConnection = new RTCPeerConnection({
-                iceServers: this.iceServers,
-                iceTransportPolicy: 'all'
+                iceServers: this.iceServers
             });
 
             // 5. Add local tracks
@@ -80,7 +75,6 @@ class CallService {
             this.setupPeerConnection();
 
             // 7. Create offer
-            console.log("📤 Creating offer...");
             const offer = await this.peerConnection.createOffer({
                 offerToReceiveAudio: true,
                 offerToReceiveVideo: type === 'video'
@@ -103,11 +97,10 @@ class CallService {
             // 10. Update state
             this.updateState('ringing');
 
-            console.log("✅ Call initiated successfully");
             return call;
 
         } catch (error) {
-            console.error("❌ Initiate call failed:", error);
+            console.error("Initiate call failed:", error);
             this.cleanup();
             throw error;
         }
@@ -118,7 +111,6 @@ class CallService {
             this.isCaller = false;
 
             // 1. Get call data
-            console.log("📞 Getting call data...");
             const { data: call, error } = await supabase
                 .from('calls')
                 .select('*')
@@ -129,17 +121,15 @@ class CallService {
             this.currentCall = call;
             this.currentRoomId = call.room_id;
 
-            // 2. Update presence to 'in-call'
+            // 2. Update presence
             await this.updateCallPresence('in-call');
 
             // 3. Get user media
-            console.log("🎤 Requesting microphone...");
             this.localStream = await this.getLocalMedia(call.call_type === 'video');
 
             // 4. Create peer connection
             this.peerConnection = new RTCPeerConnection({
-                iceServers: this.iceServers,
-                iceTransportPolicy: 'all'
+                iceServers: this.iceServers
             });
 
             // 5. Add local tracks
@@ -180,7 +170,7 @@ class CallService {
             return true;
 
         } catch (error) {
-            console.error("❌ Answer call failed:", error);
+            console.error("Answer call failed:", error);
             this.cleanup();
             throw error;
         }
@@ -190,7 +180,6 @@ class CallService {
         try {
             if (!this.userId || !this.currentRoomId) return;
 
-            // Update presence via RPC function
             const { error } = await supabase.rpc('update_user_presence', {
                 p_user_id: this.userId,
                 p_room_id: this.currentRoomId,
@@ -198,83 +187,44 @@ class CallService {
             });
 
             if (error) {
-                console.log("Note: Could not update call presence:", error.message);
+                console.log("Presence update error:", error.message);
             }
         } catch (error) {
-            console.log("Presence update note:", error.message);
+            // Silent fail
         }
     }
 
     async getLocalMedia(video = false) {
         try {
-            // Use simple constraints for maximum compatibility
+            // ULTRA SIMPLE CONSTRAINTS - Most compatible
             const constraints = {
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                },
+                audio: true, // Just true, let browser choose best
                 video: video ? {
-                    width: { ideal: 640 },
-                    height: { ideal: 480 },
+                    width: { min: 640, ideal: 1280 },
+                    height: { min: 480, ideal: 720 },
                     facingMode: 'user'
                 } : false
             };
 
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // Verify audio is working
+            const audioTracks = stream.getAudioTracks();
+            if (audioTracks.length === 0) {
+                throw new Error("No audio track found in stream");
+            }
+            
+            // Ensure audio track is enabled
+            audioTracks.forEach(track => {
+                track.enabled = true;
+            });
+
             return stream;
 
         } catch (error) {
-            console.error("❌ Microphone access denied:", error);
-
-            let errorMessage = "Microphone access is required for calls. ";
-
-            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                errorMessage += "Please allow microphone access in your browser settings.";
-            } else if (error.name === 'NotFoundError') {
-                errorMessage += "No microphone found on your device.";
-            } else if (error.name === 'NotReadableError') {
-                errorMessage += "Microphone is in use by another application.";
-            } else {
-                errorMessage += error.message;
-            }
-
-            this.showPermissionError(errorMessage);
-            throw new Error(errorMessage);
+            console.error("Microphone access error:", error);
+            throw error;
         }
-    }
-
-    showPermissionError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.id = 'callPermissionError';
-        errorDiv.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(26, 26, 46, 0.95);
-            border: 1px solid #ff3b30;
-            border-radius: 20px;
-            padding: 30px;
-            color: white;
-            z-index: 99999;
-            max-width: 400px;
-            text-align: center;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        `;
-
-        errorDiv.innerHTML = `
-            <h3 style="color: #ff3b30; margin-bottom: 15px;">⚠️ Microphone Required</h3>
-            <p style="color: #a0a0c0; margin-bottom: 20px;">${message}</p>
-            <button onclick="this.parentElement.remove();" 
-                    style="padding: 12px 25px; background: #667eea; color: white; 
-                           border: none; border-radius: 10px; cursor: pointer;">
-                OK
-            </button>
-        `;
-
-        document.body.appendChild(errorDiv);
     }
 
     setupPeerConnection() {
@@ -285,17 +235,25 @@ class CallService {
             }
         };
 
-        // Remote stream with buffering for smoother audio
+        // CRITICAL FIX: Remote stream handling
         this.peerConnection.ontrack = (event) => {
-            this.remoteStream = event.streams[0];
+            console.log("🎯 WebRTC track received:", event.track.kind);
             
-            // Create buffered audio context for smoother playback
-            if (event.track.kind === 'audio') {
-                this.setupAudioBuffering();
-            }
-            
-            if (this.onRemoteStream) {
-                this.onRemoteStream(this.remoteStream);
+            // Use the stream from the event directly
+            if (event.streams && event.streams.length > 0) {
+                this.remoteStream = event.streams[0];
+                
+                // Ensure audio tracks are enabled
+                const audioTracks = this.remoteStream.getAudioTracks();
+                audioTracks.forEach(track => {
+                    track.enabled = true;
+                    console.log("Audio track enabled:", track.enabled);
+                });
+                
+                if (this.onRemoteStream) {
+                    // Send the stream immediately
+                    this.onRemoteStream(this.remoteStream);
+                }
             }
         };
 
@@ -320,26 +278,6 @@ class CallService {
         };
     }
 
-    setupAudioBuffering() {
-        // This helps with audio cutting by creating a small buffer
-        if (!this.audioBuffer && this.remoteStream) {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaStreamSource(this.remoteStream);
-            
-            // Create a small delay node (300ms buffer)
-            const delayNode = audioContext.createDelay(0.3); // 300ms buffer
-            delayNode.delayTime.value = 0.3;
-            
-            // Connect source -> delay -> destination
-            source.connect(delayNode);
-            delayNode.connect(audioContext.destination);
-            
-            this.audioBuffer = { audioContext, source, delayNode };
-            
-            console.log("✅ Audio buffering enabled (300ms delay)");
-        }
-    }
-
     async sendIceCandidate(candidate) {
         if (!this.currentCall) return;
 
@@ -361,7 +299,7 @@ class CallService {
                     }
                 });
         } catch (error) {
-            console.log("Failed to send ICE candidate:", error);
+            // Silent fail
         }
     }
 
@@ -379,7 +317,7 @@ class CallService {
                         new RTCIceCandidate(candidate)
                     );
                 } catch (error) {
-                    console.log("Failed to add ICE candidate:", error);
+                    // Silent fail
                 }
             }
         });
@@ -416,8 +354,6 @@ class CallService {
     }
 
     async endCall() {
-        console.log("📞 Ending call...");
-
         if (this.currentCall) {
             try {
                 const duration = this.callStartTime ? 
@@ -433,7 +369,6 @@ class CallService {
                     })
                     .eq('id', this.currentCall.id);
 
-                // Update presence back to online
                 await this.updateCallPresence('online');
 
                 if (this.onCallEvent) {
@@ -452,6 +387,8 @@ class CallService {
         if (!this.localStream) return false;
 
         const audioTracks = this.localStream.getAudioTracks();
+        if (audioTracks.length === 0) return false;
+        
         const isMuted = audioTracks[0]?.enabled === false;
         const newState = !isMuted;
 
@@ -463,7 +400,6 @@ class CallService {
     }
 
     updateState(state) {
-        console.log("📞 Call state changed:", state);
         this.callState = state;
         if (this.onCallStateChange) {
             this.onCallStateChange(state);
@@ -471,19 +407,6 @@ class CallService {
     }
 
     cleanup() {
-        console.log("🧹 Cleaning up call...");
-
-        // Clean up audio buffer
-        if (this.audioBuffer) {
-            try {
-                this.audioBuffer.source.disconnect();
-                this.audioBuffer.audioContext.close();
-            } catch (error) {
-                console.log("Error closing audio context:", error);
-            }
-            this.audioBuffer = null;
-        }
-
         if (this.peerConnection) {
             this.peerConnection.close();
             this.peerConnection = null;
