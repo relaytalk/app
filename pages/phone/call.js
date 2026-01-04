@@ -1,13 +1,15 @@
-// /app/pages/phone/call.js - SIMPLIFIED VERSION
+// /app/pages/phone/call.js - COMPLETE WORKING VERSION
 console.log("📞 Call Page Loaded");
 
 let supabase;
 let callService;
 let currentCallId = null;
 let isSpeakerMode = false;
+let isProcessingSpeaker = false;
+let callTimerInterval = null;
 
 async function initCallPage() {
-    console.log("Initializing call page...");
+    console.log("🚀 Initializing call page...");
 
     // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -17,7 +19,12 @@ async function initCallPage() {
     const isIncoming = urlParams.get('incoming') === 'true';
     const callType = urlParams.get('type') || 'voice';
 
+    // Store in window for global access
     window.currentCallId = currentCallId;
+    window.friendId = friendId;
+    window.isIncoming = isIncoming;
+
+    console.log("📊 Call parameters:", { friendId, friendName, currentCallId, isIncoming, callType });
 
     // Get supabase
     if (window.supabase) {
@@ -42,12 +49,15 @@ async function initCallPage() {
         return;
     }
 
-    console.log("User:", user.id);
+    console.log("👤 User authenticated:", user.id);
 
     // Update UI
     if (friendName) {
         document.getElementById('callerName').textContent = friendName;
-        document.getElementById('callerAvatar').textContent = friendName.charAt(0).toUpperCase();
+        const avatarEl = document.getElementById('callerAvatar');
+        if (avatarEl) {
+            avatarEl.textContent = friendName.charAt(0).toUpperCase();
+        }
     }
 
     // Initialize call service
@@ -65,68 +75,75 @@ async function initCallPage() {
 
         // Start or answer call
         if (isIncoming && currentCallId) {
-            console.log("Incoming call");
+            console.log("📲 Incoming call detected");
             document.getElementById('callStatus').textContent = 'Incoming call...';
             setupIncomingCallControls();
         } else if (friendId) {
-            console.log("Outgoing call");
+            console.log("📤 Outgoing call to:", friendId);
             document.getElementById('callStatus').textContent = 'Calling...';
-            startOutgoingCall(friendId, friendName || 'Friend', callType);
+            startOutgoingCall(friendId, callType);
         } else {
             showError("No call information provided");
         }
 
     } catch (error) {
-        console.error("Call setup failed:", error);
+        console.error("❌ Call setup failed:", error);
         showError("Call setup failed: " + error.message);
     }
 }
 
-function startOutgoingCall(friendId, friendName, type) {
+function startOutgoingCall(friendId, type) {
     const controls = document.getElementById('callControls');
-    controls.innerHTML = `
-        <button class="control-btn speaker-btn" id="speakerBtn" onclick="toggleSpeaker()">
-            <i class="fas fa-headphones"></i>
-            <span class="speaker-label">Speaker</span>
-        </button>
-        <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
-            <i class="fas fa-microphone"></i>
-        </button>
-        <button class="control-btn end-btn" onclick="endCall()">
-            <i class="fas fa-phone-slash"></i>
-        </button>
-    `;
+    if (controls) {
+        controls.innerHTML = `
+            <button class="control-btn speaker-btn" id="speakerBtn" onclick="toggleSpeaker()">
+                <i class="fas fa-headphones"></i>
+                <span class="speaker-label">Speaker</span>
+            </button>
+            <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <button class="control-btn end-btn" onclick="endCall()">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+        `;
+    }
 
     callService.initiateCall(friendId, type)
         .then(call => {
-            console.log("Call started:", call);
+            console.log("✅ Call started:", call.id);
+            window.currentCallId = call.id;
         })
         .catch(error => {
-            console.error("Call failed:", error);
+            console.error("❌ Call failed:", error);
             showError("Call failed: " + error.message);
         });
 }
 
 function setupIncomingCallControls() {
     const controls = document.getElementById('callControls');
-    controls.innerHTML = `
-        <button class="control-btn accept-btn" onclick="handleAnswerClick()">
-            <i class="fas fa-phone"></i>
-        </button>
-        <button class="control-btn decline-btn" onclick="handleDeclineClick()">
-            <i class="fas fa-phone-slash"></i>
-        </button>
-    `;
+    if (controls) {
+        controls.innerHTML = `
+            <button class="control-btn accept-btn" onclick="answerCall()">
+                <i class="fas fa-phone"></i>
+                <span>Answer</span>
+            </button>
+            <button class="control-btn decline-btn" onclick="declineCall()">
+                <i class="fas fa-phone-slash"></i>
+                <span>Decline</span>
+            </button>
+        `;
+    }
 }
 
-// Handle answer button click
-async function handleAnswerClick() {
-    console.log("Answering call...");
+// Global functions
+window.answerCall = async function() {
+    console.log("📞 Answering call...");
     document.getElementById('callStatus').textContent = 'Answering...';
 
-    if (callService && currentCallId) {
+    if (callService && window.currentCallId) {
         try {
-            await callService.answerCall(currentCallId);
+            await callService.answerCall(window.currentCallId);
 
             const controls = document.getElementById('callControls');
             if (controls) {
@@ -145,17 +162,16 @@ async function handleAnswerClick() {
             }
             
         } catch (error) {
-            console.error("Answer call failed:", error);
+            console.error("❌ Answer call failed:", error);
             showError("Failed to answer: " + error.message);
         }
     }
-}
+};
 
-// Handle decline button click
-async function handleDeclineClick() {
-    console.log("Declining call...");
+window.declineCall = async function() {
+    console.log("❌ Declining call...");
     
-    if (supabase && currentCallId) {
+    if (supabase && window.currentCallId) {
         try {
             await supabase
                 .from('calls')
@@ -164,66 +180,92 @@ async function handleDeclineClick() {
                     ended_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 })
-                .eq('id', currentCallId);
-            console.log("Call rejected");
+                .eq('id', window.currentCallId);
+            console.log("✅ Call rejected in database");
         } catch (error) {
-            console.error("Decline failed:", error);
+            console.error("❌ Decline failed:", error);
         }
     }
 
     window.history.back();
-}
+};
 
-// Toggle speaker output
-async function toggleSpeaker() {
-    if (!callService) {
-        console.error("Call service not available");
+window.toggleSpeaker = async function() {
+    if (!callService || isProcessingSpeaker) {
+        console.log("⏸️ Speaker toggle blocked");
         return;
     }
 
+    isProcessingSpeaker = true;
+    
     try {
+        console.log("🔊 Toggling speaker...");
+        
+        // Call the service to toggle
         const newMode = await callService.toggleSpeakerMode();
         isSpeakerMode = newMode;
         
+        // Update UI
         updateSpeakerUI(isSpeakerMode);
         
+        // Show toast notification
+        showToast(isSpeakerMode ? '🔊 Loudspeaker Mode ON' : '🎧 Earpiece Mode ON');
+        
     } catch (error) {
-        console.error("Toggle speaker failed:", error);
+        console.error("❌ Toggle speaker failed:", error);
         showToast('❌ Failed to toggle speaker');
+    } finally {
+        isProcessingSpeaker = false;
     }
-}
+};
 
-// Update speaker UI
 function updateSpeakerUI(speakerOn) {
     const speakerBtn = document.getElementById('speakerBtn');
+    const remoteAudio = document.getElementById('remoteAudio');
     
-    if (!speakerBtn) return;
+    if (!speakerBtn) {
+        console.error("❌ Speaker button not found");
+        return;
+    }
     
     const speakerIcon = speakerBtn.querySelector('i');
     const speakerLabel = speakerBtn.querySelector('.speaker-label');
     
     if (speakerOn) {
-        // Speaker Mode ON (Loudspeaker)
+        // Speaker ON - Loudspeaker mode
         speakerIcon.className = 'fas fa-volume-up';
         speakerLabel.textContent = 'Speaker ON';
         speakerBtn.style.background = 'linear-gradient(45deg, #4cd964, #5ac8fa)';
         speakerBtn.style.boxShadow = '0 0 15px rgba(76, 217, 100, 0.4)';
-        showToast('🔊 Loudspeaker Mode');
+        
+        // Set audio to loudspeaker
+        if (remoteAudio) {
+            remoteAudio.setAttribute('playsinline', 'false');
+            // Try to set audio output to speaker
+            if (typeof remoteAudio.sinkId !== 'undefined') {
+                remoteAudio.setSinkId('')
+                    .then(() => console.log("✅ Audio output set to system speaker"))
+                    .catch(err => console.log("⚠️ Could not set sinkId:", err));
+            }
+        }
         
     } else {
-        // Speaker Mode OFF (Earpiece)
+        // Speaker OFF - Earpiece mode
         speakerIcon.className = 'fas fa-headphones';
         speakerLabel.textContent = 'Speaker';
         speakerBtn.style.background = 'rgba(255, 255, 255, 0.1)';
         speakerBtn.style.boxShadow = 'none';
-        showToast('🎧 Earpiece Mode');
+        
+        // Set audio to earpiece
+        if (remoteAudio) {
+            remoteAudio.setAttribute('playsinline', 'true');
+        }
     }
 }
 
-// Toggle microphone mute
-async function toggleMute() {
+window.toggleMute = async function() {
     if (!callService) {
-        console.error("Call service not available");
+        console.error("❌ Call service not available");
         return;
     }
 
@@ -245,19 +287,19 @@ async function toggleMute() {
             }
         }
     } catch (error) {
-        console.error("Toggle mute failed:", error);
+        console.error("❌ Toggle mute failed:", error);
         showToast('❌ Failed to toggle mute');
     }
-}
+};
 
-async function endCall() {
-    console.log("Ending call...");
+window.endCall = async function() {
+    console.log("📞 Ending call...");
     
     if (callService) {
         try {
             await callService.endCall();
         } catch (error) {
-            console.error("Error ending call:", error);
+            console.error("❌ Error ending call:", error);
         }
     }
     
@@ -269,13 +311,16 @@ async function endCall() {
     setTimeout(() => {
         window.history.back();
     }, 1500);
-}
+};
 
 function handleCallStateChange(state) {
-    console.log("Call state:", state);
+    console.log("📊 Call state changed:", state);
     
     const statusEl = document.getElementById('callStatus');
     const timerEl = document.getElementById('callTimer');
+    const loadingEl = document.getElementById('loadingMessage');
+
+    if (loadingEl) loadingEl.style.display = 'none';
 
     switch(state) {
         case 'ringing':
@@ -301,7 +346,7 @@ function handleCallStateChange(state) {
 }
 
 function handleRemoteStream(stream) {
-    console.log("Remote stream received");
+    console.log("🔊 Remote stream received");
     
     const audio = document.getElementById('remoteAudio');
     if (audio) {
@@ -309,28 +354,49 @@ function handleRemoteStream(stream) {
         audio.volume = 1.0;
         audio.muted = false;
         
+        // Set initial to earpiece mode
+        audio.setAttribute('playsinline', 'true');
+        
         // Play audio
-        audio.play()
-            .then(() => console.log("Audio playing"))
-            .catch(error => {
-                console.log("Audio play failed:", error.name);
-                showAudioHelp();
-            });
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    console.log("✅ Audio playing successfully");
+                    audio.volume = 1.0;
+                })
+                .catch(error => {
+                    console.log("⚠️ Audio play failed:", error.name);
+                    showAudioHelp();
+                });
+        }
     }
 }
 
 function handleSpeakerModeChange(speakerMode) {
-    console.log("Speaker mode changed:", speakerMode);
+    console.log("🔊 Speaker mode changed in service:", speakerMode);
+    
     isSpeakerMode = speakerMode;
-    updateSpeakerUI(isSpeakerMode);
+    
+    // Update UI
+    setTimeout(() => {
+        updateSpeakerUI(isSpeakerMode);
+    }, 100);
 }
 
 function handleCallEvent(event, data) {
-    console.log("Call event:", event, data);
+    console.log("📞 Call event:", event, data);
     
     if (event === 'call_ended') {
         document.getElementById('callStatus').textContent = 'Call ended';
         showToast('📞 Call ended');
+        
+        // Stop timer
+        if (callTimerInterval) {
+            clearInterval(callTimerInterval);
+            callTimerInterval = null;
+        }
         
         setTimeout(() => {
             window.history.back();
@@ -339,6 +405,9 @@ function handleCallEvent(event, data) {
 }
 
 function showAudioHelp() {
+    const existing = document.getElementById('audioHelp');
+    if (existing) existing.remove();
+
     const help = document.createElement('div');
     help.innerHTML = `
         <div id="audioHelp" style="
@@ -355,7 +424,7 @@ function showAudioHelp() {
             max-width: 300px;
             border: 2px solid #667eea;
         ">
-            <p style="margin: 0; font-size: 14px;">Tap to enable audio</p>
+            <p style="margin: 0; font-size: 14px;">Tap to enable audio playback</p>
             <button onclick="enableAudio()" style="
                 margin-top: 10px;
                 background: #667eea;
@@ -371,14 +440,16 @@ function showAudioHelp() {
     document.body.appendChild(help);
 }
 
-function enableAudio() {
+window.enableAudio = function() {
     const audio = document.getElementById('remoteAudio');
     if (audio) {
-        audio.play().catch(e => console.error("Audio play error:", e));
+        audio.play()
+            .then(() => console.log("✅ Audio enabled"))
+            .catch(e => console.error("❌ Audio play error:", e));
     }
     const helpEl = document.getElementById('audioHelp');
     if (helpEl) helpEl.remove();
-}
+};
 
 function showToast(message) {
     // Remove existing toast
@@ -415,13 +486,16 @@ function showToast(message) {
     }, 3000);
 }
 
-let callTimerInterval = null;
 function startCallTimer() {
     let seconds = 0;
     const timerEl = document.getElementById('callTimer');
     if (!timerEl) return;
 
-    clearInterval(callTimerInterval);
+    // Clear any existing timer
+    if (callTimerInterval) {
+        clearInterval(callTimerInterval);
+    }
+    
     callTimerInterval = setInterval(() => {
         seconds++;
         const minutes = Math.floor(seconds / 60);
@@ -437,20 +511,32 @@ function showError(message) {
         errorEl.style.display = 'block';
     }
 
-    document.getElementById('callStatus').textContent = 'Error';
+    const statusEl = document.getElementById('callStatus');
+    if (statusEl) {
+        statusEl.textContent = 'Error';
+    }
+    
     const loadingEl = document.getElementById('loadingMessage');
     if (loadingEl) loadingEl.style.display = 'none';
     
     showToast('❌ ' + message);
 }
 
-// Make functions global
-window.handleAnswerClick = handleAnswerClick;
-window.handleDeclineClick = handleDeclineClick;
-window.toggleSpeaker = toggleSpeaker;
-window.toggleMute = toggleMute;
-window.endCall = endCall;
-window.enableAudio = enableAudio;
-
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initCallPage);
+
+// Add event listener for cleanup
+window.addEventListener('beforeunload', () => {
+    if (callService) {
+        callService.endCall();
+    }
+});
+
+// Add global error handlers
+window.addEventListener('error', function(event) {
+    console.error("🌐 Global error:", event.error);
+});
+
+window.addEventListener('unhandledrejection', function(event) {
+    console.error("🌐 Unhandled promise rejection:", event.reason);
+});
