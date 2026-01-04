@@ -119,11 +119,11 @@
             justify-content: center;
             gap: 5px;
         }
-        
+
         .speaker-btn.active {
             background: linear-gradient(45deg, #4cd964, #5ac8fa);
         }
-        
+
         .speaker-label {
             font-size: 10px;
             font-weight: 600;
@@ -149,7 +149,7 @@
             margin: 20px;
             max-width: 400px;
         }
-        
+
         /* Audio status indicator */
         .audio-status {
             position: fixed;
@@ -166,7 +166,7 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .audio-status-dot {
             width: 8px;
             height: 8px;
@@ -174,7 +174,7 @@
             background: #4cd964;
             animation: pulse 2s infinite;
         }
-        
+
         .audio-status-dot.inactive {
             background: #ff3b30;
         }
@@ -192,12 +192,12 @@
             animation: pulse 2s infinite;
             z-index: 100;
         }
-        
+
         .audio-indicator.muted {
             background: #ff3b30;
             box-shadow: 0 0 10px #ff3b30;
         }
-        
+
         @keyframes pulse {
             0% { opacity: 0.7; }
             50% { opacity: 1; }
@@ -214,7 +214,7 @@
 
     <!-- Simple audio indicator -->
     <div class="audio-indicator" id="audioIndicator"></div>
-    
+
     <div class="call-container" id="callContainer">
         <div class="caller-avatar" id="callerAvatar">?</div>
         <h1 class="caller-name" id="callerName">Loading...</h1>
@@ -278,7 +278,7 @@
     </div>
 
     <script type="module" src="call.js"></script>
-    
+
     <script>
     // Block YouTube/Google postMessage errors
     if (window.addEventListener) {
@@ -288,30 +288,30 @@
             }
         }, true);
     }
-    
+
     // Update audio status indicator
     function updateAudioStatus() {
         const audio = document.getElementById('remoteAudio');
         const dot = document.getElementById('audioStatusDot');
         const text = document.getElementById('audioStatusText');
         const indicator = document.getElementById('audioIndicator');
-        
+
         if (!audio) return;
-        
+
         if (audio.srcObject) {
             const stream = audio.srcObject;
             const audioTracks = stream.getAudioTracks();
-            
+
             if (audioTracks.length > 0) {
                 const track = audioTracks[0];
                 if (audio.paused || !track.enabled) {
                     text.textContent = 'Audio: Click to enable';
                     dot.className = 'audio-status-dot inactive';
                     if (indicator) indicator.className = 'audio-indicator muted';
-                    
+
                     // Show help overlay if audio is muted/paused for too long
                     setTimeout(() => {
-                        if (audio.paused && !document.getElementById('audioHelpOverlay').style.display) {
+                        if (audio.paused && document.getElementById('audioHelpOverlay').style.display === 'none') {
                             document.getElementById('audioHelpOverlay').style.display = 'flex';
                         }
                     }, 3000);
@@ -319,7 +319,7 @@
                     text.textContent = 'Audio: Active';
                     dot.className = 'audio-status-dot';
                     if (indicator) indicator.className = 'audio-indicator';
-                    
+
                     // Hide help overlay if shown
                     document.getElementById('audioHelpOverlay').style.display = 'none';
                 }
@@ -334,7 +334,7 @@
             if (indicator) indicator.className = 'audio-indicator muted';
         }
     }
-    
+
     // Click anywhere to try to enable audio
     document.addEventListener('click', function() {
         const audio = document.getElementById('remoteAudio');
@@ -343,10 +343,10 @@
         }
         document.getElementById('audioHelpOverlay').style.display = 'none';
     });
-    
+
     // Initialize audio status updates
     setInterval(updateAudioStatus, 1000);
-    
+
     // Show audio status after page loads
     setTimeout(updateAudioStatus, 1000);
     </script>
