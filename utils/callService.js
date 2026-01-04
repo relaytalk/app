@@ -1,4 +1,4 @@
-// /app/utils/callService.js - COMPLETE FIXED VERSION
+// /app/utils/callService.js - FIXED VERSION
 import { supabase } from './supabase.js';
 
 class CallService {
@@ -188,16 +188,16 @@ class CallService {
     async updateCallPresence(status) {
         try {
             if (!this.userId || !this.currentRoomId) return;
-            
+
             console.log(`👁️ Updating call presence: ${status}`);
-            
+
             // Update presence via RPC function
             const { error } = await supabase.rpc('update_user_presence', {
                 p_user_id: this.userId,
                 p_room_id: this.currentRoomId,
                 p_status: status
             });
-            
+
             if (error) {
                 console.log("Note: Could not update call presence via function:", error.message);
             }
@@ -227,15 +227,15 @@ class CallService {
 
             console.log("Media constraints:", constraints);
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            
+
             console.log("✅ Media access granted, tracks:", stream.getTracks().map(t => t.kind));
             return stream;
 
         } catch (error) {
             console.error("❌ Microphone access denied:", error);
-            
+
             let errorMessage = "Microphone access is required for calls. ";
-            
+
             if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
                 errorMessage += "Please allow microphone access in your browser settings.";
             } else if (error.name === 'NotFoundError') {
@@ -245,7 +245,7 @@ class CallService {
             } else {
                 errorMessage += error.message;
             }
-            
+
             this.showPermissionError(errorMessage);
             throw new Error(errorMessage);
         }
@@ -274,7 +274,7 @@ class CallService {
             backdrop-filter: blur(20px);
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         `;
-        
+
         errorDiv.innerHTML = `
             <h3 style="color: #ff3b30; margin-bottom: 15px;">⚠️ Microphone Required</h3>
             <p style="color: #a0a0c0; margin-bottom: 20px;">${message}</p>
@@ -284,7 +284,7 @@ class CallService {
                 OK
             </button>
         `;
-        
+
         document.body.appendChild(errorDiv);
     }
 
@@ -335,9 +335,10 @@ class CallService {
             this.currentCall.caller_id;
 
         try {
+            // FIX: Use httpSend() instead of send()
             await supabase
                 .channel(`call-${this.currentCall.room_id}`)
-                .send({
+                .httpSend({
                     type: 'broadcast',
                     event: 'ice-candidate',
                     payload: {
@@ -459,7 +460,7 @@ class CallService {
 
     cleanup() {
         console.log("🧹 Cleaning up call...");
-        
+
         if (this.peerConnection) {
             this.peerConnection.close();
             this.peerConnection = null;
@@ -485,11 +486,11 @@ class CallService {
     setOnCallStateChange(callback) { 
         this.onCallStateChange = callback; 
     }
-    
+
     setOnRemoteStream(callback) { 
         this.onRemoteStream = callback; 
     }
-    
+
     setOnCallEvent(callback) { 
         this.onCallEvent = callback; 
     }
