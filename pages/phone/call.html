@@ -13,7 +13,7 @@
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
@@ -21,7 +21,7 @@
             height: 100vh;
             overflow: hidden;
         }
-        
+
         .call-container {
             display: flex;
             flex-direction: column;
@@ -31,7 +31,7 @@
             padding: 20px;
             text-align: center;
         }
-        
+
         .caller-avatar {
             width: 150px;
             height: 150px;
@@ -45,19 +45,19 @@
             margin-bottom: 30px;
             color: white;
         }
-        
+
         .caller-name {
             font-size: 2.5rem;
             margin-bottom: 10px;
             font-weight: 600;
         }
-        
+
         .call-status {
             font-size: 1.3rem;
             color: #a0a0c0;
             margin-bottom: 40px;
         }
-        
+
         .call-timer {
             font-size: 3rem;
             font-weight: bold;
@@ -67,13 +67,13 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         .call-controls {
             display: flex;
             gap: 30px;
             margin-top: 50px;
         }
-        
+
         .control-btn {
             width: 80px;
             height: 80px;
@@ -87,38 +87,38 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .control-btn:active {
             transform: scale(0.95);
         }
-        
+
         .mute-btn {
             background: rgba(255, 255, 255, 0.1);
             border: 2px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .end-btn {
             background: linear-gradient(45deg, #ff3b30, #ff5e3a);
         }
-        
+
         .accept-btn {
             background: linear-gradient(45deg, #4cd964, #5ac8fa);
         }
-        
+
         .decline-btn {
             background: linear-gradient(45deg, #ff3b30, #ff5e3a);
         }
-        
+
         .audio-container {
             display: none;
         }
-        
+
         .loading {
             color: #a0a0c0;
             font-size: 1.2rem;
             margin-top: 20px;
         }
-        
+
         .error-message {
             background: rgba(255, 59, 48, 0.1);
             border: 1px solid rgba(255, 59, 48, 0.3);
@@ -135,18 +135,109 @@
         <h1 class="caller-name" id="callerName">Loading...</h1>
         <p class="call-status" id="callStatus">Connecting...</p>
         <div class="call-timer" id="callTimer" style="display: none;">00:00</div>
-        
+
         <div class="call-controls" id="callControls">
             <!-- Controls will be added by JavaScript -->
         </div>
-        
+
         <audio id="remoteAudio" autoplay class="audio-container"></audio>
         <audio id="localAudio" autoplay muted class="audio-container"></audio>
-        
+
         <div class="loading" id="loadingMessage">Setting up call...</div>
         <div class="error-message" id="errorMessage" style="display: none;"></div>
     </div>
 
     <script type="module" src="call.js"></script>
+    
+    <!-- Global functions for inline onclick handlers -->
+    <script>
+        // Store global references
+        let globalCallService = null;
+        let globalSupabase = null;
+        let currentCallId = null;
+
+        // Function to answer call (used by inline onclick)
+        window.answerCall = async function() {
+            if (!globalCallService || !currentCallId) {
+                console.error("Call service not ready or no call ID");
+                alert("Please wait, call service is loading...");
+                return;
+            }
+            
+            try {
+                document.getElementById('callStatus').textContent = 'Answering...';
+                await globalCallService.answerCall(currentCallId);
+                
+                // Update UI
+                const controls = document.getElementById('callControls');
+                if (controls) {
+                    controls.innerHTML = `
+                        <button class="control-btn mute-btn" onclick="window.toggleMute()">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="control-btn end-btn" onclick="window.endCall()">
+                            <i class="fas fa-phone-slash"></i>
+                        </button>
+                    `;
+                }
+            } catch (error) {
+                console.error("Answer call failed:", error);
+                alert("Failed to answer: " + error.message);
+            }
+        };
+
+        // Function to decline call (used by inline onclick)
+        window.declineCall = async function() {
+            if (!globalSupabase || !currentCallId) {
+                window.history.back();
+                return;
+            }
+            
+            try {
+                await globalSupabase
+                    .from('calls')
+                    .update({ 
+                        status: 'rejected',
+                        ended_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', currentCallId);
+            } catch (error) {
+                console.error("Decline failed:", error);
+            }
+            
+            window.history.back();
+        };
+
+        // Other global functions
+        window.toggleMute = async () => {
+            if (!globalCallService) return;
+            
+            try {
+                const isMuted = await globalCallService.toggleMute();
+                const muteBtn = document.querySelector('.mute-btn');
+                if (muteBtn) {
+                    if (isMuted) {
+                        muteBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                        muteBtn.style.background = 'linear-gradient(45deg, #ff9500, #ff5e3a)';
+                    } else {
+                        muteBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                        muteBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+                    }
+                }
+            } catch (error) {
+                console.error("Toggle mute failed:", error);
+            }
+        };
+
+        window.endCall = () => {
+            if (globalCallService) {
+                globalCallService.endCall();
+            }
+            setTimeout(() => {
+                window.history.back();
+            }, 1000);
+        };
+    </script>
 </body>
 </html>
