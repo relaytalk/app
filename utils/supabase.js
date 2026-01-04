@@ -1,5 +1,5 @@
 // File: utils/supabase.js
-// Supabase connection for Luster Chat App
+// Supabase connection for Luster Chat App - UPDATED
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
@@ -9,6 +9,23 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 // Create Supabase client
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// ✅ IMPORTANT: Make available globally for console debugging
+if (typeof window !== 'undefined') {
+  window.supabase = supabase;
+  console.log("🌐 Supabase client made globally available");
+}
+
+// Debug: Check if client works
+supabase.auth.getUser().then(({ data: { user } }) => {
+  if (user) {
+    console.log("✅ Supabase client working, user:", user.email);
+  } else {
+    console.log("✅ Supabase client working, no user logged in");
+  }
+}).catch(error => {
+  console.error("❌ Supabase client error:", error);
+});
 
 // Export for use in other files
 export { supabase }
