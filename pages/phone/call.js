@@ -1,4 +1,4 @@
-// /app/pages/phone/call.js - WITH USERNAME FIX
+// /app/pages/phone/call.js - SIMPLE WORKING VERSION
 console.log("📞 Call Page Loaded");
 
 let supabase;
@@ -41,22 +41,10 @@ async function initCallPage() {
         return;
     }
 
-    console.log("Current user:", user.email);
-
-    // FIX: Get friend's name from call data if not in URL
-    let displayName = friendName;
-    if (!displayName && currentCallId) {
-        displayName = await getFriendNameFromCall(currentCallId, user.id);
-    }
-
-    // Update UI with friend's name
-    if (displayName) {
-        document.getElementById('callerName').textContent = displayName;
-        document.getElementById('callerAvatar').textContent = displayName.charAt(0).toUpperCase();
-    } else {
-        // If still no name, show generic
-        document.getElementById('callerName').textContent = 'Friend';
-        document.getElementById('callerAvatar').textContent = 'F';
+    // Update UI
+    if (friendName) {
+        document.getElementById('callerName').textContent = friendName;
+        document.getElementById('callerAvatar').textContent = friendName.charAt(0).toUpperCase();
     }
 
     // Initialize call service
@@ -77,7 +65,7 @@ async function initCallPage() {
             setupIncomingCallControls();
         } else if (friendId) {
             document.getElementById('callStatus').textContent = 'Calling...';
-            startOutgoingCall(friendId, displayName || 'Friend', callType);
+            startOutgoingCall(friendId, friendName || 'Friend', callType);
         } else {
             showError("No call information provided");
         }
@@ -88,60 +76,7 @@ async function initCallPage() {
     }
 }
 
-// NEW FUNCTION: Get friend's name from call data
-async function getFriendNameFromCall(callId, currentUserId) {
-    try {
-        console.log("Fetching call details for:", callId);
-        
-        // Get call data
-        const { data: call, error } = await supabase
-            .from('calls')
-            .select('*')
-            .eq('id', callId)
-            .single();
-
-        if (error) throw error;
-
-        // Determine who the friend is (caller or receiver)
-        const friendId = call.caller_id === currentUserId ? call.receiver_id : call.caller_id;
-        
-        console.log("Friend ID:", friendId);
-
-        // Get friend's name from profiles
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('full_name, username')
-            .eq('id', friendId)
-            .single();
-
-        if (profileError) {
-            console.log("Profile fetch error:", profileError);
-            // Try users table as fallback
-            const { data: user, error: userError } = await supabase
-                .from('users')
-                .select('email')
-                .eq('id', friendId)
-                .single();
-                
-            if (!userError && user) {
-                return user.email.split('@')[0]; // Use email username
-            }
-            return 'Friend';
-        }
-
-        // Return friend's name
-        return profile.full_name || profile.username || 'Friend';
-
-    } catch (error) {
-        console.error("Error getting friend name:", error);
-        return 'Friend';
-    }
-}
-
 function startOutgoingCall(friendId, friendName, type) {
-    console.log("Starting outgoing call to:", friendName);
-
-    // Show calling UI
     const controls = document.getElementById('callControls');
     controls.innerHTML = `
         <button class="control-btn mute-btn" onclick="window.toggleMute()">
@@ -152,7 +87,6 @@ function startOutgoingCall(friendId, friendName, type) {
         </button>
     `;
 
-    // Start the call
     callService.initiateCall(friendId, type).catch(error => {
         console.error("Call initiation failed:", error);
         showError("Call failed: " + error.message);
@@ -160,8 +94,6 @@ function startOutgoingCall(friendId, friendName, type) {
 }
 
 function setupIncomingCallControls() {
-    console.log("Setting up incoming call controls");
-
     const controls = document.getElementById('callControls');
     controls.innerHTML = `
         <button class="control-btn accept-btn" onclick="window.handleAnswerClick()">
@@ -175,8 +107,6 @@ function setupIncomingCallControls() {
 
 // Handle answer button click
 window.handleAnswerClick = async function() {
-    console.log("Answer button clicked");
-    
     document.getElementById('callStatus').textContent = 'Answering...';
     
     if (window.globalCallService && window.currentCallId) {
@@ -194,8 +124,6 @@ window.handleAnswerClick = async function() {
                     </button>
                 `;
             }
-            
-            console.log("✅ Call answered successfully");
         } catch (error) {
             console.error("Answer call failed:", error);
             showError("Failed to answer: " + error.message);
@@ -205,8 +133,6 @@ window.handleAnswerClick = async function() {
 
 // Handle decline button click
 window.handleDeclineClick = async function() {
-    console.log("Decline button clicked");
-    
     if (window.globalSupabase && window.currentCallId) {
         try {
             await window.globalSupabase
@@ -227,10 +153,7 @@ window.handleDeclineClick = async function() {
 
 // Global functions
 window.toggleMute = async () => {
-    if (!window.globalCallService) {
-        alert("Call service not ready yet");
-        return;
-    }
+    if (!window.globalCallService) return;
     
     try {
         const isMuted = await window.globalCallService.toggleMute();
@@ -259,7 +182,6 @@ window.endCall = () => {
 };
 
 function handleCallStateChange(state) {
-    console.log("Call state changed:", state);
     const statusEl = document.getElementById('callStatus');
     const timerEl = document.getElementById('callTimer');
     const loadingEl = document.getElementById('loadingMessage');
@@ -287,51 +209,31 @@ function handleCallStateChange(state) {
 }
 
 function handleRemoteStream(stream) {
-    console.log("Remote stream received");
+    console.log("🔊 Remote stream received, setting up audio...");
     
     const audio = document.getElementById('remoteAudio');
     if (audio) {
-        // Clear previous stream
-        audio.srcObject = null;
-        
-        // Set new stream
         audio.srcObject = stream;
         audio.volume = 1.0;
         audio.muted = false;
         
-        // Try to play immediately
-        const playAudio = () => {
-            audio.play().then(() => {
-                console.log("✅ Audio playing!");
-            }).catch(error => {
-                console.log("Audio play failed, waiting for user interaction...");
-                // Show instructions
-                showAudioInstructions();
-            });
-        };
-        
-        playAudio();
-        
-        // Setup click handler for audio
-        document.body.addEventListener('click', () => {
-            if (audio.paused) {
-                audio.play().catch(() => {});
-            }
+        // SIMPLE: Just try to play
+        audio.play().then(() => {
+            console.log("✅ Audio playing!");
+        }).catch(error => {
+            console.log("Audio play failed:", error.name);
+            // Show simple instruction
+            showAudioHelp();
         });
     }
 }
 
-function showAudioInstructions() {
-    // Remove existing if any
-    const existing = document.getElementById('audioInstructions');
-    if (existing) existing.remove();
-    
-    const instructions = document.createElement('div');
-    instructions.id = 'audioInstructions';
-    instructions.innerHTML = `
+function showAudioHelp() {
+    const help = document.createElement('div');
+    help.innerHTML = `
         <div style="
             position: fixed;
-            bottom: 30px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.9);
@@ -341,40 +243,29 @@ function showAudioInstructions() {
             text-align: center;
             z-index: 9999;
             max-width: 300px;
-            border: 2px solid #667eea;
-            animation: fadeIn 0.3s;
         ">
-            <div style="font-size: 2rem; margin-bottom: 10px;">🔊</div>
-            <h4 style="margin: 0 0 10px 0;">Click to Enable Audio</h4>
-            <p style="margin: 0; font-size: 14px; color: #a0a0c0;">
-                Click anywhere to start hearing
-            </p>
+            <p style="margin: 0;">Click anywhere to enable audio</p>
         </div>
     `;
     
-    // Add CSS animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-    `;
-    document.head.appendChild(style);
+    document.body.appendChild(help);
     
-    document.body.appendChild(instructions);
+    // Click anywhere to play
+    document.body.addEventListener('click', () => {
+        const audio = document.getElementById('remoteAudio');
+        if (audio && audio.paused) {
+            audio.play().catch(() => {});
+        }
+        help.remove();
+    }, { once: true });
     
     // Remove after 5 seconds
     setTimeout(() => {
-        if (instructions.parentNode) {
-            instructions.remove();
-        }
+        if (help.parentNode) help.remove();
     }, 5000);
 }
 
 function handleCallEvent(event, data) {
-    console.log("Call event:", event, data);
-
     if (event === 'call_ended') {
         if (window.globalCallService) {
             window.globalCallService.endCall();
@@ -401,8 +292,6 @@ function startCallTimer() {
 }
 
 function showError(message) {
-    console.error("Error:", message);
-
     const errorEl = document.getElementById('errorMessage');
     if (errorEl) {
         errorEl.textContent = message;
