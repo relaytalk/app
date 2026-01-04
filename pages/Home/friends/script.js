@@ -1,5 +1,5 @@
-// /app/pages/home/friends/script.js - COMPLETE FIXED VERSION
-console.log("✨ Friends Page Loaded - FIXED VERSION");
+// /app/pages/home/friends/script.js - COMPLETE WITH OFFLINE CALLING
+console.log("✨ Friends Page Loaded");
 
 // ==================== PATHS CONFIG ====================
 const PATHS = {
@@ -13,7 +13,6 @@ const PATHS = {
 };
 
 // ==================== INITIALIZE SUPABASE ====================
-// Wait for supabase to be available
 let supabase;
 let auth;
 let presenceTracker;
@@ -25,17 +24,14 @@ async function initializeModules() {
             supabase = window.supabase;
             console.log("✅ Using window.supabase");
         } else {
-            // Load supabase module
             const supabaseModule = await import('/app/utils/supabase.js');
             supabase = supabaseModule.supabase;
             console.log("✅ Loaded supabase from module");
         }
         
-        // Load auth
         const authModule = await import('/app/utils/auth.js');
         auth = authModule.auth;
         
-        // Load presence tracker
         const presenceModule = await import('/app/utils/presence.js');
         presenceTracker = presenceModule.default;
         
@@ -50,9 +46,7 @@ async function initializeModules() {
 // ==================== GLOBAL VARIABLES ====================
 let currentUser = null;
 let allFriends = [];
-let callService = null;
 let presenceChannel = null;
-let currentCallScreen = null;
 
 // ==================== TOAST SYSTEM ====================
 class ToastNotification {
@@ -114,14 +108,12 @@ async function initFriendsPage() {
     }, 8000);
 
     try {
-        // Initialize modules
         const modulesLoaded = await initializeModules();
         if (!modulesLoaded) {
             toast.error("Error", "Failed to load app modules");
             return;
         }
 
-        // Get current user
         const { success, user } = await auth.getCurrentUser();  
         if (!success || !user) {  
             clearTimeout(loadingTimeout);
@@ -132,25 +124,20 @@ async function initFriendsPage() {
         currentUser = user;  
         console.log("✅ Authenticated as:", currentUser.email);  
 
-        // Start presence tracking
         await presenceTracker.start(currentUser.id);
-
-        // Load friends
         await loadFriendsList();
-
-        // Setup search
         setupSearch();
-
-        // Setup presence listener
         setupFriendPresenceListener();
-
-        // Setup incoming call listener
         setupIncomingCallListener();
 
-        // Hide loading
         clearTimeout(loadingTimeout);
         const loadingIndicator = document.getElementById('loadingIndicator');
         if (loadingIndicator) loadingIndicator.style.display = 'none';
+
+        // Fix buttons after load
+        setTimeout(() => {
+            fixAllCallButtons();
+        }, 1000);
 
     } catch (error) {
         console.error("❌ Init error:", error);
@@ -214,12 +201,127 @@ function updateFriendOnlineStatus(friendId, isOnline) {
             }
             
             if (callButton) {
+                // ✅ IMPORTANT: Don't disable call button even if offline
+                // Just show different styling
                 callButton.classList.toggle('offline', !isOnline);
-                callButton.disabled = !isOnline;
-                callButton.title = isOnline ? 'Call ' + avatar.nextElementSibling?.textContent : 'Friend is offline';
+                callButton.title = isOnline ? 
+                    `Call ${item.querySelector('.friend-name-clean')?.textContent}` : 
+                    `Call ${item.querySelector('.friend-name-clean')?.textContent} (offline - will ring when back online)`;
             }
         }
     });
+}
+
+// ==================== FIX ALL CALL BUTTONS ====================
+function fixAllCallButtons() {
+    console.log("🔧 Fixing all call buttons...");
+    
+    document.querySelectorAll('.call-button').forEach(btn => {
+        // ✅ CRITICAL: NEVER disable call buttons
+        btn.disabled = false;
+        
+        // Remove old onclick
+        btn.removeAttribute('onclick');
+        
+        // Add proper event listener
+        btn.addEventListener('click', function(e) {
+            handleCallButtonClick(this, e);
+        });
+        
+        // Update tooltip
+        const friendName = btn.closest('.friend-item-clean')?.querySelector('.friend-name-clean')?.textContent;
+        if (friendName) {
+            btn.title = `Call ${friendName}`;
+        }
+    });
+    
+    console.log("✅ All call buttons fixed and enabled!");
+}
+
+function handleCallButtonClick(button, event) {
+    event.stopPropagation();
+    event.preventDefault();
+    
+    const friendItem = button.closest('.friend-item-clean');
+    const friendId = friendItem?.querySelector('.friend-avatar-clean')?.dataset?.userId;
+    const friendName = friendItem?.querySelector('.friend-name-clean')?.textContent;
+    const isOnline = !button.classList.contains('offline');
+    
+    console.log("📞 Call button clicked:", {
+        friendName,
+        friendId,
+        isOnline
+    });
+    
+    if (!friendId || !friendName) {
+        toast.error("Error", "Could not find friend information");
+        return;
+    }
+    
+    // Show different message based on online status
+    if (isOnline) {
+        toast.info("Calling", `Starting call with ${friendName}...`);
+    } else {
+        toast.info("Calling", `Calling ${friendName} (offline - they'll see missed call when back online)`);
+    }
+    
+    // Start the call
+    startCallDirect(friendId, friendName, isOnline);
+}
+
+// ==================== DIRECT CALL FUNCTION ====================
+async function startCallDirect(friendId, friendName, isOnline) {
+    try {
+        // Create call record in database (this works even if friend is offline)
+        const roomId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        const { data: call, error } = await supabase
+            .from('calls')
+            .insert({
+                room_id: roomId,
+                caller_id: currentUser.id,
+                receiver_id: friendId,
+                call_type: 'voice',
+                status: isOnline ? 'ringing' : 'missed',
+                initiated_at: new Date().toISOString(),
+                ended_at: !isOnline ? new Date().toISOString() : null
+            })
+            .select()
+            .single();
+        
+        if (error) {
+            console.error("Call creation error:", error);
+            // Even if database fails, still navigate to call page
+        }
+        
+        // Store call data
+        const callData = {
+            callId: call?.id,
+            roomId: roomId,
+            friendId: friendId,
+            friendName: friendName,
+            userId: currentUser.id,
+            isOnline: isOnline,
+            timestamp: Date.now(),
+            isInitiator: true
+        };
+        
+        sessionStorage.setItem('callData', JSON.stringify(callData));
+        localStorage.setItem('callData', JSON.stringify(callData));
+        
+        console.log("📦 Call data stored:", callData);
+        
+        // Navigate to call page
+        const callUrl = `${PATHS.PHONE_CALL}?friend=${friendId}&name=${encodeURIComponent(friendName)}&room=${roomId}&online=${isOnline}`;
+        
+        setTimeout(() => {
+            window.location.href = callUrl;
+        }, 500);
+        
+    } catch (error) {
+        console.error("❌ Call failed:", error);
+        toast.error("Call Failed", "Could not start call");
+    }
 }
 
 // ==================== NAVIGATION ====================
@@ -250,12 +352,11 @@ function showLoginPrompt() {
     `;
 }
 
-// ==================== CHAT FUNCTIONS - FIXED ====================
+// ==================== CHAT FUNCTIONS ====================
 window.openChat = async (friendId, friendUsername) => {
     console.log("💬 Opening chat with:", friendUsername, friendId);
     
     try {
-        // Store friend data in sessionStorage AND localStorage
         const friendData = {
             id: friendId,
             username: friendUsername,
@@ -265,87 +366,12 @@ window.openChat = async (friendId, friendUsername) => {
         sessionStorage.setItem('currentChatFriend', JSON.stringify(friendData));
         localStorage.setItem('currentChatFriend', JSON.stringify(friendData));
         
-        console.log("📦 Stored friend data:", friendData);
-        
-        // Also set in URL parameters for redundancy
-        const chatUrl = `${PATHS.CHATS}?friend=${friendId}&name=${encodeURIComponent(friendUsername)}&ref=friends`;
-        
-        console.log("🔗 Redirecting to:", chatUrl);
+        const chatUrl = `${PATHS.CHATS}?friend=${friendId}&name=${encodeURIComponent(friendUsername)}`;
         window.location.href = chatUrl;
         
     } catch (error) {
         console.error("❌ Error opening chat:", error);
         toast.error("Error", "Failed to open chat");
-    }
-};
-
-async function markMessagesAsRead(friendId) {
-    if (!currentUser) return;
-    
-    try {
-        await supabase
-            .from('messages')
-            .update({ read: true })
-            .eq('sender_id', friendId)
-            .eq('receiver_id', currentUser.id)
-            .eq('read', false);
-    } catch (error) {
-        console.log("Note: Could not mark messages as read", error.message);
-    }
-}
-
-// ==================== CALL FUNCTIONS - FIXED ====================
-window.startCall = async (friendId, friendUsername, event) => {
-    if (event) {
-        event.stopPropagation();
-        event.preventDefault();
-    }
-    
-    console.log("📞 Starting call with:", friendUsername, friendId);
-    
-    try {
-        // Check if friend is online
-        const { data: presence } = await supabase
-            .from('user_presence')
-            .select('is_online')
-            .eq('user_id', friendId)
-            .single();
-            
-        if (!presence?.is_online) {
-            toast.error("Friend Offline", `${friendUsername} is offline. Calls will work when they're online.`);
-            return;
-        }
-        
-        // ✅ FIXED: Navigate to call page instead of showing inline screen
-        const callData = {
-            friendId: friendId,
-            friendUsername: friendUsername,
-            userId: currentUser.id,
-            timestamp: Date.now(),
-            type: 'voice',
-            isInitiator: true
-        };
-        
-        // Store call data
-        sessionStorage.setItem('callData', JSON.stringify(callData));
-        localStorage.setItem('callData', JSON.stringify(callData));
-        
-        console.log("📦 Call data stored:", callData);
-        
-        // Navigate to call page
-        const callUrl = `${PATHS.PHONE_CALL}?friend=${friendId}&name=${encodeURIComponent(friendUsername)}&type=voice`;
-        console.log("🔗 Redirecting to call page:", callUrl);
-        
-        toast.success("Starting Call", `Calling ${friendUsername}...`);
-        
-        // Small delay to show toast
-        setTimeout(() => {
-            window.location.href = callUrl;
-        }, 500);
-        
-    } catch (error) {
-        console.error("❌ Call failed:", error);
-        toast.error("Call Failed", error.message || "Could not start call");
     }
 };
 
@@ -370,7 +396,6 @@ function setupIncomingCallListener() {
                     .single();
                 
                 if (caller) {
-                    // Store incoming call data
                     const callData = {
                         callId: call.id,
                         callerId: call.caller_id,
@@ -382,9 +407,7 @@ function setupIncomingCallListener() {
                     };
                     
                     sessionStorage.setItem('incomingCall', JSON.stringify(callData));
-                    localStorage.setItem('incomingCall', JSON.stringify(callData));
                     
-                    // Navigate to call page
                     window.location.href = `${PATHS.PHONE_CALL}?call=${call.id}&incoming=true`;
                 }
             }
@@ -413,7 +436,6 @@ async function loadFriendsList(searchTerm = '') {
     try {  
         showLoadingSkeleton(container);
         
-        // Get friend IDs  
         const { data: friends, error } = await supabase  
             .from('friends')  
             .select('friend_id')  
@@ -427,7 +449,6 @@ async function loadFriendsList(searchTerm = '') {
             return;  
         }  
         
-        // Get profiles for each friend  
         const friendIds = friends.map(f => f.friend_id);  
         const { data: profiles, error: profilesError } = await supabase  
             .from('profiles')  
@@ -436,28 +457,32 @@ async function loadFriendsList(searchTerm = '') {
         
         if (profilesError) throw profilesError;  
         
-        // Get presence data for each friend
+        // Check presence but don't rely on it for calls
         const presencePromises = profiles.map(async (profile) => {
-            const status = await presenceTracker.checkOnlineStatus(profile.id);
-            return { 
-                ...profile, 
-                is_online: status.online,
-                last_seen: status.lastSeen 
-            };
+            try {
+                const status = await presenceTracker.checkOnlineStatus(profile.id);
+                return { 
+                    ...profile, 
+                    is_online: status.online,
+                    last_seen: status.lastSeen 
+                };
+            } catch {
+                return { 
+                    ...profile, 
+                    is_online: false,
+                    last_seen: null 
+                };
+            }
         });
         
         const profilesWithPresence = await Promise.all(presencePromises);
-        
-        // Get unread message counts
         const unreadCounts = await getUnreadMessageCounts(friendIds);
         
-        // Store all friends for search filtering
         allFriends = profilesWithPresence.map(profile => ({
             ...profile,
             unreadCount: unreadCounts[profile.id] || 0
         }));
         
-        // Filter by search term
         let filteredFriends = allFriends;
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
@@ -466,10 +491,8 @@ async function loadFriendsList(searchTerm = '') {
             );
         }
         
-        // Update stats
         updateFriendsStats(filteredFriends);
         
-        // Display friends
         if (filteredFriends.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -540,7 +563,6 @@ function updateFriendsStats(friends) {
 }
 
 function displayFriendsCleanStyle(friends, container) {
-    // Sort: online first, then by unread count, then by name
     friends.sort((a, b) => {
         if (a.is_online && !b.is_online) return -1;
         if (!a.is_online && b.is_online) return 1;
@@ -579,9 +601,7 @@ function displayFriendsCleanStyle(friends, container) {
                             </div>  
                         ` : ''}
                         <button class="call-button ${isOnline ? '' : 'offline'}" 
-                                onclick="startCall('${friend.id}', '${friend.username}', event)"
-                                ${!isOnline ? 'disabled' : ''}
-                                title="${isOnline ? 'Call ' + friend.username : 'Friend is offline'}">
+                                title="Call ${friend.username}">
                             ${phoneIconSVG}
                         </button>
                     </div>
