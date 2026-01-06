@@ -1,4 +1,4 @@
-/* Chat Page Main Styles - FINAL WORKING VERSION */
+/* Chat Page Main Styles - ULTIMATE FIX FOR OVERFLOW */
 * {
     margin: 0;
     padding: 0;
@@ -9,6 +9,11 @@ html, body {
     height: 100%;
     width: 100%;
     overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 body {
@@ -17,14 +22,9 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     flex-direction: column;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
 }
 
-/* Chat Header */
+/* Chat Header - FIXED POSITION */
 .chat-header {
     display: flex;
     align-items: center;
@@ -59,10 +59,6 @@ body {
     flex-shrink: 0;
 }
 
-.back-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
 .chat-user-info {
     display: flex;
     align-items: center;
@@ -85,18 +81,12 @@ body {
     flex-shrink: 0;
 }
 
-.chat-user-details {
-    min-width: 0;
-    flex: 1;
-}
-
 .chat-user-details h3 {
     font-size: 1.3rem;
     margin: 0 0 4px 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: white;
 }
 
 .chat-user-status {
@@ -105,7 +95,6 @@ body {
     gap: 8px;
     font-size: 0.95rem;
     color: #a0a0c0;
-    white-space: nowrap;
 }
 
 .status-dot {
@@ -114,7 +103,6 @@ body {
     border-radius: 50%;
     background: #28a745;
     display: inline-block;
-    flex-shrink: 0;
 }
 
 .status-dot.offline {
@@ -124,7 +112,6 @@ body {
 .chat-actions {
     display: flex;
     gap: 10px;
-    flex-shrink: 0;
 }
 
 .chat-action-btn {
@@ -141,15 +128,9 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.3s;
-    flex-shrink: 0;
 }
 
-.chat-action-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-}
-
-/* MAIN CONTENT AREA */
+/* MAIN CONTENT - CRITICAL FIX */
 .main-content {
     position: absolute;
     top: 80px;
@@ -159,9 +140,10 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: transparent;
 }
 
-/* Messages Container */
+/* Messages Container - NO OVERFLOW ISSUE */
 .messages-container {
     flex: 1;
     overflow-y: auto;
@@ -171,8 +153,18 @@ body {
     gap: 14px;
     min-height: 0;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    scroll-behavior: smooth;
+    overscroll-behavior: none;
+    position: relative;
+}
+
+/* PERMANENT FIX: Ensure messages never go below input */
+.messages-container::after {
+    content: '';
+    display: block;
+    height: 40px;
+    width: 100%;
+    flex-shrink: 0;
+    pointer-events: none;
 }
 
 /* Message Bubbles */
@@ -267,21 +259,11 @@ body {
     font-size: 4rem;
     margin-bottom: 20px;
     opacity: 0.5;
-    display: block;
 }
 
 .empty-chat h3 {
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     margin: 0 0 10px 0;
-    color: white;
-    font-weight: 500;
-}
-
-.empty-chat p {
-    font-size: 1.05rem;
-    margin: 0;
-    opacity: 0.7;
-    line-height: 1.5;
 }
 
 /* Typing Indicator */
@@ -293,7 +275,6 @@ body {
     border-bottom-left-radius: 5px;
     display: none;
     margin-bottom: 12px;
-    flex-shrink: 0;
 }
 
 .typing-dots {
@@ -309,20 +290,12 @@ body {
     animation: typing 1.4s infinite;
 }
 
-.typing-dots div:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.typing-dots div:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
 @keyframes typing {
     0%, 60%, 100% { transform: translateY(0); }
     30% { transform: translateY(-6px); }
 }
 
-/* Message Input */
+/* Message Input - ALWAYS VISIBLE AT BOTTOM */
 .message-input-wrapper {
     position: fixed;
     bottom: 0;
@@ -334,7 +307,6 @@ body {
     z-index: 100;
     padding: 15px 20px 18px 20px;
     height: 95px;
-    flex-shrink: 0;
 }
 
 .message-input-container {
@@ -343,7 +315,6 @@ body {
     align-items: flex-end;
     width: 100%;
     height: 100%;
-    max-width: 100%;
 }
 
 .message-input {
@@ -362,18 +333,6 @@ body {
     box-sizing: border-box;
     transition: all 0.2s ease;
     overflow-y: auto;
-    width: 100%;
-}
-
-.message-input:focus {
-    outline: none;
-    border-color: #667eea;
-    background: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-}
-
-.message-input::placeholder {
-    color: rgba(160, 160, 192, 0.7);
 }
 
 .send-btn {
@@ -392,26 +351,15 @@ body {
     flex-shrink: 0;
 }
 
-.send-btn:hover {
-    transform: scale(1.08);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.send-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-/* Custom Alerts */
-.custom-alert-overlay {
+/* Custom Alerts & Modals */
+.custom-alert-overlay,
+.modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(10, 10, 26, 0.8);
+    background: rgba(10, 10, 26, 0.95);
     display: none;
     justify-content: center;
     align-items: center;
@@ -419,74 +367,6 @@ body {
     backdrop-filter: blur(5px);
 }
 
-.custom-alert {
-    background: rgba(26, 26, 46, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 22px;
-    padding: 28px;
-    width: 90%;
-    max-width: 360px;
-    text-align: center;
-    animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.custom-alert-icon {
-    font-size: 3.2rem;
-    margin-bottom: 18px;
-}
-
-.custom-alert-title {
-    font-size: 1.4rem;
-    margin-bottom: 12px;
-    color: white;
-}
-
-.custom-alert-message {
-    color: #a0a0c0;
-    margin-bottom: 25px;
-    line-height: 1.5;
-    font-size: 1.02rem;
-}
-
-.custom-alert-buttons {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-}
-
-.alert-btn {
-    padding: 12px 28px;
-    border-radius: 16px;
-    border: none;
-    font-size: 1.05rem;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 500;
-    min-width: 110px;
-}
-
-.alert-btn.confirm {
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    color: white;
-}
-
-.alert-btn.cancel {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.alert-btn:hover {
-    transform: translateY(-2px);
-    opacity: 0.9;
-}
-
-/* Toast Notification */
 .custom-toast {
     position: fixed;
     top: 20px;
@@ -504,164 +384,9 @@ body {
     backdrop-filter: blur(10px);
 }
 
-.toast-icon {
-    font-size: 1.6rem;
-}
+/* RESPONSIVE FIXES */
 
-.toast-message {
-    color: white;
-    font-size: 1rem;
-}
-
-/* User Info Modal */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(10, 10, 26, 0.95);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    backdrop-filter: blur(10px);
-}
-
-.modal-content {
-    background: rgba(26, 26, 46, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 28px;
-    padding: 32px;
-    width: 90%;
-    max-width: 420px;
-    max-height: 80vh;
-    overflow-y: auto;
-    animation: slideUp 0.3s ease;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 28px;
-}
-
-.modal-title {
-    font-size: 1.6rem;
-    color: white;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    color: #a0a0c0;
-    font-size: 1.6rem;
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s;
-}
-
-.modal-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-}
-
-/* User Info Styles */
-.user-info-avatar {
-    width: 85px;
-    height: 85px;
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.2rem;
-    font-weight: bold;
-    margin: 0 auto 22px;
-}
-
-.user-info-details {
-    text-align: center;
-    margin-bottom: 32px;
-}
-
-.user-info-name {
-    font-size: 1.6rem;
-    margin-bottom: 6px;
-    color: white;
-}
-
-.user-info-username {
-    color: #a0a0c0;
-    margin-bottom: 18px;
-    font-size: 1.05rem;
-}
-
-.user-info-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    padding: 6px 18px;
-    background: rgba(40, 167, 69, 0.1);
-    border: 1px solid rgba(40, 167, 69, 0.2);
-    border-radius: 16px;
-    color: #28a745;
-    font-size: 1.02rem;
-}
-
-.user-info-status.offline {
-    background: rgba(108, 117, 125, 0.1);
-    border-color: rgba(108, 117, 125, 0.2);
-    color: #6c757d;
-}
-
-.user-info-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.info-action-btn {
-    padding: 14px;
-    border-radius: 14px;
-    border: none;
-    font-size: 1.05rem;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 500;
-}
-
-.info-action-btn.primary {
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    color: white;
-}
-
-.info-action-btn.secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.info-action-btn.danger {
-    background: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
-    border: 1px solid rgba(220, 53, 69, 0.2);
-}
-
-.info-action-btn:hover {
-    transform: translateY(-2px);
-    opacity: 0.9;
-}
-
-/* RESPONSIVE DESIGN */
-
+/* Tablet */
 @media (max-width: 768px) {
     .chat-header {
         padding: 14px 16px;
@@ -699,6 +424,7 @@ body {
     }
 }
 
+/* Mobile */
 @media (max-width: 600px) {
     .chat-header {
         padding: 12px 14px;
@@ -735,6 +461,7 @@ body {
     }
 }
 
+/* Small Mobile */
 @media (max-width: 480px) {
     .chat-header {
         padding: 10px 12px;
@@ -768,6 +495,17 @@ body {
     .send-btn {
         width: 42px;
         height: 42px;
+    }
+}
+
+/* iOS Fixes */
+@supports (-webkit-touch-callout: none) {
+    html, body {
+        height: -webkit-fill-available;
+    }
+    
+    .main-content {
+        height: calc(100% - 175px);
     }
 }
 
