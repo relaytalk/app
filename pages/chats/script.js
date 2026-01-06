@@ -1,7 +1,7 @@
 import { auth } from '../../utils/auth.js';
 import { supabase } from '../../utils/supabase.js';
 
-console.log('✨ Chat Loaded');
+console.log('✨ Chat Loaded - Chrome Optimized');
 
 // ====================
 // GLOBAL VARIABLES
@@ -78,11 +78,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupTypingListener();
         updateInputListener();
 
+        // Initial setup
         setTimeout(() => {
             const input = document.getElementById('messageInput');
             if (input) autoResize(input);
-            scrollToBottom();
-        }, 100);
+            forceScrollToBottom();
+        }, 150);
 
         console.log('✅ Chat ready!');
     } catch (error) {
@@ -370,25 +371,60 @@ function showMessages(messages) {
         `;
     });
 
-    html += `<div style="height: 20px;"></div>`;
+    // Add spacer to ensure visibility
+    html += `<div style="height: 30px; opacity: 0;"></div>`;
     container.innerHTML = html;
     
+    // Force scroll after rendering
     setTimeout(() => {
-        scrollToBottom();
-    }, 50);
+        forceScrollToBottom();
+    }, 100);
 }
 
+// ====================
+// SCROLL FUNCTIONS - CHROME OPTIMIZED
+// ====================
 function scrollToBottom() {
     const container = document.getElementById('messagesContainer');
     if (!container) return;
 
+    // Method 1: Direct scroll
     container.scrollTop = container.scrollHeight;
+    
+    // Method 2: Double check
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+    }, 50);
+}
+
+function forceScrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    if (!container) return;
+
+    // Multiple methods for Chrome
+    container.scrollTop = container.scrollHeight;
+    
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+        
+        // Try smooth scroll
+        const lastChild = container.lastElementChild;
+        if (lastChild) {
+            lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+        
+        // Final check
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 100);
+    }, 100);
 }
 
 function addMessageToUI(message, isFromRealtime = false) {
     const container = document.getElementById('messagesContainer');
     if (!container || !message) return;
 
+    // Remove empty state if it exists
     if (container.querySelector('.empty-chat')) {
         container.innerHTML = '';
     }
@@ -408,15 +444,18 @@ function addMessageToUI(message, isFromRealtime = false) {
 
     container.insertAdjacentHTML('beforeend', messageHTML);
     
+    // Check for duplicate
     const isDuplicate = currentMessages.some(msg => msg.id === message.id);
     if (!isDuplicate) {
         currentMessages.push(message);
     }
 
+    // Force scroll for new messages
     setTimeout(() => {
-        scrollToBottom();
+        forceScrollToBottom();
     }, 10);
 
+    // Play sound for received messages
     if (message.sender_id === chatFriend.id) {
         playReceivedSound();
         if (!document.hasFocus()) {
@@ -704,4 +743,20 @@ async function clearChatPrompt() {
             }
         }
     );
+}
+
+// ====================
+// CHROME SPECIFIC FIXES
+// ====================
+// Add Chrome scroll fix
+if (navigator.userAgent.includes('Chrome')) {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fix Chrome rendering
+        setTimeout(() => {
+            const container = document.getElementById('messagesContainer');
+            if (container) {
+                container.style.transform = 'translateZ(0)';
+            }
+        }, 500);
+    });
 }
