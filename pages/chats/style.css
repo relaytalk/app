@@ -1,102 +1,100 @@
-/* Chat Page Main Styles - EDGE MOBILE FIXED */
+/* Chat Page Main Styles - EDGE MOBILE ULTIMATE FIX */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html {
     height: 100%;
     width: 100%;
     overflow: hidden;
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
+    position: fixed;
+    touch-action: none;
 }
 
 body {
     height: 100%;
     width: 100%;
-    overflow: hidden;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    overflow: hidden;
     background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
     color: white;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     flex-direction: column;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    overscroll-behavior: none;
 }
 
-/* EDGE SPECIFIC FIX - Prevents weird scrolling */
-@supports (-ms-ime-align: auto) {
-    body {
-        position: absolute;
-    }
+/* CHAT LAYOUT - NEW APPROACH FOR EDGE */
+.chat-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
 }
 
-/* Chat Header - EDGE FIXED */
+/* Chat Header */
 .chat-header {
     display: flex;
     align-items: center;
-    padding: 18px 20px;
-    background: rgba(26, 26, 46, 0.95);
+    padding: 12px 15px;
+    background: rgba(26, 26, 46, 0.98);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: relative;
     z-index: 100;
-    height: 80px;
+    height: 60px;
+    min-height: 60px;
     flex-shrink: 0;
-    -webkit-appearance: none;
 }
 
-/* EDGE FIX for buttons */
 .back-btn {
     background: none;
     border: none;
     color: white;
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     cursor: pointer;
-    margin-right: 15px;
-    padding: 6px;
+    margin-right: 12px;
+    padding: 5px;
     border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s;
     flex-shrink: 0;
     -webkit-appearance: none;
-    -moz-appearance: none;
     appearance: none;
-    touch-action: manipulation;
 }
 
 .chat-user-info {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
     flex: 1;
     min-width: 0;
     overflow: hidden;
 }
 
 .chat-user-avatar {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     background: linear-gradient(45deg, #667eea, #764ba2);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: bold;
     flex-shrink: 0;
 }
@@ -107,8 +105,8 @@ body {
 }
 
 .chat-user-details h3 {
-    font-size: 1.3rem;
-    margin: 0 0 4px 0;
+    font-size: 1.1rem;
+    margin: 0 0 3px 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -118,18 +116,17 @@ body {
 .chat-user-status {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.95rem;
+    gap: 6px;
+    font-size: 0.85rem;
     color: #a0a0c0;
     white-space: nowrap;
 }
 
 .status-dot {
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: #28a745;
-    display: inline-block;
     flex-shrink: 0;
 }
 
@@ -139,7 +136,7 @@ body {
 
 .chat-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-shrink: 0;
 }
 
@@ -147,103 +144,55 @@ body {
     background: none;
     border: none;
     color: #a0a0c0;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     cursor: pointer;
-    padding: 8px;
+    padding: 6px;
     border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s;
     flex-shrink: 0;
     -webkit-appearance: none;
-    -moz-appearance: none;
     appearance: none;
-    touch-action: manipulation;
 }
 
-/* MAIN CONTENT - EDGE SPECIFIC FIX */
+/* MAIN CONTENT AREA - CRITICAL EDGE FIX */
 .main-content {
-    position: absolute;
-    top: 80px;
-    left: 0;
-    right: 0;
-    bottom: 95px;
+    flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    position: relative;
     overflow: hidden;
-    background: transparent;
-    -webkit-overflow-scrolling: touch;
 }
 
-/* EDGE FIX: Prevent bounce effect */
-.main-content {
-    overscroll-behavior: none;
-}
-
-/* Messages Container - EDGE MOBILE FIX */
+/* Messages Container - FIXED FOR EDGE KEYBOARD */
 .messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 20px 20px 60px 20px; /* Extra bottom padding for Edge */
+    padding: 15px 15px 70px 15px; /* Extra bottom padding for keyboard */
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     min-height: 0;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    scroll-behavior: smooth;
     position: relative;
-    /* Edge-specific scrollbar hiding */
-    -ms-overflow-style: -ms-autohiding-scrollbar;
-}
-
-/* EDGE FIX: Hide scrollbar but keep functionality */
-.messages-container::-webkit-scrollbar {
-    display: none;
-}
-
-.messages-container {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-/* CRITICAL EDGE FIX: Prevent messages from hiding behind input */
-.messages-container::after {
-    content: '';
-    display: block;
-    height: 50px;
-    width: 100%;
-    flex-shrink: 0;
-    pointer-events: none;
-    opacity: 0;
+    z-index: 1;
 }
 
 /* Message Bubbles */
 .message {
-    max-width: 70%;
-    padding: 13px 17px;
-    border-radius: 22px;
+    max-width: 75%;
+    padding: 12px 15px;
+    border-radius: 20px;
     position: relative;
-    animation: fadeIn 0.3s ease;
     word-wrap: break-word;
     line-height: 1.4;
     word-break: break-word;
     flex-shrink: 0;
-    /* Edge fix for word breaking */
-    -ms-word-break: break-all;
-    word-break: break-word;
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
-    hyphens: auto;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .message.sent {
@@ -252,7 +201,6 @@ body {
     color: white;
     border-bottom-right-radius: 5px;
     margin-left: auto;
-    animation: slideInRight 0.3s ease;
 }
 
 .message.received {
@@ -261,23 +209,12 @@ body {
     color: white;
     border-bottom-left-radius: 5px;
     margin-right: auto;
-    animation: slideInLeft 0.3s ease;
-}
-
-@keyframes slideInRight {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(-20px); }
-    to { opacity: 1; transform: translateX(0); }
 }
 
 .message-time {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     opacity: 0.7;
-    margin-top: 5px;
+    margin-top: 4px;
     text-align: right;
     font-weight: 300;
 }
@@ -289,16 +226,15 @@ body {
 /* Date Separator */
 .date-separator {
     text-align: center;
-    margin: 18px 0;
-    position: relative;
+    margin: 15px 0;
     flex-shrink: 0;
 }
 
 .date-separator span {
     background: rgba(255, 255, 255, 0.08);
-    padding: 6px 16px;
+    padding: 5px 14px;
     border-radius: 12px;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     color: #a0a0c0;
     font-weight: 300;
 }
@@ -310,99 +246,97 @@ body {
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 40px 20px;
+    padding: 30px 15px;
     color: #a0a0c0;
     height: 100%;
     width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
 }
 
 .empty-chat-icon {
-    font-size: 4rem;
-    margin-bottom: 20px;
+    font-size: 3rem;
+    margin-bottom: 15px;
     opacity: 0.5;
 }
 
 .empty-chat h3 {
-    font-size: 1.4rem;
-    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+    margin: 0 0 8px 0;
 }
 
 /* Typing Indicator */
 .typing-indicator {
     align-self: flex-start;
     background: rgba(255, 255, 255, 0.1);
-    padding: 11px 16px;
-    border-radius: 22px;
+    padding: 10px 14px;
+    border-radius: 20px;
     border-bottom-left-radius: 5px;
     display: none;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     flex-shrink: 0;
 }
 
-/* Message Input - EDGE MOBILE FIX */
+.typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.typing-dots div {
+    width: 6px;
+    height: 6px;
+    background: #a0a0c0;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+@keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+}
+
+/* MESSAGE INPUT - CRITICAL EDGE KEYBOARD FIX */
 .message-input-wrapper {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(26, 26, 46, 0.95);
+    position: relative;
+    background: rgba(26, 26, 46, 0.98);
     backdrop-filter: blur(20px);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 100;
-    padding: 15px 20px 25px 20px; /* Extra bottom padding for Edge mobile */
-    height: 95px;
+    padding: 10px 15px;
+    min-height: 60px;
     flex-shrink: 0;
-    /* Edge fix for keyboard */
-    -webkit-appearance: none;
+    /* Prevent Edge from moving it */
+    transform: translateZ(0);
+    will-change: transform;
 }
 
-/* EDGE FIX: Prevent input zoom on focus */
 .message-input-container {
     display: flex;
-    gap: 14px;
+    gap: 10px;
     align-items: flex-end;
     width: 100%;
-    height: 100%;
-    max-width: 100%;
-    -webkit-appearance: none;
 }
 
 .message-input {
     flex: 1;
-    padding: 14px 18px;
+    padding: 12px 15px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
+    border-radius: 20px;
     color: white;
-    font-size: 1.05rem;
+    font-size: 1rem;
     resize: none;
     font-family: inherit;
-    line-height: 1.5;
-    min-height: 50px;
-    max-height: 130px;
+    line-height: 1.4;
+    min-height: 44px;
+    max-height: 100px;
     box-sizing: border-box;
-    transition: all 0.2s ease;
     overflow-y: auto;
     width: 100%;
     -webkit-appearance: none;
-    -moz-appearance: none;
     appearance: none;
-    /* Edge mobile specific */
-    -ms-touch-action: manipulation;
-    touch-action: manipulation;
 }
 
-/* EDGE FIX: Remove default styling */
+/* Remove Edge's default clear button */
 .message-input::-ms-clear {
-    display: none;
-}
-
-.message-input::-ms-reveal {
     display: none;
 }
 
@@ -410,242 +344,133 @@ body {
     background: linear-gradient(135deg, #667eea, #764ba2);
     border: none;
     color: white;
-    width: 50px;
-    height: 50px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s;
     flex-shrink: 0;
     -webkit-appearance: none;
-    -moz-appearance: none;
     appearance: none;
-    touch-action: manipulation;
 }
 
-/* Custom Alerts - EDGE FIX */
-.custom-alert-overlay,
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(10, 10, 26, 0.95);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    backdrop-filter: blur(5px);
-    -webkit-appearance: none;
+/* KEYBOARD SAFE AREA - NEW APPROACH */
+.keyboard-safe-area {
+    height: env(safe-area-inset-bottom, 0px);
+    background: rgba(26, 26, 46, 0.98);
+    flex-shrink: 0;
 }
 
-/* RESPONSIVE DESIGN - EDGE MOBILE SPECIFIC */
+/* RESPONSIVE DESIGN */
 
-/* Tablet - Edge specific */
-@media (max-width: 768px) {
+/* Tablet */
+@media (min-width: 768px) {
     .chat-header {
-        padding: 14px 16px;
-        height: 72px;
-    }
-    
-    .main-content {
-        top: 72px;
-        bottom: 85px;
-    }
-    
-    .message-input-wrapper {
-        padding: 12px 16px 20px 16px; /* Extra bottom padding */
-        height: 85px;
-    }
-    
-    .messages-container {
-        padding: 16px 16px 50px 16px; /* Extra bottom padding for Edge */
-    }
-    
-    .message {
-        max-width: 85%;
-        padding: 12px 16px;
-    }
-    
-    /* EDGE MOBILE: Prevent textarea zoom */
-    .message-input {
-        padding: 12px 16px;
-        min-height: 46px;
-        font-size: 16px !important;
-        line-height: 1.5;
-    }
-    
-    .send-btn {
-        width: 46px;
-        height: 46px;
-    }
-    
-    /* Edge mobile viewport fix */
-    @media screen and (orientation: landscape) {
-        .main-content {
-            bottom: 75px;
-        }
-        
-        .message-input-wrapper {
-            height: 75px;
-            padding-bottom: 15px;
-        }
-    }
-}
-
-/* Mobile - Edge specific */
-@media (max-width: 600px) {
-    .chat-header {
-        padding: 12px 14px;
-        height: 66px;
-    }
-    
-    .main-content {
-        top: 66px;
-        bottom: 80px;
-    }
-    
-    .message-input-wrapper {
-        padding: 10px 14px 18px 14px;
-        height: 80px;
-    }
-    
-    .messages-container {
-        padding: 14px 14px 45px 14px;
-    }
-    
-    .message {
-        max-width: 88%;
-        padding: 11px 15px;
-    }
-    
-    .message-input {
-        min-height: 44px;
-        padding: 10px 14px;
-        font-size: 16px !important;
-    }
-    
-    .send-btn {
-        width: 44px;
-        height: 44px;
-    }
-}
-
-/* Small Mobile - Edge specific */
-@media (max-width: 480px) {
-    .chat-header {
-        padding: 10px 12px;
-        height: 62px;
-    }
-    
-    .main-content {
-        top: 62px;
-        bottom: 75px;
-    }
-    
-    .message-input-wrapper {
-        padding: 8px 12px 16px 12px;
-        height: 75px;
-    }
-    
-    .messages-container {
-        padding: 12px 12px 40px 12px;
-    }
-    
-    .message {
-        max-width: 90%;
-        padding: 10px 13px;
-    }
-    
-    .message-input {
-        min-height: 42px;
-        padding: 9px 13px;
-        font-size: 16px !important;
-    }
-    
-    .send-btn {
-        width: 42px;
-        height: 42px;
-    }
-}
-
-/* EDGE MOBILE LANDSCAPE FIX */
-@media (max-width: 900px) and (orientation: landscape) {
-    .chat-header {
-        height: 60px;
-        padding: 10px 15px;
-    }
-    
-    .main-content {
-        top: 60px;
-        bottom: 70px;
-    }
-    
-    .message-input-wrapper {
+        padding: 15px 20px;
         height: 70px;
-        padding: 10px 15px 15px 15px;
+    }
+    
+    .chat-user-avatar {
+        width: 45px;
+        height: 45px;
+        font-size: 1.2rem;
     }
     
     .messages-container {
-        padding: 12px 15px 35px 15px;
+        padding: 20px 20px 80px 20px;
+    }
+    
+    .message {
+        max-width: 70%;
+        padding: 14px 18px;
+    }
+    
+    .message-input-wrapper {
+        padding: 12px 20px;
+    }
+}
+
+/* Mobile Landscape */
+@media (max-height: 500px) and (orientation: landscape) {
+    .chat-header {
+        height: 50px;
+        padding: 8px 12px;
+    }
+    
+    .chat-user-avatar {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    
+    .chat-user-details h3 {
+        font-size: 1rem;
+    }
+    
+    .main-content {
+        height: calc(100% - 50px);
+    }
+    
+    .messages-container {
+        padding: 10px 10px 50px 10px;
+    }
+    
+    .message-input-wrapper {
+        padding: 8px 12px;
+        min-height: 50px;
     }
     
     .message-input {
         min-height: 40px;
-        max-height: 60px;
+        padding: 10px 12px;
+    }
+    
+    .send-btn {
+        width: 40px;
+        height: 40px;
     }
 }
 
-/* EDGE SPECIFIC VIEWPORT FIXES */
+/* EDGE SPECIFIC FIXES */
 @supports (-ms-ime-align: auto) {
-    /* Microsoft Edge specific fixes */
-    html, body {
-        height: 100vh;
-        width: 100vw;
+    /* Edge specific fixes */
+    body {
+        position: absolute;
     }
     
-    .main-content {
-        height: calc(100vh - 175px);
-    }
-    
-    /* Fix for Edge mobile scroll */
     .messages-container {
-        -webkit-overflow-scrolling: auto;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    
+    .messages-container::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* Edge keyboard fix */
+    .message-input-wrapper {
+        position: sticky;
+        bottom: 0;
     }
 }
 
-/* Prevent iOS zoom on input focus - Works on Edge too */
+/* iOS Safari */
+@supports (-webkit-touch-callout: none) {
+    .messages-container {
+        padding-bottom: calc(70px + env(safe-area-inset-bottom));
+    }
+    
+    .message-input-wrapper {
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+}
+
+/* Prevent iOS zoom */
 @media (max-width: 768px) {
     input, textarea {
         font-size: 16px !important;
-        -webkit-text-size-adjust: 100%;
-        -ms-text-size-adjust: 100%;
-    }
-    
-    /* Edge mobile keyboard fix */
-    textarea {
-        max-height: 120px;
-    }
-}
-
-/* EDGE TOUCH ACTION FIXES */
-.back-btn,
-.chat-action-btn,
-.send-btn,
-.alert-btn,
-.info-action-btn {
-    -ms-touch-action: manipulation;
-    touch-action: manipulation;
-}
-
-/* EDGE SCROLLBAR FIX */
-@supports (-ms-ime-align: auto) {
-    .messages-container {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(102, 126, 234, 0.5) rgba(255, 255, 255, 0.03);
     }
 }
