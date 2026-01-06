@@ -1,7 +1,7 @@
 import { auth } from '../../utils/auth.js';
 import { supabase } from '../../utils/supabase.js';
 
-console.log('✨ Chat Loaded');
+console.log('✨ Chat Loaded - Edge Mobile Optimized');
 
 let currentUser = null;
 let chatFriend = null;
@@ -31,6 +31,35 @@ window.showToast = showToast;
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        // EDGE MOBILE FIX: Prevent elastic scrolling and pull-to-refresh
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        
+        // EDGE FIX: Prevent pull-to-refresh
+        document.addEventListener('touchmove', function(e) {
+            if (e.scale !== 1) { 
+                e.preventDefault(); 
+            }
+        }, { passive: false });
+        
+        // EDGE FIX: Handle viewport resize
+        window.addEventListener('resize', function() {
+            setTimeout(() => {
+                const input = document.getElementById('messageInput');
+                if (input) autoResize(input);
+                scrollToBottom();
+            }, 100);
+        });
+        
+        // EDGE FIX: Handle orientation change
+        window.addEventListener('orientationchange', function() {
+            setTimeout(() => {
+                scrollToBottom();
+                const input = document.getElementById('messageInput');
+                if (input) autoResize(input);
+            }, 300);
+        });
+
         const { success, user } = await auth.getCurrentUser();
         if (!success || !user) {
             showLoginAlert();
@@ -74,7 +103,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (input) autoResize(input);
         }, 100);
 
-        console.log('✅ Chat ready!');
+        // EDGE FIX: Force scroll to bottom on load
+        setTimeout(() => {
+            scrollToBottom();
+        }, 300);
+
+        console.log('✅ Chat ready - Edge Mobile Optimized!');
     } catch (error) {
         console.error('Init error:', error);
         showCustomAlert('Error loading chat: ' + error.message, '❌', 'Error', () => {
@@ -160,10 +194,7 @@ function showTypingIndicator(show) {
         // Scroll to show typing indicator
         if (show) {
             setTimeout(() => {
-                const messagesContainer = document.getElementById('messagesContainer');
-                if (messagesContainer) {
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                }
+                scrollToBottom();
             }, 100);
         }
     }
@@ -300,18 +331,24 @@ function showMessages(messages) {
     html += `<div style="height: 10px; opacity: 0;"></div>`;
     container.innerHTML = html;
     
-    // Scroll to bottom after a short delay
+    // Scroll to bottom
     setTimeout(() => {
         scrollToBottom();
     }, 50);
 }
 
+// EDGE OPTIMIZED: Scroll function
 function scrollToBottom() {
     const container = document.getElementById('messagesContainer');
     if (!container) return;
 
-    // Direct scroll to bottom (most reliable)
+    // Direct scroll (most reliable for Edge)
     container.scrollTop = container.scrollHeight;
+    
+    // Double check for Edge mobile
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+    }, 10);
 }
 
 function addMessageToUI(message, isFromRealtime = false) {
@@ -344,7 +381,7 @@ function addMessageToUI(message, isFromRealtime = false) {
         currentMessages.push(message);
     }
 
-    // Always scroll to bottom for new messages
+    // Scroll to bottom for new messages
     setTimeout(() => {
         scrollToBottom();
     }, 10);
@@ -486,8 +523,14 @@ async function sendMessage() {
         }
         sendTypingStatus(false);
         
+        // EDGE FIX: Handle keyboard better
         setTimeout(() => {
-            input.focus();
+            // Blur and refocus to fix Edge keyboard
+            input.blur();
+            setTimeout(() => {
+                input.focus();
+            }, 50);
+            
             isSending = false;
             sendBtn.innerHTML = originalText;
             sendBtn.disabled = false;
@@ -501,6 +544,7 @@ async function sendMessage() {
     }
 }
 
+// EDGE ENHANCED: Handle keyboard events
 function handleKeyPress(event) {
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
@@ -511,8 +555,14 @@ function handleKeyPress(event) {
 
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
+        const input = document.getElementById('messageInput');
         if (input && input.value.trim()) {
-            sendMessage();
+            // EDGE FIX: Blur and refocus to handle keyboard better
+            input.blur();
+            setTimeout(() => {
+                sendMessage();
+                input.focus();
+            }, 100);
         }
     }
 }
@@ -687,3 +737,13 @@ async function clearChatPrompt() {
         }
     );
 }
+
+// EDGE FIX: Add visibility change handler for better performance
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // When tab becomes active again, scroll to bottom
+        setTimeout(() => {
+            scrollToBottom();
+        }, 100);
+    }
+});
