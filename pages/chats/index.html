@@ -8,12 +8,11 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- ========================== -->
-    <!-- CHAT HEADER SECTION        -->
-    <!-- ========================== -->
+    <!-- ==================== -->
+    <!-- CHAT HEADER SECTION  -->
+    <!-- ==================== -->
     <header class="chat-header">
         <button class="back-btn" onclick="goBack()">←</button>
-
         <div class="chat-user-info">
             <div class="chat-user-avatar" id="chatUserAvatar">F</div>
             <div class="chat-user-details">
@@ -24,25 +23,24 @@
                 </div>
             </div>
         </div>
-
         <div class="chat-actions">
             <button class="chat-action-btn" onclick="showUserInfo()" title="User Info">ⓘ</button>
             <button class="chat-action-btn" onclick="clearChatPrompt()" title="Clear Chat">🗑️</button>
         </div>
     </header>
 
-    <!-- ========================== -->
-    <!-- MAIN CONTENT SECTION       -->
-    <!-- ========================== -->
+    <!-- ==================== -->
+    <!-- MAIN CONTENT SECTION -->
+    <!-- ==================== -->
     <main class="main-content" id="mainContent">
         <div class="messages-container" id="messagesContainer">
             <!-- Messages loaded by JavaScript -->
         </div>
     </main>
 
-    <!-- ========================== -->
-    <!-- MESSAGE INPUT SECTION      -->
-    <!-- ========================== -->
+    <!-- ==================== -->
+    <!-- MESSAGE INPUT        -->
+    <!-- ==================== -->
     <div class="message-input-wrapper" id="messageInputWrapper">
         <div class="message-input-container">
             <textarea class="message-input" id="messageInput" 
@@ -50,14 +48,13 @@
                       rows="1"
                       onkeydown="handleKeyPress(event)"
                       oninput="autoResize(this)"></textarea>
-
             <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>➤</button>
         </div>
     </div>
 
-    <!-- ========================== -->
-    <!-- ALERT SYSTEM (HIDDEN)      -->
-    <!-- ========================== -->
+    <!-- ==================== -->
+    <!-- ALERT SYSTEM         -->
+    <!-- ==================== -->
     <div class="custom-alert-overlay" id="customAlert" style="display: none;">
         <div class="custom-alert">
             <div class="custom-alert-icon" id="alertIcon">⚠️</div>
@@ -70,17 +67,17 @@
         </div>
     </div>
 
-    <!-- ========================== -->
-    <!-- TOAST NOTIFICATION (HIDDEN) -->
-    <!-- ========================== -->
+    <!-- ==================== -->
+    <!-- TOAST NOTIFICATION   -->
+    <!-- ==================== -->
     <div class="custom-toast" id="customToast" style="display: none;">
         <span class="toast-icon" id="toastIcon">ℹ️</span>
         <span class="toast-message" id="toastMessage"></span>
     </div>
 
-    <!-- ========================== -->
-    <!-- USER INFO MODAL (HIDDEN)   -->
-    <!-- ========================== -->
+    <!-- ==================== -->
+    <!-- USER INFO MODAL      -->
+    <!-- ==================== -->
     <div class="modal-overlay" id="userInfoModal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
