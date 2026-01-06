@@ -1359,3 +1359,94 @@ body {
     position: relative;
     flex-shrink: 0; /* Don't shrink */
 }
+
+/* ==================== BUTTON UNSELECTABLE & NO BLUE HIGHLIGHT ==================== */
+/* Add this at the VERY END of your style.css file */
+
+/* Remove blue tap highlight on ALL elements (especially mobile) */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Make all buttons and button-like elements unselectable */
+button,
+.btn-primary,
+.btn-secondary,
+.search-btn,
+.back-btn,
+.nav-btn,
+.view-all-btn,
+.send-request-btn,
+.accept-btn,
+.decline-btn,
+.btn-success,
+.btn-danger,
+.btn-small,
+.feature-card,
+.action-card,
+.friend-card {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: pointer;
+}
+
+/* Remove focus outline (blue glow) from buttons */
+button:focus,
+.btn-primary:focus,
+.btn-secondary:focus,
+.search-btn:focus,
+.back-btn:focus,
+.nav-btn:focus,
+.view-all-btn:focus,
+.send-request-btn:focus,
+.accept-btn:focus,
+.decline-btn:focus,
+.btn-success:focus,
+.btn-danger:focus,
+.btn-small:focus,
+.feature-card:focus,
+.action-card:focus,
+.friend-card:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Remove default button styling */
+button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* For iOS/Safari */
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+    -webkit-appearance: none;
+}
+
+/* Remove Firefox dotted outline */
+button::-moz-focus-inner {
+    border: 0;
+}
+
+/* But allow text selection in input fields and textareas */
+input,
+textarea,
+[contenteditable="true"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+/* Keep accessibility - subtle focus for keyboard users */
+button:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+    outline: 2px solid rgba(102, 126, 234, 0.5);
+    outline-offset: 2px;
+}
