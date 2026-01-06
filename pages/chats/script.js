@@ -25,6 +25,9 @@ window.startVoiceCall = startVoiceCall;
 window.viewSharedMedia = viewSharedMedia;
 window.blockUserPrompt = blockUserPrompt;
 window.clearChatPrompt = clearChatPrompt;
+window.showCustomAlert = showCustomAlert;
+window.showConfirmAlert = showConfirmAlert;
+window.showToast = showToast;
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -64,6 +67,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupRealtime(friendId);
         setupTypingListener();
         updateInputListener();
+
+        // Force resize on load
+        setTimeout(() => {
+            const input = document.getElementById('messageInput');
+            if (input) autoResize(input);
+        }, 100);
 
         console.log('✅ Chat ready!');
     } catch (error) {
@@ -119,33 +128,43 @@ function setupTypingListener() {
 }
 
 function showTypingIndicator(show) {
-    const indicator = document.getElementById('typingIndicator');
+    const container = document.getElementById('messagesContainer');
+    if (!container) return;
+    
+    let indicator = document.getElementById('typingIndicator');
     
     if (!indicator) {
-        const container = document.getElementById('messagesContainer');
-        if (container) {
-            const typingHTML = `
-                <div id="typingIndicator" class="typing-indicator" style="display: none;">
-                    <div class="typing-dots">
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                    </div>
+        const typingHTML = `
+            <div id="typingIndicator" class="typing-indicator" style="display: none;">
+                <div class="typing-dots">
+                    <div></div>
+                    <div></div>
+                    <div></div>
                 </div>
-            `;
-            container.insertAdjacentHTML('beforeend', typingHTML);
-        }
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', typingHTML);
+        indicator = document.getElementById('typingIndicator');
     }
     
-    const indicatorElement = document.getElementById('typingIndicator');
-    if (indicatorElement) {
-        indicatorElement.style.display = show ? 'flex' : 'none';
+    if (indicator) {
+        indicator.style.display = show ? 'flex' : 'none';
         
         if (show) {
             if (friendTypingTimeout) clearTimeout(friendTypingTimeout);
             friendTypingTimeout = setTimeout(() => {
-                indicatorElement.style.display = 'none';
+                indicator.style.display = 'none';
             }, 3000);
+        }
+        
+        // Scroll to show typing indicator
+        if (show) {
+            setTimeout(() => {
+                const messagesContainer = document.getElementById('messagesContainer');
+                if (messagesContainer) {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            }, 100);
         }
     }
 }
@@ -277,32 +296,29 @@ function showMessages(messages) {
         `;
     });
 
-    html += `<div style="height: 10px;"></div>`;
+    // Add spacer at the end to ensure no overflow below input
+    html += `<div style="height: 10px; opacity: 0;"></div>`;
     container.innerHTML = html;
-    scrollToBottomMsg(true);
+    
+    // Scroll to bottom after a short delay
+    setTimeout(() => {
+        scrollToBottom();
+    }, 50);
 }
 
-function scrollToBottomMsg(instant = false) {
+function scrollToBottom() {
     const container = document.getElementById('messagesContainer');
     if (!container) return;
 
-    const lastMessage = container.lastElementChild;
-    if (lastMessage) {
-        if (instant) {
-            lastMessage.scrollIntoView({ behavior: 'instant', block: 'end' });
-        } else {
-            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-            if (isNearBottom) {
-                lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }
-        }
-    }
+    // Direct scroll to bottom (most reliable)
+    container.scrollTop = container.scrollHeight;
 }
 
 function addMessageToUI(message, isFromRealtime = false) {
     const container = document.getElementById('messagesContainer');
     if (!container || !message) return;
 
+    // Remove empty state if it exists
     if (container.querySelector('.empty-chat')) {
         container.innerHTML = '';
     }
@@ -322,14 +338,25 @@ function addMessageToUI(message, isFromRealtime = false) {
 
     container.insertAdjacentHTML('beforeend', messageHTML);
     
+    // Check for duplicate
     const isDuplicate = currentMessages.some(msg => msg.id === message.id);
     if (!isDuplicate) {
         currentMessages.push(message);
     }
 
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
-    if (isSent || isNearBottom || isFromRealtime) {
-        setTimeout(() => scrollToBottomMsg(!isFromRealtime), 50);
+    // Always scroll to bottom for new messages
+    setTimeout(() => {
+        scrollToBottom();
+    }, 10);
+
+    // Play sound for received messages
+    if (message.sender_id === chatFriend.id) {
+        playReceivedSound();
+        if (!document.hasFocus()) {
+            const originalTitle = document.title;
+            document.title = '💬 ' + chatFriend.username;
+            setTimeout(() => document.title = originalTitle, 1000);
+        }
     }
 }
 
@@ -354,6 +381,7 @@ function updateFriendStatus(status) {
 function setupRealtime(friendId) {
     console.log('🔧 Setting up realtime for friend:', friendId);
 
+    // Clean up old channels
     if (chatChannel) {
         supabase.removeChannel(chatChannel);
     }
@@ -378,15 +406,6 @@ function setupRealtime(friendId) {
                 if (!existingMessage) {
                     console.log('✅ Adding new message to UI (from realtime)');
                     addMessageToUI(newMsg, true);
-
-                    if (newMsg.sender_id === friendId) {
-                        playReceivedSound();
-                        if (!document.hasFocus()) {
-                            const originalTitle = document.title;
-                            document.title = '💬 ' + chatFriend.username;
-                            setTimeout(() => document.title = originalTitle, 1000);
-                        }
-                    }
                 } else {
                     console.log('🔄 Message already in UI, skipping:', newMsg.id);
                 }
@@ -457,7 +476,15 @@ async function sendMessage() {
         console.log('✅ Message sent to database:', data.id);
         playSentSound();
         input.value = '';
-        input.style.height = 'auto';
+        autoResize(input); // Reset input height
+        
+        // Clear typing indicator
+        isTyping = false;
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+            typingTimeout = null;
+        }
+        sendTypingStatus(false);
         
         setTimeout(() => {
             input.focus();
