@@ -2,8 +2,8 @@
   "name": "RelayTalk",
   "short_name": "Relay",
   "description": "Message friends instantly",
-  "id": "/relaytalk/",
-  "start_url": "/app/",
+  "id": "/",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0a1a",
@@ -17,8 +17,8 @@
       "purpose": "any"
     },
     {
-      "src": "relay.png",
-      "sizes": "192x192 512x512",
+      "src": "relay_maskable.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
