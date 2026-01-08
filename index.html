@@ -3,28 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ Relay</title>
+    
+    <meta name="google-site-verification" content="qRU2hfY_hID6VOk91AxOPVwvoGqrpQskUTWmxpwszxE" />
 
-    <!-- PWA Meta Tags -->
+    <title>RelayTalk | Instant Messaging for Friends</title>
+    <meta name="description" content="RelayTalk - Connect with friends instantly using search, real-time notifications, and secure messaging. The fastest way to stay in touch.">
+    <meta name="keywords" content="RelayTalk, messaging app, instant chat, PWA messenger, connect with friends">
+    <link rel="canonical" href="https://relaytalk.github.io/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://relaytalk.github.io/">
+    <meta property="og:title" content="RelayTalk | Instant Messaging">
+    <meta property="og:description" content="Message friends instantly with RelayTalk. Fast, secure, and works offline.">
+    <meta property="og:image" content="https://relaytalk.github.io/relay.png">
+
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="relay.png">
     <meta name="theme-color" content="#0a0a1a">
-    <meta name="description" content="RelayTalk - Instant messaging with friends">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="RelayTalk">
     <link rel="apple-touch-icon" href="relay.png">
 
-    <!-- Styles -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="opening.css">
 
-    <!-- PWA Service Worker Registration -->
     <script>
-        // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/app/service-worker.js')
+                // FIXED: Removed /app/ because your file is now in the root
+                navigator.serviceWorker.register('/service-worker.js')
                     .then(registration => {
                         console.log('✅ Service Worker registered:', registration.scope);
                     })
@@ -39,37 +47,22 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-
-            // Show install button after 3 seconds
-            setTimeout(() => {
-                if (deferredPrompt) {
-                    showInstallButton();
-                }
-            }, 3000);
+            setTimeout(() => { if (deferredPrompt) showInstallButton(); }, 3000);
         });
 
         function showInstallButton() {
-            // Remove existing install button
             const existingBtn = document.getElementById('installPwaBtn');
             if (existingBtn) existingBtn.remove();
 
-            // Create install button
             const installBtn = document.createElement('button');
             installBtn.id = 'installPwaBtn';
             installBtn.innerHTML = '📱 Install App';
             installBtn.style.cssText = `
-                position: fixed;
-                bottom: 100px;
-                right: 20px;
+                position: fixed; bottom: 100px; right: 20px;
                 background: linear-gradient(45deg, #4A90E2, #6B46C1);
-                color: white;
-                border: none;
-                padding: 12px 20px;
-                border-radius: 25px;
-                font-weight: bold;
-                cursor: pointer;
-                z-index: 9999;
-                box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+                color: white; border: none; padding: 12px 20px;
+                border-radius: 25px; font-weight: bold; cursor: pointer;
+                z-index: 9999; box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
                 animation: fadeIn 0.5s ease;
             `;
 
@@ -77,63 +70,32 @@
                 if (deferredPrompt) {
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then(choiceResult => {
-                        if (choiceResult.outcome === 'accepted') {
-                            console.log('✅ User installed the app');
-                        }
                         deferredPrompt = null;
                         installBtn.remove();
                     });
                 }
             };
-
             document.body.appendChild(installBtn);
-
-            // Auto-hide after 10 seconds
-            setTimeout(() => {
-                if (installBtn.parentNode) {
-                    installBtn.style.opacity = '0';
-                    installBtn.style.transform = 'translateY(20px)';
-                    setTimeout(() => {
-                        if (installBtn.parentNode) installBtn.remove();
-                    }, 500);
-                }
-            }, 10000);
+            setTimeout(() => { if (installBtn.parentNode) installBtn.remove(); }, 10000);
         }
 
-        // Check if app is running in standalone mode
         function checkStandaloneMode() {
-            if (window.matchMedia('(display-mode: standalone)').matches || 
-                window.navigator.standalone === true) {
-                console.log('📱 App running in standalone mode');
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
                 document.documentElement.classList.add('standalone-mode');
             }
         }
-
-        // Add CSS for standalone mode
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            
-            .standalone-mode .bottom-nav {
-                padding-bottom: env(safe-area-inset-bottom);
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Check on load
         window.addEventListener('load', checkStandaloneMode);
     </script>
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .standalone-mode .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
 </head>
 <body>
-    <!-- Opening Animation -->
     <div class="opening-screen" id="openingScreen">
         <div class="luster-text">✨Relay</div>
     </div>
 
-    <!-- Main Content -->
     <div class="main-content" id="mainContent">
         <div class="welcome-container">
             <div class="logo">✨</div>
@@ -146,13 +108,11 @@
                     <h3>Search & Connect</h3>
                     <p>Find users by username and send requests</p>
                 </div>
-
                 <div class="feature-card">
                     <div class="feature-icon">🔔</div>
                     <h3>Accept/Decline</h3>
                     <p>Manage friend requests with notifications</p>
                 </div>
-
                 <div class="feature-card">
                     <div class="feature-icon">💬</div>
                     <h3>Instant Chat</h3>
@@ -161,85 +121,31 @@
             </div>
 
             <div class="action-buttons">
-                <button class="btn-primary" onclick="window.location.href='pages/auth/index.html'">
-                    Create Account
-                </button>
-                <button class="btn-secondary" onclick="goToLogin()">
-                    I Have an Account
-                </button>
+                <button class="btn-primary" onclick="goToSignup()">Create Account</button>
+                <button class="btn-secondary" onclick="goToLogin()">I Have an Account</button>
             </div>
-
-            <p class="footer-note">
-                Simple messaging with personal connections
-            </p>
         </div>
     </div>
 
-    <!-- INLINE SCRIPT TO DEFINE goToLogin BEFORE MODULE LOADS -->
     <script>
-        // Define goToLogin IMMEDIATELY so button works
-        function goToLogin() {
-            window.location.href = 'pages/login/index.html';
-        }
-        
-        // Make it globally available immediately
+        function goToLogin() { window.location.href = 'pages/login/index.html'; }
+        function goToSignup() { window.location.href = 'pages/auth/index.html'; }
         window.goToLogin = goToLogin;
-        
-        // Also define goToSignup for consistency
-        function goToSignup() {
-            window.location.href = 'pages/auth/index.html';
-        }
         window.goToSignup = goToSignup;
     </script>
 
     <script type="module">
         import { auth } from './utils/auth.js';
-
         async function checkUserAndRedirect() {
             try {
-                console.log("🔄 Checking login status...");
-
                 const { success, user } = await auth.getCurrentUser();
-
                 if (success && user) {
-                    // User IS logged in → Skip landing, go to home
-                    console.log("✅ User logged in, redirecting to home...");
                     window.location.href = 'pages/home/index.html';
-                    return; // Stop here
+                    return;
                 }
-
-                // User NOT logged in → Show landing page normally
-                console.log("❌ User not logged in, showing landing...");
-                showLandingPage();
-
-            } catch (error) {
-                console.error("Auth check error:", error);
-                showLandingPage(); // Show landing on error
-            }
+            } catch (error) { console.error("Auth check error:", error); }
         }
-
-        function showLandingPage() {
-            // Original landing page logic
-            const user = JSON.parse(localStorage.getItem('luster_user'));
-            if (user) {
-                setTimeout(() => {
-                    window.location.href = 'pages/home/index.html';
-                }, 2000);
-            }
-        }
-
-        // Check on page load
         document.addEventListener('DOMContentLoaded', checkUserAndRedirect);
-
-        // Add click effects to buttons
-        document.querySelectorAll('button').forEach(button => {
-            button.addEventListener('click', function() {
-                this.style.transform = 'scale(0.98)';
-                setTimeout(() => {
-                    this.style.transform = '';
-                }, 150);
-            });
-        });
     </script>
 </body>
 </html>
