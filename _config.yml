@@ -1,0 +1,59 @@
+# GitHub Pages Configuration for RelayTalk
+title: "RelayTalk | Instant Messaging for Friends"
+description: "Connect with friends instantly using search, real-time notifications, and secure messaging"
+url: "https://relaytalk.github.io"
+baseurl: "" # Leave empty for project pages
+repository: "relaytalk/relaytalk.github.io"
+
+# SEO Settings
+timezone: "Asia/Kolkata"
+future: false
+safe: true
+
+# Plugins (GitHub Pages supported)
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Jekyll SEO Tag Configuration
+logo: "/relay.png"
+social:
+  name: "RelayTalk"
+  links:
+    - "https://relaytalk.github.io"
+
+# Exclude files from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - README.md
+
+# Include these files
+include:
+  - _pages
+  - .well-known
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
+      sitemap: true
+
+# Custom variables
+relaytalk:
+  version: "1.0.0"
+  release_date: "2024-01-12"
+  author: "RelayTalk Team"
+  email: "hello@relaytalk.github.io"
+
+# Analytics (you can add later)
+# google_analytics: UA-XXXXX-Y
