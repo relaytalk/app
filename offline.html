@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oops! | RelayTalk</title>
+    <meta name="description" content="RelayTalk - Something went wrong. Let's get you back to chatting.">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/relay.png" type="image/png">
+    
+    <!-- SEO Tags -->
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="https://relaytalk.github.io/">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="RelayTalk - Connection Error">
+    <meta property="og:description" content="Let's get you back to chatting with friends">
+    <meta property="og:image" content="/relay.png">
+    <meta property="og:url" content="https://relaytalk.github.io/">
+    
+    <style>
+        /* ====== BASE STYLES ====== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #637dff;
+            --secondary: #00d4ff;
+            --accent: #ff6b8b;
+            --bg-dark: #0a0a1a;
+            --bg-light: #1a1a2e;
+            --text: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.7);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-light) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ====== ANIMATED BACKGROUND ====== */
+        .bg-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+            opacity: 0.3;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* ====== ERROR CONTAINER ====== */
+        .error-container {
+            max-width: 600px;
+            width: 90%;
+            padding: 40px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.8s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .error-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 125, 255, 0.1) 0%, transparent 70%);
+            z-index: -1;
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.05); }
+        }
+
+        /* ====== HEART AREA ====== */
+        .heart-area {
+            margin-bottom: 30px;
+            position: relative;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-heart {
+            font-size: 80px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 2;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+            user-select: none;
+        }
+
+        .main-heart:hover {
+            transform: scale(1.1);
+        }
+
+        .main-heart:active {
+            transform: scale(0.9);
+        }
+
+        .heart.clicked {
+            animation: heartBeat 0.6s ease;
+        }
+
+        .heart.broken {
+            animation: breakHeart 0.8s ease forwards;
+        }
+
+        @keyframes heartBeat {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.3); }
+            50% { transform: scale(0.9); }
+            75% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes breakHeart {
+            0% { transform: scale(1) rotate(0deg); }
+            20% { transform: scale(1.2) rotate(-10deg); }
+            40% { transform: scale(0.8) rotate(10deg); }
+            60% { transform: scale(1.1) rotate(-5deg); }
+            80% { transform: scale(0.9) rotate(5deg); }
+            100% { 
+                transform: scale(1) rotate(0deg); 
+                content: '💔';
+            }
+        }
+
+        .heart-particle {
+            position: absolute;
+            font-size: 20px;
+            pointer-events: none;
+            z-index: 1;
+            animation: explode 1s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: translate(0, 0) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* ====== CONTENT ====== */
+        h1 {
+            font-size: 42px;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .error-type {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(255, 107, 139, 0.2);
+            border: 1px solid rgba(255, 107, 139, 0.4);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+
+        .error-message {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            color: var(--text-muted);
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .status-info {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .status-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 8px 0;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4757;
+            animation: pulseDot 2s infinite;
+        }
+
+        .status-dot.online {
+            background: #2ed573;
+            animation: none;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ====== BUTTONS ====== */
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-width: 160px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.7s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 8px 20px rgba(99, 125, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(99, 125, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-icon {
+            font-size: 20px;
+        }
+
+        /* ====== FOOTER ====== */
+        .error-footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .service-worker-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .sw-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ed573;
+        }
+
+        .sw-status.off {
+            background: #ff4757;
+        }
+
+        /* ====== RESPONSIVE ====== */
+        @media (max-width: 768px) {
+            .error-container {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+            
+            h1 {
+                font-size: 32px;
+            }
+            
+            .main-heart {
+                font-size: 60px;
+            }
+            
+            .heart-area {
+                height: 100px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                min-width: auto;
+            }
+            
+            .error-footer {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+        }
+
+        /* ====== UTILITY ====== */
+        .hidden {
+            display: none !important;
+        }
+
+        .shake {
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-particles" id="particles"></div>
+
+    <!-- Main Container -->
+    <div class="error-container">
+        <!-- Heart Emoji -->
+        <div class="heart-area">
+            <div class="main-heart" id="heartEmoji">❤️</div>
+        </div>
+
+        <!-- Error Title -->
+        <h1 id="errorTitle">Connection Lost</h1>
+        
+        <!-- Error Type Badge -->
+        <div class="error-type" id="errorBadge">OFFLINE</div>
+        
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage">
+            Looks like you've lost connection to RelayTalk. 
+            Don't worry - your messages are safe and will send once you're back online.
+        </div>
+
+        <!-- Status Info -->
+        <div class="status-info">
+            <div class="status-line">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Checking your connection...</span>
+            </div>
+            <div class="status-line">
+                <span id="pageInfo"></span>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="refreshBtn">
+                <span class="btn-icon">🔄</span>
+                <span id="refreshText">Refresh Connection</span>
+            </button>
+            
+            <button class="btn btn-secondary" id="homeBtn">
+                <span class="btn-icon">🏠</span>
+                Go Home
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="error-footer">
+            <div>RelayTalk • Instant Messaging</div>
+            <div class="service-worker-info">
+                <span class="sw-status" id="swStatus"></span>
+                <span id="swText">Service Worker: Active</span>
+            </div>
+            <div id="currentYear">© 2024</div>
+        </div>
+    </div>
+
+    <script>
+        // ====== CONFIGURATION ======
+        const CONFIG = {
+            errorMessages: {
+                offline: {
+                    title: 'Connection Lost',
+                    badge: 'OFFLINE',
+                    message: 'Looks like you\'ve lost connection to RelayTalk. Your messages are safe and will send when you\'re back online.'
+                },
+                notFound: {
+                    title: 'Page Not Found',
+                    badge: '404',
+                    message: 'The page you\'re looking for doesn\'t exist. It might have been moved or deleted.'
+                },
+                serviceWorker: {
+                    title: 'App Update Required',
+                    badge: 'UPDATE',
+                    message: 'Please refresh to update RelayTalk to the latest version.'
+                }
+            },
+            heartBreakThreshold: 3,
+            autoRedirectDelay: 5000
+        };
+
+        // ====== STATE MANAGEMENT ======
+        let state = {
+            errorType: 'offline',
+            heartClicks: 0,
+            isBroken: false,
+            isOnline: navigator.onLine,
+            serviceWorkerActive: false,
+            lastPath: document.referrer || '/'
+        };
+
+        // ====== DOM ELEMENTS ======
+        const elements = {
+            heart: document.getElementById('heartEmoji'),
+            title: document.getElementById('errorTitle'),
+            badge: document.getElementById('errorBadge'),
+            message: document.getElementById('errorMessage'),
+            statusDot: document.getElementById('statusDot'),
+            statusText: document.getElementById('statusText'),
+            pageInfo: document.getElementById('pageInfo'),
+            refreshBtn: document.getElementById('refreshBtn'),
+            refreshText: document.getElementById('refreshText'),
+            homeBtn: document.getElementById('homeBtn'),
+            swStatus: document.getElementById('swStatus'),
+            swText: document.getElementById('swText'),
+            currentYear: document.getElementById('currentYear'),
+            particles: document.getElementById('particles')
+        };
+
+        // ====== INITIALIZATION ======
+        function init() {
+            // Set current year
+            elements.currentYear.textContent = `© ${new Date().getFullYear()}`;
+            
+            // Detect error type from URL
+            detectErrorType();
+            
+            // Update UI based on error type
+            updateUI();
+            
+            // Create background particles
+            createParticles();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Check connection and service worker
+            checkConnection();
+            checkServiceWorker();
+            
+            // Auto-redirect if online
+            if (state.isOnline && state.errorType === 'offline') {
+                setTimeout(redirectToHome, CONFIG.autoRedirectDelay);
+            }
+        }
+
+        // ====== ERROR DETECTION ======
+        function detectErrorType() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const type = urlParams.get('type');
+            
+            if (type === '404' || window.location.pathname.includes('404')) {
+                state.errorType = 'notFound';
+                document.title = 'Page Not Found | RelayTalk';
+            } else if (type === 'sw') {
+                state.errorType = 'serviceWorker';
+                document.title = 'Update Required | RelayTalk';
+            } else {
+                state.errorType = 'offline';
+                document.title = 'Connection Lost | RelayTalk';
+            }
+            
+            // Store current path for reference
+            if (window.location.pathname !== '/offline.html') {
+                state.lastPath = window.location.pathname;
+            }
+        }
+
+        // ====== UI UPDATES ======
+        function updateUI() {
+            const errorConfig = CONFIG.errorMessages[state.errorType];
+            
+            // Update text content
+            elements.title.textContent = errorConfig.title;
+            elements.badge.textContent = errorConfig.badge;
+            elements.message.textContent = errorConfig.message;
+            
+            // Update page info
+            if (state.errorType === 'notFound') {
+                elements.pageInfo.textContent = `Attempted: ${state.lastPath}`;
+            } else {
+                elements.pageInfo.textContent = `Current page: ${window.location.pathname}`;
+            }
+            
+            // Update button text
+            if (state.errorType === 'notFound') {
+                elements.refreshText.textContent = 'Try Again';
+            }
+        }
+
+        // ====== PARTICLE SYSTEM ======
+        function createParticles() {
+            for (let i = 0; i < 40; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // Random position
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                
+                // Random size
+                const size = Math.random() * 4 + 2;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                
+                // Random color
+                const colors = ['#637dff', '#00d4ff', '#ff6b8b'];
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Random animation
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                
+                elements.particles.appendChild(particle);
+            }
+        }
+
+        // ====== HEART INTERACTIONS ======
+        function setupHeartInteraction() {
+            elements.heart.addEventListener('click', handleHeartClick);
+        }
+
+        function handleHeartClick() {
+            if (state.isBroken) return;
+            
+            state.heartClicks++;
+            
+            // Add click animation
+            elements.heart.classList.add('clicked');
+            setTimeout(() => {
+                elements.heart.classList.remove('clicked');
+            }, 600);
+            
+                        // Create heart particles
+            createHeartParticles();
+            
+            // Check if heart should break
+            if (state.heartClicks >= CONFIG.heartBreakThreshold) {
+                breakHeart();
+            }
+        }
+
+        function createHeartParticles() {
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'heart-particle';
+                particle.textContent = '❤️';
+                
+                // Random direction and distance
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 60 + Math.random() * 80;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                
+                particle.style.setProperty('--tx', tx + 'px');
+                particle.style.setProperty('--ty', ty + 'px');
+                
+                // Random size and color
+                const size = 16 + Math.random() * 20;
+                particle.style.fontSize = size + 'px';
+                particle.style.color = i % 3 === 0 ? '#ff6b8b' : (i % 3 === 1 ? '#637dff' : '#00d4ff');
+                
+                // Position
+                particle.style.left = '50%';
+                particle.style.top = '50%';
+                
+                // Add to heart area
+                document.querySelector('.heart-area').appendChild(particle);
+                
+                // Remove after animation
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+
+        function breakHeart() {
+            state.isBroken = true;
+            
+            // Change heart to broken
+            elements.heart.classList.add('broken');
+            elements.heart.style.cursor = 'default';
+            
+            // Update error badge
+            elements.badge.textContent = 'HEART_BROKEN';
+            elements.badge.style.background = 'rgba(255, 107, 139, 0.3)';
+            elements.badge.style.color = '#ff6b8b';
+            
+            // Show message
+            elements.statusText.textContent = 'Oh no! You broke the heart 💔';
+            
+            // Reset after delay
+            setTimeout(() => {
+                elements.heart.classList.remove('broken');
+                elements.heart.textContent = '❤️';
+                elements.heart.style.cursor = 'pointer';
+                state.isBroken = false;
+                state.heartClicks = 0;
+                
+                // Restore original state
+                updateUI();
+                checkConnection();
+            }, 3000);
+        }
+
+        // ====== CONNECTION MANAGEMENT ======
+        function checkConnection() {
+            state.isOnline = navigator.onLine;
+            
+            if (state.isOnline) {
+                elements.statusDot.className = 'status-dot online';
+                elements.statusText.textContent = 'You are online! Redirecting...';
+                
+                // Auto-redirect after delay
+                if (state.errorType === 'offline') {
+                    setTimeout(redirectToHome, 2000);
+                }
+            } else {
+                elements.statusDot.className = 'status-dot';
+                elements.statusText.textContent = 'You are offline. Check your connection.';
+            }
+        }
+
+        function checkServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready
+                    .then(registration => {
+                        state.serviceWorkerActive = true;
+                        elements.swStatus.className = 'sw-status';
+                        elements.swText.textContent = 'Service Worker: Active';
+                    })
+                    .catch(() => {
+                        state.serviceWorkerActive = false;
+                        elements.swStatus.className = 'sw-status off';
+                        elements.swText.textContent = 'Service Worker: Offline';
+                    });
+            }
+        }
+
+        // ====== BUTTON ACTIONS ======
+        function setupEventListeners() {
+            // Refresh button
+            elements.refreshBtn.addEventListener('click', handleRefresh);
+            
+            // Home button
+            elements.homeBtn.addEventListener('click', redirectToHome);
+            
+            // Heart interaction
+            setupHeartInteraction();
+            
+            // Online/offline events
+            window.addEventListener('online', () => {
+                state.isOnline = true;
+                checkConnection();
+            });
+            
+            window.addEventListener('offline', () => {
+                state.isOnline = false;
+                checkConnection();
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+        }
+
+        function handleRefresh() {
+            // Add loading state
+            const originalText = elements.refreshBtn.innerHTML;
+            elements.refreshBtn.innerHTML = '<span class="btn-icon">⏳</span> Refreshing...';
+            elements.refreshBtn.disabled = true;
+            
+            // Check connection
+            checkConnection();
+            
+            if (state.isOnline) {
+                if (state.errorType === 'notFound') {
+                    // Try the last path again
+                    setTimeout(() => {
+                        window.location.href = state.lastPath;
+                    }, 1000);
+                } else {
+                    // Try current page
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }
+            } else {
+                // Still offline, reset button after delay
+                setTimeout(() => {
+                    elements.refreshBtn.innerHTML = originalText;
+                    elements.refreshBtn.disabled = false;
+                    elements.statusText.textContent = 'Still offline. Check your connection.';
+                }, 2000);
+            }
+        }
+
+        function redirectToHome() {
+            elements.homeBtn.innerHTML = '<span class="btn-icon">⏳</span> Going Home...';
+            elements.homeBtn.disabled = true;
+            
+            // Try to go home
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 500);
+        }
+
+        function handleKeyboardShortcuts(e) {
+            // Space = Refresh
+            if (e.code === 'Space' && !e.target.matches('button')) {
+                e.preventDefault();
+                handleRefresh();
+            }
+            // H = Home
+            if (e.code === 'KeyH' && !e.target.matches('button')) {
+                e.preventDefault();
+                redirectToHome();
+            }
+            // R = Reload page
+            if (e.code === 'KeyR' && e.ctrlKey) {
+                e.preventDefault();
+                window.location.reload();
+            }
+        }
+
+        // ====== SERVICE WORKER REGISTRATION ======
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered');
+                        state.serviceWorkerActive = true;
+                        elements.swStatus.className = 'sw-status';
+                        elements.swText.textContent = 'Service Worker: Active';
+                    })
+                    .catch(error => {
+                        console.log('❌ Service Worker failed:', error);
+                        state.serviceWorkerActive = false;
+                        elements.swStatus.className = 'sw-status off';
+                        elements.swText.textContent = 'Service Worker: Failed';
+                    });
+            }
+        }
+
+        // ====== START EVERYTHING ======
+        window.addEventListener('load', () => {
+            init();
+            registerServiceWorker();
+        });
+    </script>
+</body>
+</html>
+            
