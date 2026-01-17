@@ -1,0 +1,48 @@
+# robots.txt for RelayTalk GitHub Pages
+User-agent: *
+Allow: /
+Allow: /pages/
+Allow: /utils/
+
+# Sitemap location (CRITICAL)
+Sitemap: https://relaytalk.github.io/sitemap.xml
+
+# Crawl delay for rate limiting
+Crawl-delay: 2
+
+# Block specific paths (none needed now)
+# Disallow: /private/
+# Disallow: /admin/
+
+# Special rules for search engines
+User-agent: Googlebot
+Allow: /
+Allow: /*.css
+Allow: /*.js
+Allow: /*.json
+
+User-agent: Bingbot
+Allow: /
+Allow: /*.css
+Allow: /*.js
+
+User-agent: Yandex
+Allow: /
+Crawl-delay: 3
+
+User-agent: Baiduspider
+Allow: /
+Crawl-delay: 5
+
+# Block AI crawlers that steal content
+User-agent: CCBot
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
