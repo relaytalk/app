@@ -23,31 +23,31 @@ body {
     padding: 20px;
 }
 
-/* Fixed header area with proper back button placement */
-.header-area {
-    margin-bottom: 30px;
-    position: relative;
-    min-height: 80px;
+/* Fixed header wrapper - NO OVERLAP */
+.header-wrapper {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 25px;
+    gap: 20px;
 }
 
 .back-button {
-    position: absolute;
-    left: 0;
-    top: 0;
-    z-index: 10;
+    flex-shrink: 0;
+    margin-top: 8px;
 }
 
 .back-button a {
     text-decoration: none;
     color: #6a93ff;
     font-weight: bold;
-    font-size: 1rem;
+    font-size: 0.9rem;
     transition: color 0.3s;
     display: inline-block;
-    padding: 8px 15px;
+    padding: 6px 12px;
     border-radius: 5px;
     background: rgba(106, 147, 255, 0.1);
     border: 1px solid rgba(106, 147, 255, 0.3);
+    white-space: nowrap;
 }
 
 .back-button a:hover {
@@ -56,23 +56,24 @@ body {
     text-decoration: none;
 }
 
-header {
+.header-content {
+    flex-grow: 1;
     text-align: center;
     padding-top: 5px;
 }
 
 h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: #6a93ff;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     text-shadow: 0 0 10px rgba(106, 147, 255, 0.5);
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 .subtitle {
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: #a0a0ff;
-    margin-bottom: 10px;
+    margin-bottom: 0;
 }
 
 .tv-set {
@@ -95,10 +96,10 @@ h1 {
         0 0 30px rgba(0, 0, 0, 0.8),
         inset 0 0 20px rgba(0, 0, 0, 0.9);
     margin-bottom: 10px;
-    aspect-ratio: 4/3; /* Perfect 4:3 ratio */
+    aspect-ratio: 4/3;
 }
 
-/* Video container for 16:9 videos in 4:3 TV */
+/* Video container */
 .video-container {
     width: 100%;
     height: 100%;
@@ -111,35 +112,45 @@ h1 {
 }
 
 #tv-video {
-    /* Handle both 4:3 and 16:9 videos */
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Show full video with black bars */
+    object-fit: contain;
     object-position: center;
     display: block;
     background-color: #000;
 }
 
-/* Black bars for widescreen videos (authentic TV look) */
-.video-container::before {
-    content: '';
+/* Smaller Channel Display */
+.channel-display {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to bottom, 
-        rgba(0,0,0,0.9) 0%,
-        rgba(0,0,0,0.7) 5%,
-        transparent 10%,
-        transparent 90%,
-        rgba(0,0,0,0.7) 95%,
-        rgba(0,0,0,0.9) 100%);
-    pointer-events: none;
-    z-index: 1;
+    top: 12px;
+    right: 12px;
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 4;
+    border: 1px solid #444;
+    min-width: 50px;
 }
 
-/* Retro effects that can be toggled */
+.channel-label {
+    font-size: 0.7rem;
+    color: #aaa;
+    margin-bottom: 2px;
+    letter-spacing: 1px;
+}
+
+.channel-number {
+    color: #6a93ff;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+/* Retro effects */
 .pixel-overlay {
     position: absolute;
     top: 0;
@@ -189,34 +200,6 @@ h1 {
     100% { background-position: 0 100%; }
 }
 
-.channel-display {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background-color: rgba(0, 0, 0, 0.8);
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-    font-size: 1rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 4;
-    border: 1px solid #444;
-}
-
-.channel-label {
-    font-size: 0.8rem;
-    color: #aaa;
-    margin-bottom: 3px;
-}
-
-.channel-number {
-    color: #6a93ff;
-    font-weight: bold;
-    font-size: 1.4rem;
-}
-
 .static-overlay {
     position: absolute;
     top: 0;
@@ -261,7 +244,7 @@ h1 {
     text-align: center;
     color: #6a93ff;
     margin-bottom: 15px;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -272,16 +255,17 @@ h1 {
     gap: 15px;
 }
 
+/* Smaller Remote Display */
 .remote-display {
     background-color: #0a0a0a;
     border-radius: 8px;
-    padding: 10px 15px;
+    padding: 8px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border: 2px solid #333;
     font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .remote-channel {
@@ -291,12 +275,13 @@ h1 {
 .remote-status {
     color: #4caf50;
     font-weight: bold;
+    font-size: 0.8rem;
 }
 
 .retro-status {
     color: #ff9800;
     font-weight: bold;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
 }
 
 .remote-buttons {
@@ -313,10 +298,10 @@ h1 {
 }
 
 .power-btn {
-    width: 60px;
-    height: 60px;
+    width: 55px;
+    height: 55px;
     border-radius: 50%;
-    font-size: 2rem;
+    font-size: 1.8rem;
     background: linear-gradient(to bottom, #ff4444, #cc0000);
     color: white;
     border: 3px solid #333;
@@ -324,7 +309,7 @@ h1 {
 }
 
 .power-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #aaa;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -335,16 +320,16 @@ h1 {
     justify-content: space-between;
     align-items: center;
     background: #222;
-    padding: 15px;
+    padding: 12px;
     border-radius: 10px;
     border: 1px solid #333;
 }
 
 .channel-btn {
-    width: 60px;
-    height: 60px;
+    width: 55px;
+    height: 55px;
     border-radius: 10px;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -359,7 +344,7 @@ h1 {
 }
 
 .channel-label {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: #aaa;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -367,7 +352,7 @@ h1 {
 
 .number-pad {
     background: #222;
-    padding: 15px;
+    padding: 12px;
     border-radius: 10px;
     border: 1px solid #333;
 }
@@ -375,7 +360,7 @@ h1 {
 .num-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .num-row:last-child {
@@ -383,10 +368,10 @@ h1 {
 }
 
 .num-btn {
-    width: 60px;
-    height: 60px;
+    width: 55px;
+    height: 55px;
     border-radius: 50%;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: bold;
     background: linear-gradient(to bottom, #444, #222);
     color: white;
@@ -396,7 +381,7 @@ h1 {
 
 .retro-btn {
     background: linear-gradient(to bottom, #333, #111);
-    font-size: 1.2rem;
+    font-size: 1.1rem;
 }
 
 .retro-btn.active {
@@ -427,22 +412,22 @@ h1 {
 }
 
 .btn-icon {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
 }
 
 footer {
     text-align: center;
     margin-top: 25px;
     color: #a0a0ff;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     border-top: 1px solid #444;
-    padding-top: 12px;
+    padding-top: 10px;
 }
 
 .aspect-info {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: #888;
-    margin-top: 5px;
+    margin-top: 3px;
 }
 
 #aspect-info {
@@ -455,14 +440,31 @@ footer {
     .tv-screen {
         max-width: 100%;
         aspect-ratio: 4/3;
+        border-width: 12px;
     }
     
-    .header-area {
-        min-height: 60px;
+    .header-wrapper {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .back-button {
+        margin-top: 0;
+        order: 2;
+    }
+    
+    .header-content {
+        order: 1;
     }
     
     h1 {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
+    }
+    
+    .subtitle {
+        font-size: 0.9rem;
     }
     
     .tv-remote {
@@ -470,38 +472,54 @@ footer {
     }
     
     .num-btn, .channel-btn {
-        width: 50px;
-        height: 50px;
+        width: 48px;
+        height: 48px;
     }
     
     .power-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.6rem;
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
     }
     
-    .back-button a {
-        padding: 6px 12px;
-        font-size: 0.9rem;
+    .channel-display {
+        top: 8px;
+        right: 8px;
+        padding: 5px 8px;
+        min-width: 45px;
+    }
+    
+    .channel-label {
+        font-size: 0.6rem;
+    }
+    
+    .channel-number {
+        font-size: 1rem;
     }
 }
 
 @media (max-width: 480px) {
     .tv-screen {
-        border-width: 10px;
+        border-width: 8px;
     }
     
     h1 {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
     
     .subtitle {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
     }
     
     .remote-display {
         flex-direction: column;
         gap: 5px;
         text-align: center;
+        padding: 8px;
+    }
+    
+    .back-button a {
+        padding: 5px 10px;
+        font-size: 0.8rem;
     }
 }
