@@ -1,0 +1,400 @@
+/* section2/main.css */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+}
+
+.tv-container {
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.back-button {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.back-button a {
+    text-decoration: none;
+    color: #6a93ff;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: color 0.3s;
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 5px;
+    background: rgba(106, 147, 255, 0.1);
+}
+
+.back-button a:hover {
+    color: #8aafff;
+    background: rgba(106, 147, 255, 0.2);
+    text-decoration: none;
+}
+
+h1 {
+    font-size: 2.5rem;
+    color: #6a93ff;
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px rgba(106, 147, 255, 0.5);
+    letter-spacing: 1px;
+    margin-top: 10px;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #a0a0ff;
+    margin-bottom: 10px;
+}
+
+.tv-set {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.tv-screen {
+    width: 100%;
+    max-width: 640px; /* 4:3 ratio width */
+    height: 480px; /* 4:3 ratio height */
+    background-color: #000;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    border: 15px solid #222;
+    box-shadow: 
+        0 0 30px rgba(0, 0, 0, 0.8),
+        inset 0 0 20px rgba(0, 0, 0, 0.9);
+    margin-bottom: 10px;
+}
+
+#tv-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.pixel-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+    background-size: 8px 8px;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.channel-display {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 3;
+    border: 1px solid #444;
+}
+
+.channel-label {
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-bottom: 3px;
+}
+
+.channel-number {
+    color: #6a93ff;
+    font-weight: bold;
+    font-size: 1.4rem;
+}
+
+.scanlines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        transparent 50%,
+        rgba(0, 0, 0, 0.15) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 3;
+    animation: scanline 8s linear infinite;
+}
+
+@keyframes scanline {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100%; }
+}
+
+.static-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 30%, transparent 10%, rgba(0, 0, 0, 0.3) 20%),
+        radial-gradient(circle at 80% 70%, transparent 10%, rgba(0, 0, 0, 0.3) 20%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.3s;
+}
+
+.tv-stand {
+    width: 80px;
+    height: 20px;
+    background-color: #444;
+    border-radius: 3px 3px 0 0;
+}
+
+.tv-base {
+    width: 150px;
+    height: 15px;
+    background-color: #222;
+    border-radius: 8px 8px 0 0;
+}
+
+.tv-remote {
+    background-color: #1a1a1a;
+    border-radius: 15px;
+    padding: 20px;
+    max-width: 350px;
+    margin: 0 auto;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
+}
+
+.tv-remote h3 {
+    text-align: center;
+    color: #6a93ff;
+    margin-bottom: 15px;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.remote-control {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.remote-display {
+    background-color: #0a0a0a;
+    border-radius: 8px;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 2px solid #333;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.remote-channel {
+    color: #6a93ff;
+}
+
+.remote-status {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.remote-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.power-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.power-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 2rem;
+    background: linear-gradient(to bottom, #ff4444, #cc0000);
+    color: white;
+    border: 3px solid #333;
+    box-shadow: 0 4px 0 #111, inset 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.power-label {
+    font-size: 0.8rem;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.channel-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #222;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #333;
+}
+
+.channel-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.prev-btn {
+    background: linear-gradient(to bottom, #444, #222);
+}
+
+.next-btn {
+    background: linear-gradient(to bottom, #444, #222);
+}
+
+.channel-label {
+    font-size: 0.9rem;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.number-pad {
+    background: #222;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #333;
+}
+
+.num-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.num-row:last-child {
+    margin-bottom: 0;
+}
+
+.num-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    font-weight: bold;
+    background: linear-gradient(to bottom, #444, #222);
+    color: white;
+    border: 2px solid #333;
+    box-shadow: 0 3px 0 #111;
+}
+
+.empty-btn {
+    width: 60px;
+    height: 60px;
+    visibility: hidden;
+}
+
+.remote-btn, .num-btn {
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remote-btn:hover, .num-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 #111;
+}
+
+.remote-btn:active, .num-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 0 #111;
+}
+
+.btn-icon {
+    font-size: 1.5rem;
+}
+
+footer {
+    text-align: center;
+    margin-top: 25px;
+    color: #a0a0ff;
+    font-size: 0.8rem;
+    border-top: 1px solid #444;
+    padding-top: 12px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .tv-screen {
+        max-width: 100%;
+        height: 300px;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    .tv-remote {
+        max-width: 300px;
+    }
+    
+    .num-btn, .channel-btn {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .power-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.6rem;
+    }
+}
