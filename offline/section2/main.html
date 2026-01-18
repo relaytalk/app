@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Section - Offline Entertainment</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <div class="tv-container">
+        <header>
+            <div class="back-button">
+                <a href="../index.html">← Back to Home</a>
+            </div>
+            <h1>Classic TV Entertainment</h1>
+            <p class="subtitle">5 offline video channels with 4:3 classic ratio</p>
+        </header>
+        
+        <main>
+            <div class="tv-set">
+                <div class="tv-screen">
+                    <div class="pixel-overlay"></div>
+                    <video id="tv-video" width="640" height="480" controls>
+                        <source src="../videos/vid1.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="channel-display">
+                        <span class="channel-label">CHANNEL</span>
+                        <span class="channel-number" id="channel-number">01</span>
+                    </div>
+                    <div class="scanlines"></div>
+                    <div class="static-overlay" id="static-overlay"></div>
+                </div>
+                
+                <div class="tv-stand"></div>
+                <div class="tv-base"></div>
+            </div>
+            
+            <div class="tv-remote">
+                <h3>TV Remote Control</h3>
+                <div class="remote-control">
+                    <div class="remote-display">
+                        <div class="remote-channel">CHANNEL: <span id="remote-channel">01</span></div>
+                        <div class="remote-status" id="remote-status">ON</div>
+                    </div>
+                    
+                    <div class="remote-buttons">
+                        <div class="power-section">
+                            <button id="power-btn" class="remote-btn power-btn">
+                                <span class="btn-icon">●</span>
+                            </button>
+                            <div class="power-label">POWER</div>
+                        </div>
+                        
+                        <div class="channel-controls">
+                            <button id="prev-channel" class="remote-btn channel-btn prev-btn">
+                                <span class="btn-icon">◀</span>
+                            </button>
+                            <div class="channel-label">CHANNEL</div>
+                            <button id="next-channel" class="remote-btn channel-btn next-btn">
+                                <span class="btn-icon">▶</span>
+                            </button>
+                        </div>
+                        
+                        <div class="number-pad">
+                            <div class="num-row">
+                                <button class="num-btn" data-channel="1">1</button>
+                                <button class="num-btn" data-channel="2">2</button>
+                                <button class="num-btn" data-channel="3">3</button>
+                            </div>
+                            <div class="num-row">
+                                <button class="num-btn" data-channel="4">4</button>
+                                <button class="num-btn" data-channel="5">5</button>
+                                <div class="empty-btn"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>5 video channels • All videos work offline • 4:3 Classic TV Ratio</p>
+        </footer>
+    </div>
+    
+    <script src="main.js"></script>
+</body>
+</html>
