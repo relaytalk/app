@@ -1,7 +1,7 @@
 // RelayTalk Service Worker v2.5
 // Handles offline/404 errors with unified error page
 
-const CACHE_NAME = 'relaytalk-cache-v2.5';
+const CACHE_NAME = 'relaytalk-cache-v2.6';
 const OFFLINE_URL = '/offline/index.html'; // Changed to offline entertainment page
 const APP_VERSION = '2.5.0';
 
