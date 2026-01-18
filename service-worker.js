@@ -1,9 +1,9 @@
-// RelayTalk Service Worker v3.5
-// Enhanced video caching + Fixed path handling
+// RelayTalk Service Worker v3.6
+// Fixed video caching and playback
 
-const CACHE_NAME = 'relaytalk-cache-v3-5';
+const CACHE_NAME = 'relaytalk-cache-v3-6';
 const OFFLINE_URL = '/offline/index.html';
-const APP_VERSION = '3.5.0';
+const APP_VERSION = '3.6.0';
 
 // Videos that MUST be cached
 const OFFLINE_VIDEOS = [
@@ -65,10 +65,7 @@ const PRECACHE_FILES = [
   '/pages/chats/script.js',
   '/pages/chats/chat-responsive.css',
   '/pages/chats/sent.mp3',
-  '/pages/chats/recieve.mp3',
-
-  // === VIDEOS WILL BE CACHED SEPARATELY ===
-  ...OFFLINE_VIDEOS
+  '/pages/chats/recieve.mp3'
 ];
 
 // Track if we're online
@@ -110,7 +107,7 @@ self.addEventListener('install', event => {
             );
             
             const promises = remaining.map(url => {
-              return fetch(url, { cache: 'reload' })
+              return fetch(url)
                 .then(response => {
                   if (response.ok) {
                     console.log('✅ Cached:', url);
@@ -120,14 +117,6 @@ self.addEventListener('install', event => {
                 })
                 .catch(error => {
                   console.warn('⚠️ Failed to cache:', url, error);
-                  // Try from network without cache busting
-                  return fetch(url)
-                    .then(response => {
-                      if (response.ok) return cache.put(url, response);
-                    })
-                    .catch(() => {
-                      console.error('❌ Completely failed:', url);
-                    });
                 });
             });
             
@@ -148,35 +137,38 @@ function cacheVideos(cache) {
   
   const videoPromises = OFFLINE_VIDEOS.map((videoUrl, index) => {
     return new Promise((resolve, reject) => {
-      fetch(videoUrl)
+      fetch(videoUrl, {
+        // CRITICAL: Add these headers for video caching
+        headers: new Headers({
+          'Accept': 'video/mp4,video/*;q=0.9,*/*;q=0.8'
+        })
+      })
         .then(response => {
           if (!response.ok) throw new Error('Video not found');
           
           // Clone response for caching
           const clone = response.clone();
           
-          // Put in cache
-          cache.put(videoUrl, clone)
+          // Put in cache with video headers
+          return cache.put(videoUrl, clone)
             .then(() => {
               console.log(`✅ Video ${index + 1}/${OFFLINE_VIDEOS.length} cached: ${videoUrl.split('/').pop()}`);
-              resolve();
-            })
-            .catch(reject);
-          
-          // Also keep the original for response
-          return response;
+              resolve(true);
+            });
         })
         .catch(error => {
           console.warn(`⚠️ Failed to cache video ${videoUrl}:`, error);
-          resolve(); // Don't reject, just skip
+          resolve(false); // Don't reject, just skip
         });
     });
   });
   
   return Promise.all(videoPromises)
-    .then(() => {
-      console.log('🎉 All videos cached!');
-      videosCached = true;
+    .then(results => {
+      const successCount = results.filter(r => r).length;
+      console.log(`🎉 ${successCount}/${OFFLINE_VIDEOS.length} videos cached!`);
+      videosCached = successCount > 0;
+      return successCount;
     });
 }
 
@@ -202,9 +194,7 @@ self.addEventListener('activate', event => {
       caches.open(CACHE_NAME)
         .then(cache => cache.keys())
         .then(keys => {
-          const cachedVideos = keys.filter(k => 
-            k.url.endsWith('.mp4') && ONDLINE_VIDEOS.some(v => k.url.includes(v))
-          ).length;
+          const cachedVideos = keys.filter(k => k.url.endsWith('.mp4')).length;
           
           console.log(`📊 Video cache: ${cachedVideos}/${OFFLINE_VIDEOS.length} videos`);
           
@@ -252,11 +242,9 @@ self.addEventListener('fetch', event => {
   const path = url.pathname;
   
   // === FIX: Handle broken section paths ===
-  // If someone tries to access section1/section2 from wrong location
   if ((path.includes('/section1/') || path.includes('/section2/')) && !path.startsWith('/offline/')) {
     console.log('🔄 Fixing broken section path:', path);
     
-    // Extract the section filename
     const sectionMatch = path.match(/\/(section[12]\/[^\/]+)$/);
     if (sectionMatch) {
       const fixedPath = '/offline/' + sectionMatch[1];
@@ -269,7 +257,6 @@ self.addEventListener('fetch', event => {
             return fetch(fixedPath);
           })
           .catch(() => {
-            // If not found, redirect to offline index
             return caches.match(OFFLINE_URL)
               .then(offlinePage => {
                 return new Response(offlinePage.body, {
@@ -283,19 +270,32 @@ self.addEventListener('fetch', event => {
     }
   }
   
-  // Handle videos specially - ALWAYS cache first
+  // === SPECIAL HANDLING FOR VIDEOS ===
   if (OFFLINE_VIDEOS.includes(path)) {
+    console.log('🎬 Handling video request:', path);
+    
     event.respondWith(
       caches.match(event.request)
         .then(cached => {
-          // If video is in cache, serve it
           if (cached) {
-            console.log('🎬 Serving video from cache:', path.split('/').pop());
+            console.log('✅ Serving video from cache');
+            
+            // Fix for video range requests (important for video playback)
+            const range = event.request.headers.get('range');
+            if (range) {
+              return handleRangeRequest(cached, range);
+            }
+            
             return cached;
           }
           
-          // If not in cache, fetch and cache it
-          return fetch(event.request)
+          // If not in cache, fetch from network
+          console.log('🌐 Fetching video from network');
+          return fetch(event.request, {
+            headers: new Headers({
+              'Accept': 'video/mp4,video/*;q=0.9,*/*;q=0.8'
+            })
+          })
             .then(response => {
               if (response.ok) {
                 // Cache for next time
@@ -305,8 +305,8 @@ self.addEventListener('fetch', event => {
               }
               return response;
             })
-            .catch(() => {
-              // Video not available
+            .catch(error => {
+              console.error('❌ Video fetch failed:', error);
               return new Response('Video not available offline', {
                 status: 404,
                 headers: { 'Content-Type': 'text/plain' }
@@ -424,44 +424,44 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// ====== AUTO-CACHE ON VISIT ======
-// Cache pages as user visits them
-self.addEventListener('fetch', event => {
-  // Only cache GET requests for same-origin HTML pages
-  if (event.request.method !== 'GET') return;
+// Helper function to handle video range requests
+function handleRangeRequest(cachedResponse, range) {
+  const contentRange = cachedResponse.headers.get('Content-Range');
+  const contentLength = cachedResponse.headers.get('Content-Length');
   
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
-  
-  const path = url.pathname;
-  
-  // Don't auto-cache offline pages (they're already cached)
-  if (path.startsWith('/offline/')) return;
-  
-  const accept = event.request.headers.get('Accept') || '';
-  const isPageRequest = accept.includes('text/html') || 
-                       path.endsWith('.html') ||
-                       path === '/';
-  
-  if (isPageRequest && isOnline) {
-    // Cache this page in background when online
-    event.waitUntil(
-      fetch(event.request)
-        .then(response => {
-          if (response.ok) {
-            return caches.open(CACHE_NAME)
-              .then(cache => {
-                console.log('💾 Auto-caching page:', path);
-                return cache.put(event.request, response);
-              });
-          }
-        })
-        .catch(() => {
-          // Silent fail
-        })
-    );
+  // If cached response already has range support, return it
+  if (contentRange) {
+    return cachedResponse;
   }
-});
+  
+  // Otherwise, create a range response manually
+  return cachedResponse.arrayBuffer()
+    .then(buffer => {
+      const bytes = /^bytes=(\d+)-(\d+)?$/g.exec(range);
+      if (bytes) {
+        const start = parseInt(bytes[1]);
+        const end = bytes[2] ? parseInt(bytes[2]) : buffer.byteLength - 1;
+        
+        const slicedBuffer = buffer.slice(start, end + 1);
+        const slicedResponse = new Response(slicedBuffer, {
+          status: 206,
+          statusText: 'Partial Content',
+          headers: {
+            'Content-Type': 'video/mp4',
+            'Content-Length': slicedBuffer.byteLength,
+            'Content-Range': `bytes ${start}-${end}/${buffer.byteLength}`,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'public, max-age=31536000'
+          }
+        });
+        
+        return slicedResponse;
+      }
+      
+      // If range header is invalid, return full response
+      return cachedResponse;
+    });
+}
 
 // ====== MESSAGE HANDLING ======
 self.addEventListener('message', event => {
@@ -472,7 +472,7 @@ self.addEventListener('message', event => {
       caches.open(CACHE_NAME)
         .then(cache => cache.keys())
         .then(keys => {
-          const videoCount = keys.filter(k => ONDLINE_VIDEOS.some(v => k.url.includes(v))).length;
+          const videoCount = keys.filter(k => k.url.endsWith('.mp4')).length;
           
           event.ports[0].postMessage({
             version: APP_VERSION,
@@ -509,13 +509,11 @@ self.addEventListener('message', event => {
     case 'CACHE_VIDEOS':
       console.log('🔄 Manually caching videos...');
       caches.open(CACHE_NAME)
-        .then(cache => {
-          return cacheVideos(cache);
-        })
-        .then(() => {
+        .then(cache => cacheVideos(cache))
+        .then(successCount => {
           event.ports[0].postMessage({
             success: true,
-            message: 'Videos cached successfully'
+            message: `${successCount}/${OFFLINE_VIDEOS.length} videos cached successfully`
           });
         })
         .catch(error => {
@@ -529,7 +527,6 @@ self.addEventListener('message', event => {
     case 'CLEAR_CACHE':
       caches.delete(CACHE_NAME)
         .then(success => {
-          // Also reset video cache flag
           videosCached = false;
           event.ports[0].postMessage({
             success: success,
@@ -553,7 +550,6 @@ self.addEventListener('message', event => {
       });
       break;
       
-    // Track online/offline status from client
     case 'STATUS':
       if (event.data.status === 'online') isOnline = true;
       if (event.data.status === 'offline') isOnline = false;
