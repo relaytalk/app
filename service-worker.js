@@ -1,9 +1,9 @@
 // RelayTalk Service Worker v3.6
 // Fixed video caching and playback
 
-const CACHE_NAME = 'relaytalk-cache-v3-6';
+const CACHE_NAME = 'relaytalk-cache-v3-7';
 const OFFLINE_URL = '/offline/index.html';
-const APP_VERSION = '3.6.0';
+const APP_VERSION = '3.7.0';
 
 // Videos that MUST be cached
 const OFFLINE_VIDEOS = [
