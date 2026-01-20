@@ -1,4 +1,4 @@
-// Service Worker Manager v3.0 - With Cache Button
+// Service Worker Manager v3.1 - Fixed Progress Overlay
 class ServiceWorkerManager {
     constructor() {
         this.sw = null;
@@ -15,11 +15,16 @@ class ServiceWorkerManager {
     }
     
     async init() {
-        console.log('⚡ SW Manager v3.0 initializing...');
+        console.log('⚡ SW Manager v3.1 initializing...');
         
         // Listen for online/offline changes
         window.addEventListener('online', () => this.updateStatus('online'));
         window.addEventListener('offline', () => this.updateStatus('offline'));
+        
+        // Auto-cache videos when online
+        if (this.isOnline) {
+            setTimeout(() => this.autoCacheVideos(), 3000);
+        }
         
         // Register service worker
         await this.registerSW();
@@ -63,15 +68,51 @@ class ServiceWorkerManager {
             
             switch (type) {
                 case 'CACHE_PROGRESS':
-                    this.cacheProgress = progress;
-                    this.updateProgressUI();
+                    this.handleProgressUpdate(progress);
                     break;
                     
                 case 'SW_READY':
                     console.log('🚀 SW ready:', event.data.version);
                     break;
+                    
+                case 'CHECK_VIDEOS':
+                    this.checkAndAutoCache();
+                    break;
             }
         });
+    }
+    
+    handleProgressUpdate(progress) {
+        this.cacheProgress = progress;
+        this.updateProgressUI();
+        
+        // Auto-close overlay when complete
+        if (progress.percentage === 100 && !progress.isCaching) {
+            setTimeout(() => {
+                this.hideProgressOverlay();
+            }, 2000); // Show completion message for 2 seconds
+        }
+    }
+    
+    // Auto-cache videos when online
+    async autoCacheVideos() {
+        if (!this.isOnline) return;
+        
+        try {
+            const status = await this.getStatus();
+            if (status && status.videosCached < 5) {
+                console.log(`🔄 Auto-caching videos (${status.videosCached}/5 cached)`);
+                await this.sendMessage({ type: 'AUTO_CACHE_VIDEOS' });
+            }
+        } catch (error) {
+            console.warn('Auto-cache check failed:', error);
+        }
+    }
+    
+    checkAndAutoCache() {
+        if (this.isOnline && this.cacheInfo && this.cacheInfo.videosCached < 5) {
+            this.autoCacheVideos();
+        }
     }
     
     // Add cache button to TV section
@@ -88,8 +129,6 @@ class ServiceWorkerManager {
             
             if (remote) {
                 remote.appendChild(cacheButton);
-                
-                // Add progress overlay
                 this.createProgressOverlay();
             }
         }, 1000);
@@ -104,7 +143,7 @@ class ServiceWorkerManager {
                 <polyline points="17 21 17 13 7 13 7 21"/>
                 <polyline points="7 3 7 8 15 8"/>
             </svg>
-            <span>Cache Now</span>
+            <span>Cache Videos</span>
         `;
         
         button.onclick = () => this.startCaching();
@@ -135,16 +174,16 @@ class ServiceWorkerManager {
                 box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
             }
             
-            .cache-now-btn:active {
-                transform: translateY(0);
-            }
-            
             .cache-now-btn.caching {
                 background: linear-gradient(135deg, #4caf50, #2e7d32);
                 animation: pulse 1.5s infinite;
             }
             
             .cache-icon {
+                transition: transform 0.3s ease;
+            }
+            
+            .cache-now-btn.caching .cache-icon {
                 animation: spin 2s linear infinite;
             }
             
@@ -164,7 +203,7 @@ class ServiceWorkerManager {
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: rgba(0, 0, 0, 0.9);
+                background: rgba(0, 0, 0, 0.95);
                 backdrop-filter: blur(10px);
                 z-index: 9999;
                 display: none;
@@ -172,23 +211,42 @@ class ServiceWorkerManager {
                 align-items: center;
                 flex-direction: column;
                 color: white;
-                font-family: Arial, sans-serif;
+                font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+                opacity: 0;
+                transition: opacity 0.3s ease;
             }
             
             .cache-progress-overlay.active {
                 display: flex;
+                opacity: 1;
                 animation: fadeIn 0.3s ease;
             }
             
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+            
             .progress-container {
-                background: rgba(30, 41, 59, 0.9);
+                background: rgba(30, 41, 59, 0.95);
                 padding: 40px;
                 border-radius: 20px;
                 text-align: center;
                 max-width: 500px;
                 width: 90%;
-                border: 1px solid rgba(102, 126, 234, 0.3);
+                border: 2px solid rgba(102, 126, 234, 0.5);
                 box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+                animation: slideUp 0.3s ease;
+            }
+            
+            @keyframes slideUp {
+                from { transform: translateY(20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
             }
             
             .progress-title {
@@ -204,6 +262,7 @@ class ServiceWorkerManager {
                 border-radius: 10px;
                 overflow: hidden;
                 margin: 20px 0;
+                position: relative;
             }
             
             .progress-fill {
@@ -235,8 +294,10 @@ class ServiceWorkerManager {
             }
             
             .progress-text {
-                font-size: 18px;
-                margin-bottom: 10px;
+                font-size: 24px;
+                font-weight: bold;
+                margin: 10px 0;
+                color: #f8fafc;
             }
             
             .progress-file {
@@ -246,6 +307,7 @@ class ServiceWorkerManager {
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                max-width: 100%;
             }
             
             .progress-stats {
@@ -287,11 +349,12 @@ class ServiceWorkerManager {
                 font-weight: 600;
                 cursor: pointer;
                 margin-top: 20px;
-                transition: background 0.3s ease;
+                transition: all 0.3s ease;
             }
             
             .close-btn:hover {
                 background: #764ba2;
+                transform: translateY(-2px);
             }
         `;
         document.head.appendChild(style);
@@ -304,15 +367,15 @@ class ServiceWorkerManager {
         overlay.className = 'cache-progress-overlay';
         overlay.innerHTML = `
             <div class="progress-container">
-                <div class="progress-title">📦 Caching Files</div>
+                <div class="progress-title">📦 Caching Videos & Files</div>
                 <div class="progress-text" id="progress-percent">0%</div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
                 </div>
-                <div class="progress-file" id="progress-file">Preparing...</div>
+                <div class="progress-file" id="progress-file">Getting ready...</div>
                 <div class="progress-stats">
-                    <div id="progress-stats">0/0 files • 0/0 videos</div>
-                    <div id="cache-speed">-</div>
+                    <div id="progress-stats">0 files • 0/5 videos</div>
+                    <div id="cache-speed">Ready</div>
                 </div>
             </div>
         `;
@@ -321,7 +384,7 @@ class ServiceWorkerManager {
     }
     
     updateProgressUI() {
-        const { percentage, currentFile, isCaching, completed, total, videosCached, totalVideos } = this.cacheProgress;
+        const { percentage, currentFile, isCaching, completed, total } = this.cacheProgress;
         
         // Update button
         const button = document.querySelector('.cache-now-btn');
@@ -342,7 +405,7 @@ class ServiceWorkerManager {
                         <polyline points="17 21 17 13 7 13 7 21"/>
                         <polyline points="7 3 7 8 15 8"/>
                     </svg>
-                    <span>Cache Now</span>
+                    <span>Cache Videos</span>
                 `;
             }
         }
@@ -359,21 +422,16 @@ class ServiceWorkerManager {
             
             if (fileEl) {
                 const fileName = currentFile.split('/').pop();
-                fileEl.textContent = fileName ? `Caching: ${fileName}` : 'Preparing...';
+                fileEl.textContent = fileName ? `Caching: ${fileName}` : 'Getting ready...';
             }
             
             if (statsEl) {
-                statsEl.textContent = `${completed}/${total} files • ${videosCached}/${totalVideos} videos`;
+                statsEl.textContent = `${completed}/${total} files`;
             }
             
             // Show/hide overlay
-            if (isCaching) {
+            if (isCaching && percentage < 100) {
                 this.progressOverlay.classList.add('active');
-            } else if (percentage === 100) {
-                // Show completion message
-                setTimeout(() => {
-                    this.showCompletionMessage();
-                }, 500);
             }
         }
     }
@@ -385,31 +443,51 @@ class ServiceWorkerManager {
         container.innerHTML = `
             <div class="cache-complete">
                 <div class="complete-icon">🎉</div>
-                <h2>Caching Complete!</h2>
-                <p>All files are now cached and ready for offline use.</p>
-                <p>You can now enjoy all content without internet connection.</p>
+                <h2 style="margin: 10px 0; color: #4caf50;">Caching Complete!</h2>
+                <p style="color: #cbd5e1; margin: 10px 0;">All videos and files are now cached.</p>
+                <p style="color: #94a3b8; font-size: 14px;">You can now enjoy all content offline.</p>
                 <button class="close-btn" onclick="window.SWManager?.hideProgressOverlay()">Close</button>
             </div>
         `;
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            this.hideProgressOverlay();
+        }, 5000);
     }
     
     hideProgressOverlay() {
         if (this.progressOverlay) {
-            this.progressOverlay.classList.remove('active');
-            
-            // Reset button
-            const button = document.querySelector('.cache-now-btn');
-            if (button) {
-                button.classList.remove('caching');
-                button.innerHTML = `
-                    <svg class="cache-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                        <polyline points="17 21 17 13 7 13 7 21"/>
-                        <polyline points="7 3 7 8 15 8"/>
-                    </svg>
-                    <span>Cache Now</span>
-                `;
-            }
+            this.progressOverlay.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => {
+                this.progressOverlay.classList.remove('active');
+                this.progressOverlay.style.animation = '';
+                
+                // Reset button
+                const button = document.querySelector('.cache-now-btn');
+                if (button) {
+                    button.classList.remove('caching');
+                    button.innerHTML = `
+                        <svg class="cache-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12l2 2 4-4"/>
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        </svg>
+                        <span>Cached ✓</span>
+                    `;
+                    
+                    // Revert after 5 seconds
+                    setTimeout(() => {
+                        button.innerHTML = `
+                            <svg class="cache-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                <polyline points="7 3 7 8 15 8"/>
+                            </svg>
+                            <span>Cache Videos</span>
+                        `;
+                    }, 5000);
+                }
+            }, 300);
         }
     }
     
@@ -434,10 +512,12 @@ class ServiceWorkerManager {
                 // Progress updates come via messages
             } else {
                 this.showNotification('Cache failed: ' + result.message, 'error');
+                this.hideProgressOverlay();
             }
         } catch (error) {
             console.error('❌ Cache error:', error);
             this.showNotification('Cache failed', 'error');
+            this.hideProgressOverlay();
         }
     }
     
@@ -445,10 +525,11 @@ class ServiceWorkerManager {
         this.isOnline = status === 'online';
         this.sendMessage({ type: 'STATUS', status: status });
         
-        if (status === 'offline') {
-            this.showNotification('📡 You are offline', 'warning', 3000);
-        } else {
+        if (status === 'online') {
             this.showNotification('✅ Back online', 'success', 2000);
+            this.autoCacheVideos();
+        } else {
+            this.showNotification('📡 You are offline', 'warning', 3000);
         }
     }
     
@@ -457,16 +538,32 @@ class ServiceWorkerManager {
             const status = await this.sendMessage({ type: 'GET_STATUS' });
             this.cacheInfo = status;
             
+            console.log('📊 Cache status:', status);
+            
             // Update cache button if exists
             const button = document.querySelector('.cache-now-btn');
             if (button && status.totalCached > 0) {
-                button.innerHTML = `
-                    <svg class="cache-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 12l2 2 4-4"/>
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                    </svg>
-                    <span>${status.totalCached}/${status.totalFiles} cached</span>
-                `;
+                const isComplete = status.videosCached === 5;
+                
+                if (isComplete) {
+                    button.innerHTML = `
+                        <svg class="cache-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12l2 2 4-4"/>
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        </svg>
+                        <span>${status.videosCached}/5 videos cached</span>
+                    `;
+                    button.style.background = 'linear-gradient(135deg, #4caf50, #2e7d32)';
+                } else {
+                    button.innerHTML = `
+                        <svg class="cache-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        <span>Cache Videos (${status.videosCached}/5)</span>
+                    `;
+                }
             }
         } catch (error) {
             console.warn('Cache check failed:', error);
@@ -487,15 +584,10 @@ class ServiceWorkerManager {
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                 z-index: 9998;
                 animation: slideIn 0.3s ease;
+                font-family: 'Segoe UI', sans-serif;
             ">
                 ${message}
             </div>
-            <style>
-                @keyframes slideIn {
-                    from { transform: translateY(20px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-            </style>
         `;
         
         document.body.appendChild(notification);
@@ -554,4 +646,4 @@ window.RelaySW = {
     hideProgress: () => window.SWManager?.hideProgressOverlay()
 };
 
-console.log('⚡ Service Worker Manager v3.0 loaded');
+console.log('⚡ Service Worker Manager v3.1 loaded');
