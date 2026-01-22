@@ -515,7 +515,21 @@
             when your WiFi takes a coffee break! ☕
         </div>
     </div>
+<!-- Action buttons section mein yeh add karo -->
+<button class="action-btn home-btn" onclick="goToHome()" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+    <span>🏠</span>
+    <span>Back to App</span>
+</button>
 
+<script>
+function goToHome() {
+    if (window.RelaySW && window.RelaySW.goToHome) {
+        window.RelaySW.goToHome();
+    } else {
+        window.location.href = '/';
+    }
+}
+</script>
     <script>
         // Elements
         const mainEmoji = document.getElementById('mainEmoji');
