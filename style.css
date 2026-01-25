@@ -6,9 +6,10 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
 }
 
+/* Main Background - White as requested */
 body {
-    background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
-    color: white;
+    background-color: #ffffff; /* Pure white background */
+    color: #333333; /* Dark text for contrast */
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -35,6 +36,7 @@ body {
     font-size: 4rem;
     margin-bottom: 20px;
     animation: pulse 2s infinite;
+    color: #8789ff; /* Your purple color */
 }
 
 @keyframes pulse {
@@ -45,13 +47,14 @@ body {
 .title {
     font-size: 2.5rem;
     margin-bottom: 10px;
-    background: linear-gradient(45deg, #667eea, #764ba2);
+    background: linear-gradient(45deg, #8789ff, #9b9cff); /* Your purple gradient */
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .subtitle {
-    color: #a0a0c0;
+    color: #757575; /* Light gray */
     margin-bottom: 40px;
     font-size: 1.2rem;
 }
@@ -64,33 +67,36 @@ body {
 }
 
 .feature-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #f8f9fa; /* Very light gray background */
+    border: 1px solid #e0e0e0; /* Light border */
     border-radius: 20px;
     padding: 25px;
-    backdrop-filter: blur(10px);
-    transition: transform 0.3s;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 5px 15px rgba(135, 137, 255, 0.05); /* Light purple shadow */
 }
 
 .feature-card:hover {
     transform: translateY(-5px);
-    background: rgba(255, 255, 255, 0.1);
+    background: #f1f3f4; /* Slightly darker on hover */
+    box-shadow: 0 10px 25px rgba(135, 137, 255, 0.1);
 }
 
 .feature-icon {
     font-size: 2.5rem;
     margin-bottom: 15px;
+    color: #8789ff; /* Your purple color */
 }
 
 .feature-card h3 {
     font-size: 1.3rem;
     margin-bottom: 10px;
-    color: white;
+    color: #333333; /* Dark text */
 }
 
 .feature-card p {
-    color: #a0a0c0;
+    color: #666666; /* Medium gray */
     font-size: 0.95rem;
+    line-height: 1.5;
 }
 
 /* Buttons */
@@ -112,59 +118,42 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(45deg, #667eea, #764ba2);
+    background: linear-gradient(45deg, #8789ff, #9b9cff); /* Your purple gradient */
     color: white;
 }
 
 .btn-primary:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 10px 25px rgba(135, 137, 255, 0.3);
 }
 
 .btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: #f5f5f5; /* Light gray */
+    color: #8789ff; /* Purple text */
+    border: 1px solid #d1d3ff; /* Light purple border */
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: #edefff; /* Light purple on hover */
     transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(135, 137, 255, 0.1);
 }
 
 /* Footer */
 .footer-note {
-    color: #666;
+    color: #999999; /* Light gray */
     font-size: 0.9rem;
     margin-top: 30px;
 }
 
-/* Responsive */
-@media (max-width: 480px) {
-    .title {
-        font-size: 2rem;
-    }
-    
-    .feature-card {
-        padding: 20px;
-    }
-    
-    .logo {
-        font-size: 3rem;
-    }
-}
-
-
-/* Add these to your existing style.css */
-
-/* Back button styles for all pages */
+/* ========== BACK BUTTON STYLES ========== */
 .back-button {
     position: fixed;
     top: 20px;
     left: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
+    background: #f5f5f5; /* Light gray background */
+    border: 1px solid #e0e0e0; /* Light border */
+    color: #8789ff; /* Purple */
     width: 45px;
     height: 45px;
     border-radius: 50%;
@@ -174,35 +163,36 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 100;
-    backdrop-filter: blur(10px);
     transition: all 0.3s;
     text-decoration: none;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 }
 
 .back-button:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: #edefff; /* Light purple */
     transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(135, 137, 255, 0.2);
 }
 
-/* Modal styles for all pages */
+/* ========== MODAL STYLES ========== */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(10, 10, 26, 0.95);
+    background: rgba(255, 255, 255, 0.95); /* White with slight transparency */
     display: none;
     justify-content: center;
     align-items: center;
     z-index: 2000;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(5px);
     animation: fadeIn 0.3s ease;
 }
 
 .modal-content {
-    background: rgba(26, 26, 46, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: white;
+    border: 1px solid #e0e0e0;
     border-radius: 25px;
     padding: 35px;
     max-width: 500px;
@@ -210,12 +200,7 @@ body {
     max-height: 80vh;
     overflow-y: auto;
     animation: slideUp 0.4s ease;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    box-shadow: 0 30px 60px rgba(135, 137, 255, 0.1); /* Light purple shadow */
 }
 
 @keyframes slideUp {
@@ -238,17 +223,13 @@ body {
 
 .modal-title {
     font-size: 1.8rem;
-    color: white;
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #8789ff; /* Purple */
 }
 
 .modal-close {
-    background: none;
-    border: none;
-    color: #a0a0c0;
+    background: #f5f5f5; /* Light gray */
+    border: 1px solid #e0e0e0;
+    color: #666666;
     font-size: 1.5rem;
     cursor: pointer;
     padding: 5px;
@@ -262,52 +243,36 @@ body {
 }
 
 .modal-close:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: #8789ff; /* Purple */
     color: white;
 }
 
 .modal-body {
-    color: #c0c0e0;
+    color: #666666; /* Medium gray */
     line-height: 1.7;
 }
 
 .modal-body h3 {
-    color: white;
+    color: #8789ff; /* Purple */
     margin: 20px 0 10px;
     font-size: 1.2rem;
 }
 
 /* Security note style */
 .security-note {
-    background: rgba(255, 107, 139, 0.1);
-    border: 1px solid rgba(255, 107, 139, 0.2);
+    background: #fce4ec; /* Very light pink */
+    border: 1px solid #f8bbd9; /* Light pink border */
     border-radius: 12px;
     padding: 15px;
     margin: 20px 0;
-    color: #ffb8c6;
+    color: #880e4f; /* Dark pink text */
 }
 
 .security-note strong {
-    color: #ff6b8b;
+    color: #ad1457; /* Medium pink */
 }
-
-/* Responsive modals */
-@media (max-width: 480px) {
-    .modal-content {
-        padding: 25px 20px;
-        width: 95%;
-    }
-    
-    .modal-title {
-        font-size: 1.5rem;
-    }
-}
-
-
 
 /* ========== NOTIFICATION BUTTON STYLES ========== */
-/* Add these to your existing ../../style.css */
-
 .btn-small {
     padding: 8px 12px;
     border-radius: 8px;
@@ -324,24 +289,24 @@ body {
 }
 
 .btn-success {
-    background: rgba(40, 167, 69, 0.2);
-    color: #28a745;
-    border: 1px solid rgba(40, 167, 69, 0.3);
+    background: rgba(76, 175, 80, 0.1); /* Light green */
+    color: #2e7d32; /* Dark green */
+    border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 .btn-success:hover {
-    background: rgba(40, 167, 69, 0.3);
+    background: rgba(76, 175, 80, 0.2);
     transform: translateY(-2px);
 }
 
 .btn-danger {
-    background: rgba(220, 53, 69, 0.2);
-    color: #dc3545;
-    border: 1px solid rgba(220, 53, 69, 0.3);
+    background: rgba(244, 67, 54, 0.1); /* Light red */
+    color: #c62828; /* Dark red */
+    border: 1px solid rgba(244, 67, 54, 0.3);
 }
 
 .btn-danger:hover {
-    background: rgba(220, 53, 69, 0.3);
+    background: rgba(244, 67, 54, 0.2);
     transform: translateY(-2px);
 }
 
@@ -355,9 +320,70 @@ body {
 .btn-small.btn-success {
     font-size: 1.1rem;
     padding: 6px;
+    color: #4caf50; /* Green */
 }
 
 .btn-small.btn-danger {
     font-size: 1.1rem;
     padding: 6px;
+    color: #f44336; /* Red */
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .title {
+        font-size: 2rem;
+    }
+
+    .feature-card {
+        padding: 20px;
+    }
+
+    .logo {
+        font-size: 3rem;
+    }
+
+    .modal-content {
+        padding: 25px 20px;
+        width: 95%;
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* Additional light color accents */
+.highlight {
+    color: #8789ff; /* Purple for highlights */
+}
+
+.link {
+    color: #9b9cff; /* Light purple for links */
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.link:hover {
+    color: #8789ff; /* Purple on hover */
+    text-decoration: underline;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f5f5f5; /* Light gray */
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d1d3ff; /* Light purple */
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #b9bbff; /* Medium purple */
 }
