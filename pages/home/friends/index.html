@@ -15,13 +15,13 @@
             max-width: 400px;
             margin: 100px auto;
         }
-        
+
         .login-icon {
             font-size: 4rem;
             margin-bottom: 20px;
             opacity: 0.8;
         }
-        
+
         .login-title {
             font-size: 1.8rem;
             margin-bottom: 15px;
@@ -30,13 +30,13 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         .login-subtitle {
             color: #a0a0c0;
             margin-bottom: 30px;
             line-height: 1.5;
         }
-        
+
         .login-buttons {
             display: flex;
             flex-direction: column;
@@ -44,7 +44,7 @@
             max-width: 250px;
             margin: 0 auto;
         }
-        
+
         .login-btn, .signup-btn {
             padding: 15px 25px;
             border-radius: 12px;
@@ -55,47 +55,55 @@
             border: none;
             -webkit-tap-highlight-color: transparent;
         }
-        
+
         .login-btn:active, .signup-btn:active {
             transform: scale(0.98);
         }
-        
+
         .login-btn {
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
         }
-        
+
         .login-btn:hover {
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
-        
+
         .signup-btn {
             background: rgba(255, 255, 255, 0.1);
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .signup-btn:hover {
             background: rgba(255, 255, 255, 0.2);
         }
-        
+
         /* Loading skeleton animation */
         @keyframes skeleton-pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        
+
         .friend-skeleton {
             animation: skeleton-pulse 1.5s infinite;
+        }
+        
+        /* FIX: Force hide loading indicator */
+        .loading-indicator {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
     </style>
 </head>
 <body>
     <!-- Toast Notifications Container -->
     <div class="toast-container" id="toastContainer"></div>
-    
-    <!-- Loading Indicator -->
-    <div class="loading-indicator" id="loadingIndicator">
+
+    <!-- Loading Indicator - WILL BE HIDDEN -->
+    <div class="loading-indicator" id="loadingIndicator" style="display: none;">
         <div class="loading-text">✨ Loading Friends...</div>
     </div>
 
@@ -113,7 +121,7 @@
         <section class="friends-header">
             <h1 class="friends-title">Your Friends Circle</h1>
             <p class="friends-subtitle">Connect, chat, and stay close with the people who matter most</p>
-            
+
             <!-- Stats -->
             <div class="friends-stats">
                 <div class="stat-card">
@@ -189,13 +197,13 @@
                 <h2 class="modal-title"><i class="fas fa-user-plus"></i> Add New Friends</h2>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
-            
+
             <div class="search-container">
                 <i class="fas fa-search search-icon"></i>
                 <input type="text" id="searchInput" class="search-input" 
                        placeholder="Search by username..." autocomplete="off">
             </div>
-            
+
             <div id="searchResults">
                 <!-- Search results will appear here -->
                 <div class="empty-state" style="padding: 30px 20px;">
@@ -214,7 +222,7 @@
                 <h2 class="modal-title"><i class="fas fa-bell"></i> Notifications</h2>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
-            
+
             <div id="notificationsList">
                 <!-- Notifications will appear here -->
                 <div class="empty-state" style="padding: 40px 20px;">
@@ -228,24 +236,64 @@
 
     <!-- Friends Page Script -->
     <script type="module" src="script.js"></script>
-    
+
     <script>
+        // ⚡ IMMEDIATE LOADING SCREEN FIX ⚡
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded - removing loading screen');
+            
+            // Force hide loading indicator immediately
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+                loadingIndicator.style.visibility = 'hidden';
+                loadingIndicator.style.opacity = '0';
+            }
+            
+            // Remove any loading class
+            document.body.classList.remove('loading');
+        });
+
+        // Fallback: Remove after 1 second
+        setTimeout(function() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+                loadingIndicator.style.visibility = 'hidden';
+                loadingIndicator.style.opacity = '0';
+            }
+        }, 1000);
+
         // Add goToFriends function for the bottom nav
         function goToFriends() {
             // Already on friends page
             console.log("Already on friends page");
         }
-        
+
+        function goToHome() {
+            window.location.href = '../index.html';
+        }
+
+        function openNotifications() {
+            // Implementation for notifications
+            console.log("Open notifications");
+        }
+
+        function closeModal() {
+            // Implementation for closing modals
+            console.log("Close modal");
+        }
+
         // Prevent text selection
         document.addEventListener('selectstart', function(e) {
             e.preventDefault();
         });
-        
+
         // Prevent context menu on long press
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
         });
-        
+
         // Remove blue tap highlight on mobile
         document.addEventListener('touchstart', function() {}, {passive: true});
     </script>
