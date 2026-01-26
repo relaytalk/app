@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>✨ Relay - Friends</title>
-    
+
     <!-- SEO -->
     <meta name="description" content="Relay - Your Friends Circle">
     <meta name="keywords" content="Relay, friends, messaging, chat">
-    
+
     <!-- Styles -->
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- Load Supabase First -->
     <script type="module">
         // Load Supabase globally
@@ -21,23 +21,24 @@
             try {
                 const modulePath = '../../utils/supabase.js';
                 await import(modulePath);
-                
+
                 // Wait for initialization
                 let attempts = 0;
                 while (!window.supabase && attempts < 20) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     attempts++;
                 }
-                
+
                 if (window.supabase) {
                     console.log('✅ Supabase loaded for friends page');
-                    
+
                     // Check auth immediately
                     const { data } = await window.supabase.auth.getSession();
                     if (!data.session) {
-                        console.log('No session, redirecting to login...');
+                        console.log('No session, redirecting to LOGIN page...');
                         setTimeout(() => {
-                            window.location.href = '../auth/index.html';
+                            // FIXED: Redirect to LOGIN page, not auth page
+                            window.location.href = '../login/index.html';
                         }, 500);
                     }
                 }
@@ -45,7 +46,7 @@
                 console.error('❌ Failed to load Supabase:', error);
             }
         }
-        
+
         // Auto-load on page load
         document.addEventListener('DOMContentLoaded', loadSupabase);
     </script>
@@ -53,7 +54,7 @@
 <body>
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
-    
+
     <!-- Loading Indicator -->
     <div class="loading-indicator" id="loadingIndicator">
         <div class="loading-text">✨ Loading Friends...</div>
@@ -106,7 +107,7 @@
                 <p class="empty-desc">Please wait while we load your friends list</p>
             </div>
         </div>
-        
+
         <!-- Add Friends Button -->
         <div style="text-align: center; margin-top: 30px; padding: 0 20px;">
             <button class="search-btn" onclick="openSearchModal()" style="width: 100%; max-width: 300px;">
@@ -178,16 +179,21 @@
 
     <!-- Friends Script -->
     <script type="module" src="script.js"></script>
-    
+
     <script>
         // Simple network detection
         window.isOnline = navigator.onLine;
         window.addEventListener('online', () => window.isOnline = true);
         window.addEventListener('offline', () => window.isOnline = false);
-        
+
         // Prevent text selection
         document.addEventListener('selectstart', (e) => e.preventDefault());
         document.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // Make goToHome available immediately
+        window.goToHome = function() {
+            window.location.href = '../../home/index.html';
+        };
     </script>
 </body>
 </html>
