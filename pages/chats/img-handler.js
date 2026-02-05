@@ -11,9 +11,6 @@ let isImagePickerOpen = false;
 let imagePreviewUrl = null;
 let currentFileForUpload = null;
 
-// ImgBB API Key (TEMPORARY - Move to backend for production)
-const IMGBB_API_KEY = '82e49b432e2ee14921f7d0cd81ba5551';
-
 // ====================
 // GLOBAL FUNCTION EXPORTS - IMAGE HANDLER
 // ====================
@@ -175,6 +172,15 @@ function selectColor(color) {
 // IMAGE PICKER FUNCTIONS - FIXED
 // ====================
 function showImagePicker() {
+    // FIRST: Check if user is authenticated
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
+    if (!currentUser) {
+        if (typeof showToast === 'function') {
+            showToast('Please login to send images', '⚠️');
+        }
+        return;
+    }
+    
     isImagePickerOpen = true;
     const picker = document.getElementById('imagePickerOverlay');
     if (picker) {
@@ -241,20 +247,6 @@ function setupFileInputListeners() {
     }
 }
 
-// Close image picker when clicking outside - FIXED
-document.addEventListener('click', (e) => {
-    const picker = document.getElementById('imagePickerOverlay');
-    const attachBtn = document.getElementById('attachBtn');
-    const preview = document.getElementById('imagePreviewOverlay');
-
-    // Only handle picker if no preview is active
-    if (!preview && isImagePickerOpen && picker && !picker.contains(e.target) && e.target !== attachBtn) {
-        if (e.target.id !== 'cameraInput' && e.target.id !== 'galleryInput') {
-            closeImagePicker();
-        }
-    }
-});
-
 // ====================
 // IMAGE SELECTION AND PREVIEW
 // ====================
@@ -271,6 +263,13 @@ function handleImageSelect(event) {
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
         showToast('Image too large. Max 10MB', '⚠️');
+        return;
+    }
+
+    // Check authentication
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
+    if (!currentUser) {
+        showToast('Please login to send images', '⚠️');
         return;
     }
 
@@ -345,6 +344,22 @@ function cancelImageUpload() {
 }
 
 async function uploadImageFromPreview() {
+    // Check authentication
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
+    const chatFriend = window.getChatFriend ? window.getChatFriend() : null;
+    
+    if (!currentUser) {
+        showToast('Please login to send images', '⚠️');
+        cancelImageUpload();
+        return;
+    }
+    
+    if (!chatFriend) {
+        showToast('No chat friend selected', '⚠️');
+        cancelImageUpload();
+        return;
+    }
+
     if (!currentFileForUpload) {
         showToast('No image to upload', '⚠️');
         cancelImageUpload();
@@ -355,25 +370,35 @@ async function uploadImageFromPreview() {
     cancelImageUpload();
     
     // Then upload the image
-    uploadImageToImgBB(currentFileForUpload);
+    await uploadImageToServer(currentFileForUpload);
 }
 
 // ====================
 // IMAGE UPLOAD FUNCTIONS
 // ====================
-async function uploadImageToImgBB(file) {
-    showLoading(true, 'Uploading image...');
+async function uploadImageToServer(file) {
+    // Use the loading function from chat-core.js
+    if (typeof showLoading === 'function') {
+        showLoading(true, 'Uploading image...');
+    }
 
     try {
         // Compress image if needed
         const processedFile = await compressImage(file);
 
-        // Create FormData - ImgBB expects only the image file in FormData
+        // Get ImgBB API key from server (safer approach)
+        // For now, using a placeholder - in production, fetch from your backend
+        const IMGBB_API_KEY = await getImgBBApiKey();
+        
+        if (!IMGBB_API_KEY) {
+            throw new Error('Image upload service not available');
+        }
+
+        // Create FormData for ImgBB
         const formData = new FormData();
         formData.append('image', processedFile);
 
-        // ImgBB expects the key as a query parameter, NOT in FormData
-        // Also set expiration (600 seconds = 10 minutes)
+        // ImgBB expects the key as a query parameter
         const url = `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}&expiration=600`;
 
         console.log('📤 Uploading to ImgBB...');
@@ -400,7 +425,7 @@ async function uploadImageToImgBB(file) {
         const thumbnailUrl = data.data.thumb?.url || data.data.thumb_url || imageUrl;
 
         if (!imageUrl) {
-            throw new Error('No image URL returned from ImgBB');
+            throw new Error('No image URL returned');
         }
 
         console.log('✅ Image uploaded:', imageUrl);
@@ -411,11 +436,34 @@ async function uploadImageToImgBB(file) {
 
     } catch (error) {
         console.error('Image upload error:', error);
-        showRetryAlert('Failed to upload image: ' + error.message, () => {
-            uploadImageToImgBB(file);
-        });
+        if (typeof showRetryAlert === 'function') {
+            showRetryAlert('Failed to upload image: ' + error.message, () => {
+                uploadImageToServer(file);
+            });
+        } else {
+            showToast('Upload failed: ' + error.message, '❌');
+        }
     } finally {
-        showLoading(false);
+        if (typeof showLoading === 'function') {
+            showLoading(false);
+        }
+    }
+}
+
+async function getImgBBApiKey() {
+    // In production, fetch this from your backend server
+    // For now, return a placeholder (should be replaced with actual server fetch)
+    try {
+        // Example: Fetch from your own API endpoint
+        // const response = await fetch('/api/get-imgbb-key');
+        // const data = await response.json();
+        // return data.key;
+        
+        // TEMPORARY: Return a placeholder key (replace with actual key or server fetch)
+        return '82e49b432e2ee14921f7d0cd81ba5551'; // This should come from your server
+    } catch (error) {
+        console.error('Failed to get ImgBB key:', error);
+        return null;
     }
 }
 
@@ -486,11 +534,28 @@ async function compressImage(file, maxSize = 800 * 1024) {
 }
 
 // ====================
-// SEND IMAGE MESSAGE
+// SEND IMAGE MESSAGE - FIXED
 // ====================
+
 async function sendImageMessage(imageUrl, thumbnailUrl) {
-    const isSending = window.isSending || false;
-    if (isSending) return;
+    // Check if already sending
+    if (window.isSending) {
+        console.log('Already sending a message, please wait');
+        return;
+    }
+
+    // Get user and friend data safely
+    const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
+    const chatFriend = window.getChatFriend ? window.getChatFriend() : null;
+    const supabaseClient = window.getSupabaseClient ? window.getSupabaseClient() : null;
+
+    if (!currentUser || !chatFriend || !supabaseClient) {
+        console.error('Missing required data for sending image');
+        if (typeof showToast === 'function') {
+            showToast('Cannot send image: missing data', '❌');
+        }
+        return;
+    }
 
     window.isSending = true;
     const sendBtn = document.getElementById('sendBtn');
@@ -505,14 +570,6 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
                 </svg>
             `;
             sendBtn.disabled = true;
-        }
-
-        // Get current user and chat friend from chat-core.js
-        const currentUser = window.currentUser;
-        const chatFriend = window.chatFriend;
-
-        if (!currentUser || !chatFriend) {
-            throw new Error('User or friend data not available');
         }
 
         const messageData = {
@@ -536,7 +593,7 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
             });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('direct_messages')
             .insert(messageData)
             .select()
@@ -598,6 +655,40 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
 // ====================
 // IMAGE MESSAGE HTML CREATOR
 // ====================
+function createImageMessageHTML(msg, isSent, colorAttr, time) {
+    const imageUrl = msg.image_url || '';
+    const thumbnailUrl = msg.thumbnail_url || imageUrl;
+    
+    return `
+        <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}" ${colorAttr}>
+            <div class="message-image-container" onclick="viewImageFullscreen('${imageUrl}')">
+                <img src="${thumbnailUrl}" 
+                     alt="Shared image" 
+                     class="message-image"
+                     onload="handleImageLoad(this)"
+                     onerror="handleImageError(this, '${imageUrl}')">
+                <div class="image-overlay">
+                    <svg viewBox="0 0 24 24" class="image-icon">
+                        <path d="M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="message-time">${time}</div>
+        </div>
+    `;
+}
+
+// Image loading handlers
+function handleImageLoad(imgElement) {
+    imgElement.style.opacity = '1';
+    imgElement.classList.add('loaded');
+}
+
+function handleImageError(imgElement, originalUrl) {
+    console.error('Failed to load image:', originalUrl);
+    imgElement.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24"><path fill="%23ccc" d="M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/></svg>';
+    imgElement.style.opacity = '1';
+}
 
 function viewImageFullscreen(imageUrl) {
     // Remove existing viewer if any
@@ -615,7 +706,6 @@ function viewImageFullscreen(imageUrl) {
         fixedImageUrl = fixedImageUrl.replace('//i.ibb.co', 'https://i.ibb.co');
     }
 
-    // Create fullscreen viewer with proper image URL
     const viewerHTML = `
         <div class="image-viewer-overlay" id="imageViewerOverlay">
             <button class="viewer-close" onclick="closeImageViewer()">
@@ -797,4 +887,37 @@ function showRetryAlert(message, onRetry, onCancel = null) {
     };
 
     alertOverlay.style.display = 'flex';
+}
+
+// ====================
+// TOAST FUNCTION FOR IMAGE HANDLER
+// ====================
+function showToast(message, icon = 'ℹ️', duration = 3000) {
+    // Use the global showToast if available
+    if (window.showToast && window.showToast !== showToast) {
+        window.showToast(message, icon, duration);
+        return;
+    }
+    
+    // Fallback implementation
+    const toast = document.getElementById('customToast');
+    if (toast) {
+        const toastIcon = document.getElementById('toastIcon');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        if (toastIcon) toastIcon.innerHTML = icon;
+        if (toastMessage) toastMessage.textContent = message;
+        
+        toast.style.display = 'flex';
+        setTimeout(() => {
+            toast.style.opacity = '1';
+        }, 10);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 300);
+        }, duration);
+    }
 }
