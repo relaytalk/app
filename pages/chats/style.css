@@ -5,6 +5,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
@@ -19,6 +20,37 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     flex-direction: column;
+}
+
+/* ==================== */
+/* REMOVE BLUE ANIMATIONS/TAPS */
+/* ==================== */
+button, 
+input, 
+textarea,
+[role="button"] {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+/* Remove all blue outlines on focus */
+*:focus {
+    outline: none !important;
+}
+
+/* Specific focus styles for accessibility without blue */
+.message-input:focus {
+    border-color: rgba(102, 126, 234, 0.5);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+/* Remove blue highlight on active states */
+button:active,
+input:active,
+textarea:active {
+    transform: scale(0.98);
 }
 
 /* ==================== */
@@ -39,6 +71,8 @@ body {
     flex-direction: column;
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 @keyframes slideUp {
@@ -80,11 +114,17 @@ body {
     font-size: 0.8rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .color-option:hover {
     transform: scale(1.1);
     border-color: rgba(255, 255, 255, 0.5);
+}
+
+.color-option:active {
+    transform: scale(0.95);
 }
 
 .color-option.selected {
@@ -202,15 +242,30 @@ body {
     border-radius: 16px;
     overflow: hidden;
     cursor: pointer;
-    background: rgba(0, 0, 0, 0.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
     max-width: 350px;
     margin: 0 auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .message-image-container:hover {
     transform: scale(1.02);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    animation: none;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.message-image-container:active {
+    transform: scale(0.98);
 }
 
 .message-image {
@@ -281,14 +336,6 @@ body {
     animation: fadeIn 0.3s ease;
 }
 
-.image-viewer-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
 .viewer-close {
     position: fixed;
     top: 25px;
@@ -307,6 +354,8 @@ body {
     z-index: 4001;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .viewer-close:hover {
@@ -314,13 +363,18 @@ body {
     transform: rotate(90deg);
 }
 
+.viewer-close:active {
+    transform: rotate(90deg) scale(0.9);
+}
+
 .viewer-image-container {
-    flex: 1;
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
-    overflow: hidden;
+    touch-action: pan-x pan-y pinch-zoom;
 }
 
 .viewer-image {
@@ -331,6 +385,8 @@ body {
     opacity: 0;
     transition: opacity 0.5s ease;
     animation: scaleIn 0.3s ease;
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
 @keyframes scaleIn {
@@ -376,12 +432,18 @@ body {
     gap: 8px;
     min-width: 140px;
     justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .viewer-action-btn:hover {
     background: rgba(255, 255, 255, 0.25);
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.viewer-action-btn:active {
+    transform: translateY(-1px);
 }
 
 .viewer-action-btn svg {
@@ -448,11 +510,16 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .image-picker-close:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: rotate(90deg);
+}
+
+.image-picker-close:active {
+    transform: rotate(90deg) scale(0.9);
 }
 
 .image-picker-options {
@@ -475,12 +542,18 @@ body {
     gap: 15px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .image-picker-option:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: translateY(-3px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.image-picker-option:active {
+    transform: translateY(-1px);
 }
 
 .picker-icon {
@@ -537,10 +610,16 @@ body {
     justify-content: center;
     flex-shrink: 0;
     transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .back-btn:hover {
     background: rgba(255, 255, 255, 0.1);
+}
+
+.back-btn:active {
+    transform: scale(0.9);
 }
 
 .chat-user-info {
@@ -609,12 +688,18 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .chat-action-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: white;
     transform: rotate(15deg);
+}
+
+.chat-action-btn:active {
+    transform: rotate(15deg) scale(0.9);
 }
 
 /* ==================== */
@@ -655,12 +740,18 @@ body {
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .attach-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: rotate(15deg);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.attach-btn:active {
+    transform: rotate(15deg) scale(0.9);
 }
 
 .attach-icon {
@@ -691,6 +782,9 @@ body {
     overflow-y: auto;
     width: 100%;
     transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .message-input:focus {
@@ -713,11 +807,17 @@ body {
     justify-content: center;
     flex-shrink: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .send-btn:hover:not(:disabled) {
     transform: scale(1.05) rotate(5deg);
     box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.send-btn:active:not(:disabled) {
+    transform: scale(0.95) rotate(5deg);
 }
 
 .send-btn:disabled {
@@ -771,6 +871,7 @@ body {
     line-height: 1.4;
     word-break: break-word;
     animation: fadeIn 0.3s ease;
+    user-select: text;
 }
 
 .message.sent {
@@ -835,6 +936,7 @@ body {
 /* ==================== */
 /* TYPING INDICATOR */
 /* ==================== */
+
 .typing-indicator {
     align-self: flex-start;
     background: rgba(255, 255, 255, 0.1);
@@ -883,31 +985,14 @@ body {
     animation: fadeIn 0.3s ease;
 }
 
-.upload-loader {
-    width: 60px;
-    height: 60px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top: 3px solid #667eea;
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top: 4px solid #667eea;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 20px;
-}
-
-.upload-progress {
-    width: 200px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-top: 10px;
-}
-
-.upload-progress-bar {
-    height: 100%;
-    background: linear-gradient(to right, #667eea, #764ba2);
-    width: 0%;
-    transition: width 0.3s ease;
-    border-radius: 2px;
 }
 
 @keyframes spin {
