@@ -34,72 +34,9 @@
     <!-- Canonical - UPDATED for Vercel -->
     <link rel="canonical" href="https://relaytalk.vercel.app/pages/login/">
 
-    <!-- Structured Data - ENHANCED for better SEO -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Login | RelayTalk",
-      "description": "Login page for RelayTalk secure messaging platform",
-      "url": "https://relaytalk.vercel.app/pages/login/",
-      "mainEntity": {
-        "@type": "WebApplication",
-        "name": "RelayTalk Login",
-        "applicationCategory": "CommunicationApplication",
-        "operatingSystem": "Web",
-        "description": "Login to access RelayTalk's secure messaging features"
-      },
-      "breadcrumb": {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": "https://relaytalk.vercel.app/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Login",
-            "item": "https://relaytalk.vercel.app/pages/login/"
-          }
-        ]
-      },
-      "potentialAction": {
-        "@type": "LoginAction",
-        "name": "Login",
-        "target": "https://relaytalk.vercel.app/pages/login/",
-        "description": "Login to RelayTalk account"
-      }
-    }
-    </script>
-
-    <!-- Additional Schema for Login Action -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "LoginAction",
-      "name": "RelayTalk Login",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://relaytalk.vercel.app/pages/login/",
-        "actionPlatform": [
-          "http://schema.org/DesktopWebPlatform",
-          "http://schema.org/MobileWebPlatform"
-        ]
-      },
-      "expectsAcceptanceOf": {
-        "@type": "Offer",
-        "name": "Terms of Service",
-        "url": "https://relaytalk.vercel.app/pages/auth/#terms"
-      }
-    }
-    </script>
-
-    <!-- CSS - FIXED: Use absolute paths like auth page -->
-    <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="/pages/login/style.css">
+    <!-- CSS - CHANGED TO RELATIVE PATHS -->
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
 
     <!-- Preconnect for faster loading -->
     <link rel="preconnect" href="https://relaytalk.vercel.app">
@@ -108,11 +45,11 @@
 <body>
     <!-- Simple Header -->
     <div class="login-header">
-        <a href="/" class="login-header-logo">✨ RelayTalk</a>
+        <a href="../../index.html" class="login-header-logo">✨ RelayTalk</a>
         <nav class="login-nav" aria-label="Login navigation">
-            <a href="/" class="nav-link">Home</a>
-            <a href="/pages/auth/" class="nav-link">Create Account</a>
-            <a href="/pages/login/" class="nav-link active">Login</a>
+            <a href="../../index.html" class="nav-link">Home</a>
+            <a href="../auth/index.html" class="nav-link">Create Account</a>
+            <a href="index.html" class="nav-link active">Login</a>
         </nav>
     </div>
 
@@ -195,7 +132,7 @@
 
         <!-- Sign up link with SEO text -->
         <div class="signup-link">
-            <p>New to RelayTalk? <a href="/pages/auth/" aria-label="Create RelayTalk account">Create your free account</a> to start secure messaging.</p>
+            <p>New to RelayTalk? <a href="../auth/index.html" aria-label="Create RelayTalk account">Create your free account</a> to start secure messaging.</p>
             <p class="small-text">Join thousands of users on RelayTalk's private messaging platform.</p>
         </div>
         
@@ -219,9 +156,29 @@
         <p class="loading-text">Signing you in to RelayTalk...</p>
     </div>
 
-    <!-- JavaScript - FIXED: Use absolute path like auth page -->
-    <script type="module" src="/pages/login/script.js"></script>
+    <!-- JavaScript - CHANGED TO RELATIVE PATH -->
+    <script type="module" src="script.js"></script>
     <script src="/utils/sw-manager.js"></script>
+    
+    <!-- Test script to check file paths -->
+    <script>
+    console.log('Testing file paths...');
+    const testFiles = [
+        '/style.css',
+        '/pages/login/style.css',
+        'style.css',
+        '../style.css',
+        '../../style.css',
+        '/pages/login/script.js',
+        'script.js'
+    ];
+    
+    testFiles.forEach(url => {
+        fetch(url, { method: 'HEAD' })
+            .then(res => console.log(`${url}: ${res.status}`))
+            .catch(err => console.log(`${url}: Error - ${err.message}`));
+    });
+    </script>
     
     <!-- Schema for FAQ -->
     <script type="application/ld+json">
