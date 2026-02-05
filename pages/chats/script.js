@@ -16,6 +16,8 @@ let isSending = false;
 let isTyping = false;
 let typingTimeout = null;
 let friendTypingTimeout = null;
+let selectedColor = null; // Add this for color selection
+let colorPickerVisible = false;
 
 // ====================
 // GLOBAL FUNCTION EXPORTS
@@ -30,6 +32,7 @@ window.startVoiceCall = startVoiceCall;
 window.viewSharedMedia = viewSharedMedia;
 window.blockUserPrompt = blockUserPrompt;
 window.clearChatPrompt = clearChatPrompt;
+window.selectColor = selectColor; // Add this
 
 // ====================
 // INITIALIZATION
@@ -40,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('customAlert').style.display = 'none';
         document.getElementById('customToast').style.display = 'none';
         document.getElementById('userInfoModal').style.display = 'none';
-        
+
         const { success, user } = await auth.getCurrentUser();
         if (!success || !user) {
             showLoginAlert();
@@ -77,6 +80,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupRealtime(friendId);
         setupTypingListener();
         updateInputListener();
+        
+        // Initialize color picker
+        initializeColorPicker();
+        addColorPickerInputListener();
 
         // Initial setup
         setTimeout(() => {
@@ -93,6 +100,133 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 });
+
+// ====================
+// COLOR PICKER FUNCTIONS
+// ====================
+function initializeColorPicker() {
+    // Create color picker HTML
+    const colorPickerHTML = `
+        <div class="color-picker-overlay" id="colorPickerOverlay">
+            <div class="color-picker-title">Choose text color</div>
+            <div class="color-picker-grid">
+                <div class="color-option" data-color="red" onclick="selectColor('red')"></div>
+                <div class="color-option" data-color="green" onclick="selectColor('green')"></div>
+                <div class="color-option" data-color="blue" onclick="selectColor('blue')"></div>
+                <div class="color-option" data-color="white" onclick="selectColor('white')"></div>
+                <div class="color-option" data-color="black" onclick="selectColor('black')"></div>
+                <div class="color-option" data-color="yellow" onclick="selectColor('yellow')"></div>
+                <div class="color-option" data-color="cyan" onclick="selectColor('cyan')"></div>
+            </div>
+        </div>
+    `;
+    
+    // Add color picker to the DOM
+    document.body.insertAdjacentHTML('afterbegin', colorPickerHTML);
+}
+
+function addColorPickerInputListener() {
+    const input = document.getElementById('messageInput');
+    if (!input) return;
+    
+    input.addEventListener('input', function(e) {
+        const text = this.value;
+        const colorPicker = document.getElementById('colorPickerOverlay');
+        
+        // Check if first character is /
+        if (text.startsWith('/') && text.length === 1) {
+            // Show color picker
+            colorPickerVisible = true;
+            if (colorPicker) {
+                colorPicker.style.display = 'flex';
+                
+                // Adjust main content position
+                const mainContent = document.querySelector('.main-content');
+                if (mainContent) {
+                    const pickerHeight = colorPicker.offsetHeight;
+                    mainContent.style.top = `calc(80px + ${pickerHeight}px)`;
+                }
+            }
+        } else if (colorPickerVisible && text.length > 1) {
+            // Hide color picker if user continues typing
+            hideColorPicker();
+        } else if (!text.startsWith('/')) {
+            // Hide if / is removed
+            hideColorPicker();
+        }
+    });
+    
+    // Also check on focus
+    input.addEventListener('focus', function() {
+        if (this.value.startsWith('/') && this.value.length === 1) {
+            showColorPicker();
+        }
+    });
+    
+    // Hide on blur
+    input.addEventListener('blur', function() {
+        setTimeout(() => {
+            hideColorPicker();
+        }, 200);
+    });
+}
+
+function showColorPicker() {
+    const colorPicker = document.getElementById('colorPickerOverlay');
+    if (colorPicker) {
+        colorPickerVisible = true;
+        colorPicker.style.display = 'flex';
+        
+        // Adjust main content position
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            const pickerHeight = colorPicker.offsetHeight;
+            mainContent.style.top = `calc(80px + ${pickerHeight}px)`;
+        }
+    }
+}
+
+function hideColorPicker() {
+    const colorPicker = document.getElementById('colorPickerOverlay');
+    if (colorPicker) {
+        colorPickerVisible = false;
+        colorPicker.style.display = 'none';
+        
+        // Reset main content position
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.style.top = '80px';
+        }
+    }
+}
+
+function selectColor(color) {
+    selectedColor = color;
+    const input = document.getElementById('messageInput');
+    
+    // Clear the / character and keep focus
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+    
+    // Update color picker UI
+    const colorOptions = document.querySelectorAll('.color-option');
+    colorOptions.forEach(option => {
+        option.classList.remove('selected');
+        if (option.getAttribute('data-color') === color) {
+            option.classList.add('selected');
+        }
+    });
+    
+    // Show toast for selected color
+    showToast(`Selected ${color} color`, '🎨', 1000);
+    
+    // Hide color picker after selection
+    setTimeout(() => {
+        hideColorPicker();
+    }, 500);
+}
 
 // ====================
 // TYPING FUNCTIONS
@@ -363,8 +497,12 @@ function showMessages(messages) {
             lastDate = date;
         }
 
+        // Check if message has color data
+        const color = msg.color || null;
+        const colorAttr = color ? `data-color="${color}"` : '';
+        
         html += `
-            <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}">
+            <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}" ${colorAttr}>
                 <div class="message-content">${msg.content || ''}</div>
                 <div class="message-time">${time}</div>
             </div>
@@ -374,7 +512,7 @@ function showMessages(messages) {
     // Add spacer to ensure visibility
     html += `<div style="height: 30px; opacity: 0;"></div>`;
     container.innerHTML = html;
-    
+
     // Force scroll after rendering
     setTimeout(() => {
         forceScrollToBottom();
@@ -390,7 +528,7 @@ function scrollToBottom() {
 
     // Method 1: Direct scroll
     container.scrollTop = container.scrollHeight;
-    
+
     // Method 2: Double check
     setTimeout(() => {
         container.scrollTop = container.scrollHeight;
@@ -403,16 +541,16 @@ function forceScrollToBottom() {
 
     // Multiple methods for Chrome
     container.scrollTop = container.scrollHeight;
-    
+
     setTimeout(() => {
         container.scrollTop = container.scrollHeight;
-        
+
         // Try smooth scroll
         const lastChild = container.lastElementChild;
         if (lastChild) {
             lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
-        
+
         // Final check
         setTimeout(() => {
             container.scrollTop = container.scrollHeight;
@@ -435,15 +573,19 @@ function addMessageToUI(message, isFromRealtime = false) {
         minute: '2-digit'
     });
 
+    // Check if message has color data
+    const color = message.color || null;
+    const colorAttr = color ? `data-color="${color}"` : '';
+    
     const messageHTML = `
-        <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}">
+        <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr}>
             <div class="message-content">${message.content || ''}</div>
             <div class="message-time">${time}</div>
         </div>
     `;
 
     container.insertAdjacentHTML('beforeend', messageHTML);
-    
+
     // Check for duplicate
     const isDuplicate = currentMessages.some(msg => msg.id === message.id);
     if (!isDuplicate) {
@@ -549,14 +691,14 @@ function setupRealtime(friendId) {
 }
 
 // ====================
-// SEND MESSAGE
+// SEND MESSAGE - UPDATED FOR COLOR
 // ====================
 async function sendMessage() {
     if (isSending) {
         console.log('🔄 Message already being sent, skipping...');
         return;
     }
-    
+
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
 
@@ -574,31 +716,49 @@ async function sendMessage() {
         sendBtn.innerHTML = '<div class="typing-dots"><div></div><div></div><div></div></div>';
         sendBtn.disabled = true;
 
+        // Prepare message data with color if selected
+        const messageData = {
+            sender_id: currentUser.id,
+            receiver_id: chatFriend.id,
+            content: text,
+            created_at: new Date().toISOString()
+        };
+
+        // Add color if selected
+        if (selectedColor) {
+            messageData.color = selectedColor;
+        }
+
         const { data, error } = await supabase
             .from('direct_messages')
-            .insert({
-                sender_id: currentUser.id,
-                receiver_id: chatFriend.id,
-                content: text,
-                created_at: new Date().toISOString()
-            })
+            .insert(messageData)
             .select()
             .single();
 
         if (error) throw error;
 
         console.log('✅ Message sent to database:', data.id);
+        
+        // Reset color selection after sending
+        selectedColor = null;
+        
+        // Clear selected color UI
+        const colorOptions = document.querySelectorAll('.color-option');
+        colorOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
         playSentSound();
         input.value = '';
         autoResize(input);
-        
+
         isTyping = false;
         if (typingTimeout) {
             clearTimeout(typingTimeout);
             typingTimeout = null;
         }
         sendTypingStatus(false);
-        
+
         setTimeout(() => {
             input.focus();
             isSending = false;
@@ -615,7 +775,7 @@ async function sendMessage() {
 }
 
 // ====================
-// INPUT HANDLERS
+// INPUT HANDLERS - UPDATED FOR COLOR PICKER
 // ====================
 function handleKeyPress(event) {
     const input = document.getElementById('messageInput');
@@ -627,6 +787,12 @@ function handleKeyPress(event) {
 
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
+        
+        // Don't send if color picker is active with just /
+        if (input && input.value === '/') {
+            return;
+        }
+        
         if (input && input.value.trim()) {
             sendMessage();
         }
