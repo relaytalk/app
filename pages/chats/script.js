@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupTypingListener();
         updateInputListener();
         
-        // Initialize color picker (ABOVE input field)
+        // Initialize color picker
         initializeColorPicker();
         addColorPickerInputListener();
 
@@ -103,10 +103,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ====================
-// COLOR PICKER FUNCTIONS - FIXED POSITION
+// COLOR PICKER FUNCTIONS
 // ====================
 function initializeColorPicker() {
-    // Create color picker HTML - positioned ABOVE input field
+    // Create color picker HTML
     const colorPickerHTML = `
         <div class="color-picker-overlay" id="colorPickerOverlay" style="display: none;">
             <div class="color-picker-title">Choose text color</div>
@@ -122,7 +122,7 @@ function initializeColorPicker() {
         </div>
     `;
     
-    // Add color picker RIGHT BEFORE the message input wrapper
+    // Add color picker BEFORE the message input wrapper
     const inputWrapper = document.getElementById('messageInputWrapper');
     if (inputWrapper) {
         inputWrapper.insertAdjacentHTML('beforebegin', colorPickerHTML);
@@ -143,22 +143,18 @@ function addColorPickerInputListener() {
         if (text.startsWith('/') && text.length === 1) {
             showColorPicker();
         } else if (colorPickerVisible && text.length > 1) {
-            // Hide color picker if user continues typing
             hideColorPicker();
         } else if (!text.startsWith('/')) {
-            // Hide if / is removed
             hideColorPicker();
         }
     });
     
-    // Also check on focus
     input.addEventListener('focus', function() {
         if (this.value.startsWith('/') && this.value.length === 1) {
             showColorPicker();
         }
     });
     
-    // Hide on blur with delay
     input.addEventListener('blur', function() {
         setTimeout(() => {
             if (!document.querySelector('.color-option:hover')) {
@@ -167,7 +163,6 @@ function addColorPickerInputListener() {
         }, 300);
     });
     
-    // Hide color picker when clicking outside
     document.addEventListener('click', function(e) {
         const colorPicker = document.getElementById('colorPickerOverlay');
         const input = document.getElementById('messageInput');
@@ -186,7 +181,6 @@ function showColorPicker() {
         colorPickerVisible = true;
         colorPicker.style.display = 'flex';
         
-        // Reset any selected color
         const colorOptions = document.querySelectorAll('.color-option');
         colorOptions.forEach(option => {
             option.classList.remove('selected');
@@ -200,7 +194,6 @@ function hideColorPicker() {
         colorPickerVisible = false;
         colorPicker.style.display = 'none';
         
-        // Clear the / character from input if it's still there
         const input = document.getElementById('messageInput');
         if (input && input.value === '/') {
             input.value = '';
@@ -213,14 +206,12 @@ function selectColor(color) {
     selectedColor = color;
     const input = document.getElementById('messageInput');
     
-    // Clear the / character and keep focus
     if (input) {
         input.value = '';
         input.focus();
         autoResize(input);
     }
     
-    // Update color picker UI
     const colorOptions = document.querySelectorAll('.color-option');
     colorOptions.forEach(option => {
         option.classList.remove('selected');
@@ -229,13 +220,315 @@ function selectColor(color) {
         }
     });
     
-    // Show toast for selected color
     showToast(`Selected ${color} color`, '🎨', 1000);
     
-    // Don't hide immediately - let user see the selection
     setTimeout(() => {
         hideColorPicker();
     }, 800);
+}
+
+// ====================
+// SEND MESSAGE - WITH COLOR TO SUPABASE
+// ====================
+async function sendMessage() {
+    if (isSending) {
+        console.log('🔄 Message already being sent, skipping...');
+        return;
+    }
+
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+
+    if (!text || !chatFriend) {
+        showToast('Please type a message!', '⚠️');
+        return;
+    }
+
+    isSending = true;
+    const sendBtn = document.getElementById('sendBtn');
+    const originalText = sendBtn.innerHTML;
+
+    try {
+        console.log('📤 Sending message to:', chatFriend.id);
+        sendBtn.innerHTML = '<div class="typing-dots"><div></div><div></div><div></div></div>';
+        sendBtn.disabled = true;
+
+        // Prepare message data WITH color
+        const messageData = {
+            sender_id: currentUser.id,
+            receiver_id: chatFriend.id,
+            content: text,
+            created_at: new Date().toISOString()
+        };
+
+        // Add color if selected
+        if (selectedColor) {
+            messageData.color = selectedColor;
+        }
+
+        console.log('Sending message with data:', messageData);
+
+        const { data, error } = await supabase
+            .from('direct_messages')
+            .insert(messageData)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Supabase error:', error);
+            
+            // If error is about missing color column, we need to add it first
+            if (error.message && error.message.includes('color')) {
+                showToast('Database needs update for colors', '⚠️', 2000);
+                
+                // Send without color for now
+                delete messageData.color;
+                const { data: retryData, error: retryError } = await supabase
+                    .from('direct_messages')
+                    .insert(messageData)
+                    .select()
+                    .single();
+                    
+                if (retryError) throw retryError;
+                data = retryData;
+            } else {
+                throw error;
+            }
+        }
+
+        console.log('✅ Message sent to database:', data.id);
+        
+        // Reset color selection after sending
+        selectedColor = null;
+        
+        // Clear selected color UI
+        const colorOptions = document.querySelectorAll('.color-option');
+        colorOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        playSentSound();
+        input.value = '';
+        autoResize(input);
+
+        isTyping = false;
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+            typingTimeout = null;
+        }
+        sendTypingStatus(false);
+
+        setTimeout(() => {
+            input.focus();
+            isSending = false;
+            sendBtn.innerHTML = originalText;
+            sendBtn.disabled = false;
+        }, 300);
+    } catch (error) {
+        console.error('Send failed:', error);
+        showCustomAlert('Failed to send message: ' + error.message, '❌', 'Error');
+        isSending = false;
+        sendBtn.innerHTML = originalText;
+        sendBtn.disabled = false;
+    }
+}
+
+// ====================
+// LOAD OLD MESSAGES - WITH COLOR SUPPORT
+// ====================
+async function loadOldMessages(friendId) {
+    if (isLoadingMessages) return;
+    isLoadingMessages = true;
+
+    try {
+        console.log('Loading messages for friend:', friendId);
+
+        const { data: messages, error } = await supabase
+            .from('direct_messages')
+            .select('*')
+            .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Query error:', error);
+            throw error;
+        }
+
+        console.log('Loaded', messages?.length || 0, 'messages');
+        currentMessages = messages || [];
+        showMessages(currentMessages);
+    } catch (error) {
+        console.error('Load error:', error);
+        showMessages([]);
+    } finally {
+        isLoadingMessages = false;
+    }
+}
+
+// ====================
+// SHOW MESSAGES - WITH COLOR SUPPORT
+// ====================
+function showMessages(messages) {
+    const container = document.getElementById('messagesContainer');
+    if (!container) return;
+
+    console.log('Showing', messages?.length || 0, 'messages');
+
+    if (!messages || messages.length === 0) {
+        container.innerHTML = `
+            <div class="empty-chat">
+                <div class="empty-chat-icon">💬</div>
+                <h3>No messages yet</h3>
+                <p style="margin-top: 10px;">Say hello to start the conversation!</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    let lastDate = '';
+
+    messages.forEach(msg => {
+        const isSent = msg.sender_id === currentUser.id;
+        const time = new Date(msg.created_at).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        const date = new Date(msg.created_at).toLocaleDateString();
+
+        if (date !== lastDate) {
+            html += `<div class="date-separator"><span>${date}</span></div>`;
+            lastDate = date;
+        }
+
+        // Get color from database (if exists)
+        const color = msg.color || null;
+        const colorAttr = color ? `data-color="${color}"` : '';
+        
+        html += `
+            <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}" ${colorAttr}>
+                <div class="message-content">${msg.content || ''}</div>
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+    });
+
+    html += `<div style="height: 30px; opacity: 0;"></div>`;
+    container.innerHTML = html;
+
+    setTimeout(() => {
+        forceScrollToBottom();
+    }, 100);
+}
+
+// ====================
+// ADD MESSAGE TO UI - WITH COLOR SUPPORT
+// ====================
+function addMessageToUI(message, isFromRealtime = false) {
+    const container = document.getElementById('messagesContainer');
+    if (!container || !message) return;
+
+    if (container.querySelector('.empty-chat')) {
+        container.innerHTML = '';
+    }
+
+    const isSent = message.sender_id === currentUser.id;
+    const time = new Date(message.created_at).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    // Get color from database
+    const color = message.color || null;
+    const colorAttr = color ? `data-color="${color}"` : '';
+    
+    const messageHTML = `
+        <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr}>
+            <div class="message-content">${message.content || ''}</div>
+            <div class="message-time">${time}</div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', messageHTML);
+
+    const isDuplicate = currentMessages.some(msg => msg.id === message.id);
+    if (!isDuplicate) {
+        currentMessages.push(message);
+    }
+
+    setTimeout(() => {
+        forceScrollToBottom();
+    }, 10);
+
+    if (message.sender_id === chatFriend.id) {
+        playReceivedSound();
+        if (!document.hasFocus()) {
+            const originalTitle = document.title;
+            document.title = '💬 ' + chatFriend.username;
+            setTimeout(() => document.title = originalTitle, 1000);
+        }
+    }
+}
+
+// ====================
+// REALTIME SETUP - WITH COLOR SUPPORT
+// ====================
+function setupRealtime(friendId) {
+    console.log('🔧 Setting up realtime for friend:', friendId);
+
+    if (chatChannel) {
+        supabase.removeChannel(chatChannel);
+    }
+    if (statusChannel) {
+        supabase.removeChannel(statusChannel);
+    }
+
+    chatChannel = supabase.channel(`dm:${currentUser.id}:${friendId}`)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'direct_messages'
+        }, (payload) => {
+            console.log('📨 Realtime INSERT detected:', payload.new);
+            const newMsg = payload.new;
+            const isOurMessage = 
+                (newMsg.sender_id === currentUser.id && newMsg.receiver_id === friendId) ||
+                (newMsg.sender_id === friendId && newMsg.receiver_id === currentUser.id);
+
+            if (isOurMessage) {
+                const existingMessage = document.querySelector(`[data-message-id="${newMsg.id}"]`);
+                if (!existingMessage) {
+                    console.log('✅ Adding new message to UI (from realtime)');
+                    addMessageToUI(newMsg, true);
+                } else {
+                    console.log('🔄 Message already in UI, skipping:', newMsg.id);
+                }
+            }
+        })
+        .subscribe();
+
+    statusChannel = supabase.channel(`status:${friendId}`)
+        .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${friendId}`
+        }, (payload) => {
+            console.log('🔄 Friend status updated:', payload.new.status);
+            if (payload.new.id === friendId) {
+                chatFriend.status = payload.new.status;
+                updateFriendStatus(payload.new.status);
+
+                if (payload.new.status === 'online') {
+                    showToast(`${chatFriend.username} is now online`, '🟢', 2000);
+                } else {
+                    showToast(`${chatFriend.username} is now offline`, '⚫', 2000);
+                }
+            }
+        })
+        .subscribe();
+
+    console.log('✅ Realtime active');
 }
 
 // ====================
@@ -443,187 +736,8 @@ function showToast(message, icon = 'ℹ️', duration = 3000) {
 }
 
 // ====================
-// MESSAGE FUNCTIONS
-// ====================
-async function loadOldMessages(friendId) {
-    if (isLoadingMessages) return;
-    isLoadingMessages = true;
-
-    try {
-        console.log('Loading messages for friend:', friendId);
-
-        const { data: messages, error } = await supabase
-            .from('direct_messages')
-            .select('*')
-            .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            console.error('Query error:', error);
-            throw error;
-        }
-
-        console.log('Loaded', messages?.length || 0, 'messages');
-        currentMessages = messages || [];
-        showMessages(currentMessages);
-    } catch (error) {
-        console.error('Load error:', error);
-        showMessages([]);
-    } finally {
-        isLoadingMessages = false;
-    }
-}
-
-function showMessages(messages) {
-    const container = document.getElementById('messagesContainer');
-    if (!container) return;
-
-    console.log('Showing', messages?.length || 0, 'messages');
-
-    if (!messages || messages.length === 0) {
-        container.innerHTML = `
-            <div class="empty-chat">
-                <div class="empty-chat-icon">💬</div>
-                <h3>No messages yet</h3>
-                <p style="margin-top: 10px;">Say hello to start the conversation!</p>
-            </div>
-        `;
-        return;
-    }
-
-    let html = '';
-    let lastDate = '';
-
-    messages.forEach(msg => {
-        const isSent = msg.sender_id === currentUser.id;
-        const time = new Date(msg.created_at).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        const date = new Date(msg.created_at).toLocaleDateString();
-
-        if (date !== lastDate) {
-            html += `<div class="date-separator"><span>${date}</span></div>`;
-            lastDate = date;
-        }
-
-        // Check if message has color data
-        const color = msg.color || null;
-        const colorAttr = color ? `data-color="${color}"` : '';
-        
-        html += `
-            <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}" ${colorAttr}>
-                <div class="message-content">${msg.content || ''}</div>
-                <div class="message-time">${time}</div>
-            </div>
-        `;
-    });
-
-    // Add spacer to ensure visibility
-    html += `<div style="height: 30px; opacity: 0;"></div>`;
-    container.innerHTML = html;
-
-    // Force scroll after rendering
-    setTimeout(() => {
-        forceScrollToBottom();
-    }, 100);
-}
-
-// ====================
-// SCROLL FUNCTIONS - CHROME OPTIMIZED
-// ====================
-function scrollToBottom() {
-    const container = document.getElementById('messagesContainer');
-    if (!container) return;
-
-    // Method 1: Direct scroll
-    container.scrollTop = container.scrollHeight;
-
-    // Method 2: Double check
-    setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-    }, 50);
-}
-
-function forceScrollToBottom() {
-    const container = document.getElementById('messagesContainer');
-    if (!container) return;
-
-    // Multiple methods for Chrome
-    container.scrollTop = container.scrollHeight;
-
-    setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-
-        // Try smooth scroll
-        const lastChild = container.lastElementChild;
-        if (lastChild) {
-            lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }
-
-        // Final check
-        setTimeout(() => {
-            container.scrollTop = container.scrollHeight;
-        }, 100);
-    }, 100);
-}
-
-function addMessageToUI(message, isFromRealtime = false) {
-    const container = document.getElementById('messagesContainer');
-    if (!container || !message) return;
-
-    // Remove empty state if it exists
-    if (container.querySelector('.empty-chat')) {
-        container.innerHTML = '';
-    }
-
-    const isSent = message.sender_id === currentUser.id;
-    const time = new Date(message.created_at).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-
-    // Check if message has color data (from our local storage)
-    const color = message.color || null;
-    const colorAttr = color ? `data-color="${color}"` : '';
-    
-    const messageHTML = `
-        <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr}>
-            <div class="message-content">${message.content || ''}</div>
-            <div class="message-time">${time}</div>
-        </div>
-    `;
-
-    container.insertAdjacentHTML('beforeend', messageHTML);
-
-    // Check for duplicate
-    const isDuplicate = currentMessages.some(msg => msg.id === message.id);
-    if (!isDuplicate) {
-        // Add color to message object for local storage
-        const messageWithColor = { ...message, color: color };
-        currentMessages.push(messageWithColor);
-    }
-
-    // Force scroll for new messages
-    setTimeout(() => {
-        forceScrollToBottom();
-    }, 10);
-
-    // Play sound for received messages
-    if (message.sender_id === chatFriend.id) {
-        playReceivedSound();
-        if (!document.hasFocus()) {
-            const originalTitle = document.title;
-            document.title = '💬 ' + chatFriend.username;
-            setTimeout(() => document.title = originalTitle, 1000);
-        }
-    }
-}
-
-// ====================
 // STATUS FUNCTIONS
 // ====================
-
 function updateFriendStatus(status) {
     const isOnline = status === 'online';
     const statusText = document.getElementById('statusText');
@@ -643,155 +757,6 @@ function updateFriendStatus(status) {
 }
 
 // ====================
-// REALTIME FUNCTIONS
-// ====================
-function setupRealtime(friendId) {
-    console.log('🔧 Setting up realtime for friend:', friendId);
-
-    if (chatChannel) {
-        supabase.removeChannel(chatChannel);
-    }
-    if (statusChannel) {
-        supabase.removeChannel(statusChannel);
-    }
-
-    chatChannel = supabase.channel(`dm:${currentUser.id}:${friendId}`)
-        .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'direct_messages'
-        }, (payload) => {
-            console.log('📨 Realtime INSERT detected:', payload.new);
-            const newMsg = payload.new;
-            const isOurMessage = 
-                (newMsg.sender_id === currentUser.id && newMsg.receiver_id === friendId) ||
-                (newMsg.sender_id === friendId && newMsg.receiver_id === currentUser.id);
-
-            if (isOurMessage) {
-                const existingMessage = document.querySelector(`[data-message-id="${newMsg.id}"]`);
-                if (!existingMessage) {
-                    console.log('✅ Adding new message to UI (from realtime)');
-                    addMessageToUI(newMsg, true);
-                } else {
-                    console.log('🔄 Message already in UI, skipping:', newMsg.id);
-                }
-            }
-        })
-        .subscribe();
-
-    statusChannel = supabase.channel(`status:${friendId}`)
-        .on('postgres_changes', {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'profiles',
-            filter: `id=eq.${friendId}`
-        }, (payload) => {
-            console.log('🔄 Friend status updated:', payload.new.status);
-            if (payload.new.id === friendId) {
-                chatFriend.status = payload.new.status;
-                updateFriendStatus(payload.new.status);
-
-                if (payload.new.status === 'online') {
-                    showToast(`${chatFriend.username} is now online`, '🟢', 2000);
-                } else {
-                    showToast(`${chatFriend.username} is now offline`, '⚫', 2000);
-                }
-            }
-        })
-        .subscribe();
-
-    console.log('✅ Realtime active');
-}
-
-// ====================
-// SEND MESSAGE - FIXED FOR COLOR FIELD
-// ====================
-async function sendMessage() {
-    if (isSending) {
-        console.log('🔄 Message already being sent, skipping...');
-        return;
-    }
-
-    const input = document.getElementById('messageInput');
-    const text = input.value.trim();
-
-    if (!text || !chatFriend) {
-        showToast('Please type a message!', '⚠️');
-        return;
-    }
-
-    isSending = true;
-    const sendBtn = document.getElementById('sendBtn');
-    const originalText = sendBtn.innerHTML;
-
-    try {
-        console.log('📤 Sending message to:', chatFriend.id);
-        sendBtn.innerHTML = '<div class="typing-dots"><div></div><div></div><div></div></div>';
-        sendBtn.disabled = true;
-
-        // Prepare message data - WITHOUT color field
-        const messageData = {
-            sender_id: currentUser.id,
-            receiver_id: chatFriend.id,
-            content: text,
-            created_at: new Date().toISOString()
-        };
-
-        const { data, error } = await supabase
-            .from('direct_messages')
-            .insert(messageData)
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        console.log('✅ Message sent to database:', data.id);
-        
-        // Create UI message WITH color (stored locally only)
-        const uiMessage = {
-            ...data,
-            color: selectedColor // Add color locally for UI only
-        };
-        
-        // Add to UI with color
-        addMessageToUI(uiMessage);
-        
-        // Reset color selection after sending
-        selectedColor = null;
-        
-        // Clear selected color UI
-        const colorOptions = document.querySelectorAll('.color-option');
-        colorOptions.forEach(option => {
-            option.classList.remove('selected');
-        });
-        
-        playSentSound();
-        input.value = '';
-        autoResize(input);
-
-        isTyping = false;
-        if (typingTimeout) {
-            clearTimeout(typingTimeout);
-            typingTimeout = null;
-        }
-        sendTypingStatus(false);
-
-        setTimeout(() => {
-            input.focus();
-            isSending = false;
-            sendBtn.innerHTML = originalText;
-            sendBtn.disabled = false;
-        }, 300);
-    } catch (error) {
-        console.error('Send failed:', error);
-        showCustomAlert('Failed to send message: ' + error.message, '❌', 'Error');
-        isSending = false;
-        sendBtn.innerHTML = originalText;
-        sendBtn.disabled = false;
-    }
-}
-
-// ====================
 // INPUT HANDLERS
 // ====================
 function handleKeyPress(event) {
@@ -805,7 +770,6 @@ function handleKeyPress(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         
-        // Don't send if color picker is active with just /
         if (input && input.value === '/') {
             return;
         }
@@ -926,6 +890,33 @@ async function clearChatPrompt() {
             }
         }
     );
+}
+
+// ====================
+// SCROLL FUNCTIONS
+// ====================
+function scrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
+}
+
+function forceScrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    if (!container) return;
+
+    container.scrollTop = container.scrollHeight;
+
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+        const lastChild = container.lastElementChild;
+        if (lastChild) {
+            lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 100);
+    }, 100);
 }
 
 // ====================
