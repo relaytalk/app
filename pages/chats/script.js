@@ -1,4 +1,3 @@
-
 import { auth } from '../../utils/auth.js';
 import { supabase } from '../../utils/supabase.js';
 
@@ -21,7 +20,7 @@ let selectedColor = null;
 let colorPickerVisible = false;
 let isImagePickerOpen = false;
 
-// ImgBB API Key
+// ImgBB API Key (TEMPORARY - Move to backend for production)
 const IMGBB_API_KEY = '82e49b432e2ee14921f7d0cd81ba5551';
 
 // ====================
@@ -33,8 +32,6 @@ window.autoResize = autoResize;
 window.goBack = goBack;
 window.showUserInfo = showUserInfo;
 window.closeModal = closeModal;
-window.startVoiceCall = startVoiceCall;
-window.viewSharedMedia = viewSharedMedia;
 window.blockUserPrompt = blockUserPrompt;
 window.clearChatPrompt = clearChatPrompt;
 window.selectColor = selectColor;
@@ -95,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupRealtime(friendId);
         setupTypingListener();
         updateInputListener();
-        
+
         // Initialize UI components
         initializeColorPicker();
         addColorPickerInputListener();
@@ -163,13 +160,17 @@ function openGallery() {
 function setupFileInputListeners() {
     const cameraInput = document.getElementById('cameraInput');
     const galleryInput = document.getElementById('galleryInput');
-    
+
     if (cameraInput) {
-        cameraInput.addEventListener('change', handleImageSelect);
+        cameraInput.addEventListener('change', function(e) {
+            handleImageSelect(e);
+        });
     }
-    
+
     if (galleryInput) {
-        galleryInput.addEventListener('change', handleImageSelect);
+        galleryInput.addEventListener('change', function(e) {
+            handleImageSelect(e);
+        });
     }
 }
 
@@ -177,7 +178,7 @@ function setupFileInputListeners() {
 document.addEventListener('click', (e) => {
     const picker = document.getElementById('imagePickerOverlay');
     const attachBtn = document.getElementById('attachBtn');
-    
+
     if (isImagePickerOpen && picker && !picker.contains(e.target) && e.target !== attachBtn) {
         closeImagePicker();
     }
@@ -189,127 +190,142 @@ document.addEventListener('click', (e) => {
 function handleImageSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     // Check file type
     if (!file.type.startsWith('image/')) {
         showToast('Please select an image file', '⚠️');
         return;
     }
-    
+
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
         showToast('Image too large. Max 10MB', '⚠️');
         return;
     }
-    
+
     // Upload image
     uploadImageToImgBB(file);
-    
+
     // Reset file inputs
     event.target.value = '';
 }
 
 async function uploadImageToImgBB(file) {
     showLoading(true, 'Uploading image...');
-    
+
     try {
         // Compress image if needed
         const processedFile = await compressImage(file);
-        
+
         // Create FormData
         const formData = new FormData();
         formData.append('image', processedFile);
         formData.append('key', IMGBB_API_KEY);
-        
+
         // Upload to ImgBB
         const response = await fetch('https://api.imgbb.com/1/upload', {
             method: 'POST',
             body: formData
         });
-        
+
         if (!response.ok) {
             throw new Error(`Upload failed: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (!data.success) {
             throw new Error(data.error?.message || 'Upload failed');
         }
-        
+
         // Get image URL
         const imageUrl = data.data.url;
         const thumbnailUrl = data.data.thumb?.url || imageUrl;
-        
+
         console.log('✅ Image uploaded:', imageUrl);
-        
+
         // Send message with image
         await sendImageMessage(imageUrl, thumbnailUrl);
-        
+
     } catch (error) {
         console.error('Image upload error:', error);
-        showCustomAlert('Failed to upload image: ' + error.message, '❌', 'Upload Error');
+        showRetryAlert('Failed to upload image: ' + error.message, () => {
+            uploadImageToImgBB(file);
+        });
     } finally {
         showLoading(false);
     }
 }
 
-async function compressImage(file) {
-    return new Promise((resolve) => {
+async function compressImage(file, maxSize = 800 * 1024) {
+    return new Promise((resolve, reject) => {
         // If file is already small, return as-is
-        if (file.size <= 800 * 1024) { // 800KB
+        if (file.size <= maxSize) {
             resolve(file);
             return;
         }
-        
+
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        
+
         reader.onload = function(e) {
             const img = new Image();
             img.src = e.target.result;
-            
+
             img.onload = function() {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-                
-                // Calculate new dimensions (max 1600px for better quality)
+
+                // Calculate new dimensions (max 1200px for better quality)
                 let width = img.width;
                 let height = img.height;
-                const maxSize = 1600;
-                
-                if (width > height && width > maxSize) {
-                    height = Math.round((height * maxSize) / width);
-                    width = maxSize;
-                } else if (height > maxSize) {
-                    width = Math.round((width * maxSize) / height);
-                    height = maxSize;
+                const maxDimension = 1200;
+
+                if (width > height && width > maxDimension) {
+                    height = Math.round((height * maxDimension) / width);
+                    width = maxDimension;
+                } else if (height > maxDimension) {
+                    width = Math.round((width * maxDimension) / height);
+                    height = maxDimension;
                 }
-                
+
                 canvas.width = width;
                 canvas.height = height;
-                
+
                 // Draw with better quality
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, 0, 0, width, height);
-                
-                // Higher quality compression for better previews
-                canvas.toBlob((blob) => {
-                    const compressedFile = new File([blob], file.name, {
-                        type: 'image/jpeg',
-                        lastModified: Date.now()
-                    });
-                    resolve(compressedFile);
-                }, 'image/jpeg', 0.85); // 85% quality for better images
+
+                // Try multiple quality levels if still too large
+                const compressWithQuality = (quality = 0.8) => {
+                    canvas.toBlob((blob) => {
+                        if (blob.size <= maxSize || quality <= 0.3) {
+                            const compressedFile = new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(compressedFile);
+                        } else {
+                            // Try lower quality
+                            compressWithQuality(quality - 0.1);
+                        }
+                    }, 'image/jpeg', quality);
+                };
+
+                compressWithQuality();
             };
+
+            img.onerror = reject;
         };
+
+        reader.onerror = reject;
     });
 }
 
 async function sendImageMessage(imageUrl, thumbnailUrl) {
     if (isSending) return;
-    
+
     isSending = true;
     const sendBtn = document.getElementById('sendBtn');
     const originalHTML = sendBtn.innerHTML;
@@ -336,7 +352,7 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
         if (selectedColor) {
             messageData.color = selectedColor;
             selectedColor = null;
-            
+
             // Clear selected color UI
             const colorOptions = document.querySelectorAll('.color-option');
             colorOptions.forEach(option => {
@@ -393,7 +409,7 @@ function viewImageFullscreen(imageUrl) {
     if (existingViewer) {
         existingViewer.remove();
     }
-    
+
     // Create fullscreen viewer
     const viewerHTML = `
         <div class="image-viewer-overlay" id="imageViewerOverlay">
@@ -404,7 +420,8 @@ function viewImageFullscreen(imageUrl) {
             </button>
             <div class="viewer-image-container">
                 <img src="${imageUrl}" alt="Shared image" class="viewer-image" 
-                     onload="this.style.opacity='1'">
+                     onload="this.style.opacity='1'; this.classList.add('loaded')"
+                     onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\" viewBox=\"0 0 24 24\"><path fill=\"%23ccc\" d=\"M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z\"/></svg>'">
             </div>
             <div class="viewer-actions">
                 <button class="viewer-action-btn" onclick="downloadImage('${imageUrl}')">
@@ -422,9 +439,9 @@ function viewImageFullscreen(imageUrl) {
             </div>
         </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', viewerHTML);
-    
+
     // Animate in
     setTimeout(() => {
         const viewer = document.getElementById('imageViewerOverlay');
@@ -483,15 +500,16 @@ function copyToClipboard(text) {
 // ====================
 // MESSAGE DISPLAY FUNCTIONS
 // ====================
+
 function createImageMessageHTML(msg, isSent, colorAttr, time) {
     const thumbnailUrl = msg.thumbnail_url || msg.image_url;
-    
+
     return `
         <div class="message ${isSent ? 'sent' : 'received'} image-message" data-message-id="${msg.id}" ${colorAttr}>
             <div class="message-image-container" onclick="viewImageFullscreen('${msg.image_url}')">
                 <img src="${thumbnailUrl}" alt="Shared image" class="message-image" 
                      loading="lazy" 
-                     onload="this.style.opacity='1'"
+                     onload="this.style.opacity='1'; this.classList.add('loaded')"
                      onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\" viewBox=\"0 0 24 24\"><path fill=\"%23ccc\" d=\"M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z\"/></svg>'">
                 <div class="image-overlay">
                     <svg class="image-icon" viewBox="0 0 24 24">
@@ -550,7 +568,7 @@ function showMessages(messages) {
         // Get color from database
         const color = msg.color || null;
         const colorAttr = color ? `data-color="${color}"` : '';
-        
+
         // Check if message has image
         if (msg.image_url) {
             html += createImageMessageHTML(msg, isSent, colorAttr, time);
@@ -583,9 +601,9 @@ function addMessageToUI(message, isFromRealtime = false) {
 
     const color = message.color || null;
     const colorAttr = color ? `data-color="${color}"` : '';
-    
+
     let messageHTML;
-    
+
     if (message.image_url) {
         messageHTML = createImageMessageHTML(message, isSent, colorAttr, time);
     } else {
@@ -600,12 +618,11 @@ function addMessageToUI(message, isFromRealtime = false) {
     }
 
     // Animate new message
-    // Animate new message
     const newMessage = container.lastElementChild;
     if (newMessage && isFromRealtime) {
         newMessage.style.opacity = '0';
         newMessage.style.transform = 'translateY(10px)';
-        
+
         setTimeout(() => {
             newMessage.style.transition = 'all 0.3s ease';
             newMessage.style.opacity = '1';
@@ -645,7 +662,7 @@ function initializeColorPicker() {
             </div>
         </div>
     `;
-    
+
     const inputWrapper = document.getElementById('messageInputWrapper');
     if (inputWrapper) {
         inputWrapper.insertAdjacentHTML('beforebegin', colorPickerHTML);
@@ -655,11 +672,11 @@ function initializeColorPicker() {
 function addColorPickerInputListener() {
     const input = document.getElementById('messageInput');
     if (!input) return;
-    
+
     input.addEventListener('input', function(e) {
         const text = this.value;
         const colorPicker = document.getElementById('colorPickerOverlay');
-        
+
         // Check if first character is /
         if (text.startsWith('/') && text.length === 1) {
             showColorPicker();
@@ -669,13 +686,13 @@ function addColorPickerInputListener() {
             hideColorPicker();
         }
     });
-    
+
     input.addEventListener('focus', function() {
         if (this.value.startsWith('/') && this.value.length === 1) {
             showColorPicker();
         }
     });
-    
+
     input.addEventListener('blur', function() {
         setTimeout(() => {
             if (!document.querySelector('.color-option:hover')) {
@@ -683,11 +700,11 @@ function addColorPickerInputListener() {
             }
         }, 300);
     });
-    
+
     document.addEventListener('click', function(e) {
         const colorPicker = document.getElementById('colorPickerOverlay');
         const input = document.getElementById('messageInput');
-        
+
         if (colorPicker && colorPicker.style.display === 'flex' && 
             !colorPicker.contains(e.target) && 
             e.target !== input) {
@@ -704,7 +721,7 @@ function showColorPicker() {
         setTimeout(() => {
             colorPicker.style.opacity = '1';
         }, 10);
-        
+
         const colorOptions = document.querySelectorAll('.color-option');
         colorOptions.forEach(option => {
             option.classList.remove('selected');
@@ -720,7 +737,7 @@ function hideColorPicker() {
         setTimeout(() => {
             colorPicker.style.display = 'none';
         }, 300);
-        
+
         const input = document.getElementById('messageInput');
         if (input && input.value === '/') {
             input.value = '';
@@ -732,13 +749,13 @@ function hideColorPicker() {
 function selectColor(color) {
     selectedColor = color;
     const input = document.getElementById('messageInput');
-    
+
     if (input) {
         input.value = '';
         input.focus();
         autoResize(input);
     }
-    
+
     const colorOptions = document.querySelectorAll('.color-option');
     colorOptions.forEach(option => {
         option.classList.remove('selected');
@@ -746,9 +763,9 @@ function selectColor(color) {
             option.classList.add('selected');
         }
     });
-    
+
     showToast(`Selected ${color} color`, '🎨', 1000);
-    
+
     setTimeout(() => {
         hideColorPicker();
     }, 800);
@@ -757,6 +774,7 @@ function selectColor(color) {
 // ====================
 // TEXT MESSAGE FUNCTIONS
 // ====================
+
 async function sendMessage() {
     if (isSending) {
         console.log('🔄 Message already being sent, skipping...');
@@ -804,14 +822,14 @@ async function sendMessage() {
         if (error) throw error;
 
         console.log('✅ Message sent:', data.id);
-        
+
         selectedColor = null;
-        
+
         const colorOptions = document.querySelectorAll('.color-option');
         colorOptions.forEach(option => {
             option.classList.remove('selected');
         });
-        
+
         playSentSound();
         input.value = '';
         autoResize(input);
@@ -1093,6 +1111,35 @@ function showCustomAlert(message, icon = '⚠️', title = 'Alert', onConfirm = 
     alertOverlay.style.display = 'flex';
 }
 
+function showRetryAlert(message, onRetry, onCancel = null) {
+    const alertOverlay = document.getElementById('customAlert');
+    const alertIcon = document.getElementById('alertIcon');
+    const alertTitle = document.getElementById('alertTitle');
+    const alertMessage = document.getElementById('alertMessage');
+    const alertConfirm = document.getElementById('alertConfirm');
+    const alertCancel = document.getElementById('alertCancel');
+
+    alertIcon.innerHTML = '❌';
+    alertTitle.textContent = 'Upload Failed';
+    alertMessage.textContent = message;
+    alertCancel.style.display = 'inline-block';
+
+    alertConfirm.textContent = 'Retry';
+    alertConfirm.onclick = () => {
+        alertOverlay.style.display = 'none';
+        if (onRetry) onRetry();
+    };
+
+    alertCancel.textContent = 'Cancel';
+    alertCancel.onclick = () => {
+        alertOverlay.style.display = 'none';
+        if (onCancel) onCancel();
+        showToast('Upload cancelled', '⚠️');
+    };
+
+    alertOverlay.style.display = 'flex';
+}
+
 function showConfirmAlert(message, icon = '❓', title = 'Confirm', onConfirm, onCancel = null) {
     const alertOverlay = document.getElementById('customAlert');
     const alertIcon = document.getElementById('alertIcon');
@@ -1165,6 +1212,7 @@ function updateFriendStatus(status) {
 // ====================
 // INPUT HANDLERS
 // ====================
+
 function handleKeyPress(event) {
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
@@ -1175,11 +1223,11 @@ function handleKeyPress(event) {
 
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
-        
+
         if (input && input.value === '/') {
             return;
         }
-        
+
         if (input && input.value.trim()) {
             sendMessage();
         }
@@ -1237,8 +1285,6 @@ function showUserInfo() {
             </div>
         </div>
         <div class="user-info-actions">
-            <button class="info-action-btn primary" onclick="startVoiceCall()">🎤 Voice Call</button>
-            <button class="info-action-btn secondary" onclick="viewSharedMedia()">📷 Shared Media</button>
             <button class="info-action-btn danger" onclick="blockUserPrompt()">🚫 Block User</button>
         </div>
     `;
@@ -1248,14 +1294,6 @@ function showUserInfo() {
 
 function closeModal() {
     document.getElementById('userInfoModal').style.display = 'none';
-}
-
-function startVoiceCall() {
-    showToast('Voice call feature coming soon!', '📞');
-}
-
-function viewSharedMedia() {
-    showToast('Shared media feature coming soon!', '📷');
 }
 
 function blockUserPrompt() {
@@ -1332,7 +1370,7 @@ function forceScrollToBottom() {
 function showLoading(show, text = 'Sending...') {
     // Create loading overlay if it doesn't exist
     let loadingOverlay = document.getElementById('loadingOverlay');
-    
+
     if (!loadingOverlay) {
         const loadingHTML = `
             <div class="loading-overlay" id="loadingOverlay" style="display: none;">
@@ -1343,7 +1381,7 @@ function showLoading(show, text = 'Sending...') {
         document.body.insertAdjacentHTML('beforeend', loadingHTML);
         loadingOverlay = document.getElementById('loadingOverlay');
     }
-    
+
     if (show) {
         loadingOverlay.querySelector('.loading-text').textContent = text;
         loadingOverlay.style.display = 'flex';
@@ -1371,3 +1409,13 @@ if (navigator.userAgent.includes('Chrome')) {
         }, 500);
     });
 }
+
+// ====================
+// CLEANUP ON UNLOAD
+// ====================
+window.addEventListener('beforeunload', () => {
+    if (chatChannel) supabase.removeChannel(chatChannel);
+    if (statusChannel) supabase.removeChannel(statusChannel);
+    if (typingTimeout) clearTimeout(typingTimeout);
+    if (friendTypingTimeout) clearTimeout(friendTypingTimeout);
+});
