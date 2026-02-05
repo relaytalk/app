@@ -97,9 +97,9 @@
     }
     </script>
 
-    <!-- CSS - FIXED: Changed to relative paths -->
-    <link rel="stylesheet" href="../../style.css">
-    <link rel="stylesheet" href="style.css">
+    <!-- CSS - FIXED: Use absolute paths like auth page -->
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/pages/login/style.css">
 
     <!-- Preconnect for faster loading -->
     <link rel="preconnect" href="https://relaytalk.vercel.app">
@@ -108,11 +108,11 @@
 <body>
     <!-- Simple Header -->
     <div class="login-header">
-        <a href="../../index.html" class="login-header-logo">✨ RelayTalk</a>
+        <a href="/" class="login-header-logo">✨ RelayTalk</a>
         <nav class="login-nav" aria-label="Login navigation">
-            <a href="../../index.html" class="nav-link">Home</a>
-            <a href="../auth/index.html" class="nav-link">Create Account</a>
-            <a href="index.html" class="nav-link active">Login</a>
+            <a href="/" class="nav-link">Home</a>
+            <a href="/pages/auth/" class="nav-link">Create Account</a>
+            <a href="/pages/login/" class="nav-link active">Login</a>
         </nav>
     </div>
 
@@ -195,10 +195,10 @@
 
         <!-- Sign up link with SEO text -->
         <div class="signup-link">
-            <p>New to RelayTalk? <a href="../auth/index.html" aria-label="Create RelayTalk account">Create your free account</a> to start secure messaging.</p>
+            <p>New to RelayTalk? <a href="/pages/auth/" aria-label="Create RelayTalk account">Create your free account</a> to start secure messaging.</p>
             <p class="small-text">Join thousands of users on RelayTalk's private messaging platform.</p>
         </div>
-
+        
         <!-- SEO Footer Content -->
         <div class="seo-footer" aria-hidden="true">
             <h3>RelayTalk Login Features</h3>
@@ -219,10 +219,10 @@
         <p class="loading-text">Signing you in to RelayTalk...</p>
     </div>
 
-    <!-- JavaScript - FIXED: Changed to relative path -->
-    <script type="module" src="script.js"></script>
+    <!-- JavaScript - FIXED: Use absolute path like auth page -->
+    <script type="module" src="/pages/login/script.js"></script>
     <script src="/utils/sw-manager.js"></script>
-
+    
     <!-- Schema for FAQ -->
     <script type="application/ld+json">
     {
