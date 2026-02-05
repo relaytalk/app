@@ -13,28 +13,28 @@
     <meta name="description" content="RelayTalk - Connect with friends instantly">
     <meta name="keywords" content="RelayTalk, messaging, chat, friends">
 
-    <!-- Open Graph -->
+    <!-- Open Graph - UPDATED for Vercel -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="RelayTalk">
     <meta property="og:title" content="RelayTalk">
     <meta property="og:description" content="RelayTalk - Connect with friends instantly">
-    <meta property="og:url" content="https://relaytalk.github.io/">
-    <meta property="og:image" content="https://relaytalk.github.io/relay.png">
+    <meta property="og:url" content="https://relaytalk.vercel.app/">
+    <meta property="og:image" content="https://relaytalk.vercel.app/relay.png">
     <meta property="og:image:width" content="512">
     <meta property="og:image:height" content="512">
     <meta property="og:image:alt" content="RelayTalk">
     <meta property="og:locale" content="en_US">
 
-    <!-- Twitter -->
+    <!-- Twitter - UPDATED for Vercel -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@RelayTalk">
     <meta name="twitter:title" content="RelayTalk">
     <meta name="twitter:description" content="RelayTalk - Connect with friends instantly">
-    <meta name="twitter:image" content="https://relaytalk.github.io/relay.png">
+    <meta name="twitter:image" content="https://relaytalk.vercel.app/relay.png">
     <meta name="twitter:creator" content="@RelayTalk">
 
-    <!-- Canonical -->
-    <link rel="canonical" href="https://relaytalk.github.io/">
+    <!-- Canonical - UPDATED for Vercel -->
+    <link rel="canonical" href="https://relaytalk.vercel.app/">
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -51,25 +51,25 @@
     <meta name="apple-mobile-web-app-title" content="RelayTalk">
     <meta name="application-name" content="RelayTalk">
 
-    <!-- Single Structured Data (Web) -->
+    <!-- Structured Data - UPDATED for Vercel -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "RelayTalk",
-      "url": "https://relaytalk.github.io/",
+      "url": "https://relaytalk.vercel.app/",
       "description": "RelayTalk - Connect with friends instantly",
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "https://relaytalk.github.io/search?q={search_term_string}",
+        "target": "https://relaytalk.vercel.app/search?q={search_term_string}",
         "query-input": "required name=search_term_string"
       }
     }
     </script>
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="opening.css">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/opening.css">
 
     <!-- Service Worker -->
     <script>
@@ -163,11 +163,11 @@
 
     <script>
         function goToLogin() { 
-            window.location.href = 'pages/login/index.html?v=' + Date.now();
+            window.location.href = '/pages/login/index.html?v=' + Date.now();
         }
 
         function goToSignup() { 
-            window.location.href = 'pages/auth/index.html?v=' + Date.now();
+            window.location.href = '/pages/auth/index.html?v=' + Date.now();
         }
 
         window.goToLogin = goToLogin;
@@ -185,13 +185,13 @@
     </script>
 
     <script type="module">
-        import { auth } from './utils/auth.js';
+        import { auth } from '/utils/auth.js';
 
         async function checkUserAndRedirect() {
             try {
                 const { success, user } = await auth.getCurrentUser();
                 if (success && user) {
-                    window.location.href = 'pages/home/index.html?v=' + Date.now();
+                    window.location.href = '/pages/home/index.html?v=' + Date.now();
                     return;
                 }
             } catch (error) { 
