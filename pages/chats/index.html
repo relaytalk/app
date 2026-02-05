@@ -2,53 +2,191 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>✨ Relay - Chat</title>
-    <link rel="stylesheet" href="../../style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RelayTalk Chat</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Login Overlay Styles - Added inline to ensure they work */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .login-container {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 35px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.4s ease;
+        }
+
+        .login-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .login-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .login-container h2 {
+            font-size: 1.8rem;
+            margin: 0 0 0.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-container p {
+            color: #a0a0c0;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .login-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        /* Use existing button classes */
+        .btn-primary {
+            padding: 12px 30px;
+            min-width: 120px;
+        }
+
+        .btn-secondary {
+            padding: 12px 30px;
+            min-width: 120px;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 25px 20px;
+            }
+            
+            .login-buttons {
+                flex-direction: column;
+            }
+            
+            .btn-primary, .btn-secondary {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- ==================== -->
-    <!-- CHAT HEADER SECTION  -->
-    <!-- ==================== -->
-    <header class="chat-header">
-        <button class="back-btn" onclick="goBack()">←</button>
-        <div class="chat-user-info">
-            <div class="chat-user-avatar" id="chatUserAvatar">F</div>
-            <div class="chat-user-details">
-                <h3 id="chatUserName">Friend Name</h3>
-                <div class="chat-user-status">
-                    <span class="status-dot" id="statusDot"></span>
-                    <span id="statusText">Online</span>
-                </div>
+    <!-- Login Overlay (Shown when not authenticated) -->
+    <div id="login" class="login-overlay" style="display: none;">
+        <div class="login-container">
+            <div class="login-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/>
+                </svg>
+            </div>
+            <h2>Login Required</h2>
+            <p>Please login to continue chatting with your friends</p>
+            <div class="login-buttons">
+                <button id="loginBtn" class="btn-primary">Login</button>
+                <button id="signupBtn" class="btn-secondary">Sign Up</button>
             </div>
         </div>
-        <div class="chat-actions">
-            <button class="chat-action-btn" onclick="showUserInfo()" title="User Info">ⓘ</button>
-            <button class="chat-action-btn" onclick="clearChatPrompt()" title="Clear Chat">🗑️</button>
+    </div>
+
+    <!-- Chat Interface (Shown when authenticated) -->
+    <div id="chat" style="display: none;">
+        <!-- Chat Header -->
+        <header class="chat-header">
+            <button class="back-btn" onclick="goBack()">←</button>
+            <div class="chat-user-info">
+                <div class="chat-user-avatar" id="chatUserAvatar">U</div>
+                <div>
+                    <h3 id="chatUserName">User</h3>
+                    <div class="chat-user-status">
+                        <span id="statusDot" class="status-dot offline"></span>
+                        <span id="statusText">Offline</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-actions">
+                <button class="chat-action-btn" onclick="showUserInfo()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97L4.5,12L4.57,11L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.79,8.95 21.73,9.22 21.54,9.37L19.43,11L19.5,12L19.43,13L21.54,14.63C21.73,14.78 21.79,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.04 19.05,18.95L16.56,17.95C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10Z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Chat Area -->
+        <main class="main-content">
+            <div class="messages-container" id="messagesContainer">
+                <!-- Messages will be loaded here -->
+                <div class="empty-chat">
+                    <svg class="empty-chat-icon" viewBox="0 0 24 24">
+                        <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2Z"/>
+                    </svg>
+                    <h3>Start the conversation</h3>
+                    <p>Say hello to your friend!</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Message Input Area -->
+        <div class="message-input-wrapper">
+            <div class="message-input-container">
+                <button class="attach-btn" id="attachBtn" onclick="showImagePicker()">
+                    <svg class="attach-icon" viewBox="0 0 24 24">
+                        <path d="M16.5,6V17.5A4,4 0 0,1 12.5,21.5A4,4 0 0,1 8.5,17.5V5A2.5,2.5 0 0,1 11,2.5A2.5,2.5 0 0,1 13.5,5V15.5A1,1 0 0,1 12.5,16.5A1,1 0 0,1 11.5,15.5V6H10V15.5A2.5,2.5 0 0,0 12.5,18A2.5,2.5 0 0,0 15,15.5V5A4,4 0 0,0 11,1A4,4 0 0,0 7,5V17.5A5.5,5.5 0 0,0 12.5,23A5.5,5.5 0 0,0 18,17.5V6H16.5Z"/>
+                    </svg>
+                </button>
+                <textarea 
+                    class="message-input" 
+                    id="messageInput" 
+                    placeholder="Type a message..."
+                    rows="1"
+                    onkeydown="handleKeyPress(event)"
+                    oninput="autoResize(this)"
+                    style="min-height: 50px;"
+                ></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+                    <svg class="send-icon" viewBox="0 0 24 24">
+                        <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-    </header>
+    </div>
 
-    <!-- ==================== -->
-    <!-- MAIN CONTENT SECTION -->
-    <!-- ==================== -->
-    <main class="main-content" id="mainContent">
-        <div class="messages-container" id="messagesContainer">
-            <!-- Messages loaded by JavaScript -->
-        </div>
-    </main>
-
-    <!-- ==================== -->
-    <!-- COLOR PICKER WILL BE INJECTED HERE -->
-    <!-- ==================== -->
-
-    <!-- ==================== -->
-    <!-- IMAGE PICKER OVERLAY -->
-    <!-- ==================== -->
-    <div class="image-picker-overlay" id="imagePickerOverlay">
+    <!-- Image Picker Overlay -->
+    <div class="image-picker-overlay" id="imagePickerOverlay" style="display: none;">
         <div class="image-picker-container">
             <div class="image-picker-header">
-                <h3>Choose Image</h3>
+                <h3>Share Image</h3>
                 <button class="image-picker-close" onclick="closeImagePicker()">×</button>
             </div>
             <div class="image-picker-options">
@@ -56,84 +194,66 @@
                     <svg class="picker-icon" viewBox="0 0 24 24">
                         <path d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/>
                     </svg>
-                    <span>Camera</span>
+                    Take Photo
                 </button>
                 <button class="image-picker-option" onclick="openGallery()">
                     <svg class="picker-icon" viewBox="0 0 24 24">
-                        <path d="M22,16V4A2,2 0 0,0 20,2H8A2,2 0 0,0 6,4V16A2,2 0 0,0 8,18H20A2,2 0 0,0 22,16M11,12L13.03,14.71L16,11L20,16H8M2,6V20A2,2 0 0,0 4,22H18V20H4V6"/>
+                        <path d="M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/>
                     </svg>
-                    <span>Gallery</span>
+                    Choose from Gallery
                 </button>
             </div>
-        </div>
-    </div>
-
-    <!-- ==================== -->
-    <!-- MESSAGE INPUT        -->
-    <!-- ==================== -->
-    <div class="message-input-wrapper" id="messageInputWrapper">
-        <div class="message-input-container">
-            <button class="attach-btn" id="attachBtn" onclick="showImagePicker()" title="Attach Image">
-                <svg class="attach-icon" viewBox="0 0 24 24">
-                    <path d="M16.5,6V17.5A4,4 0 0,1 12.5,21.5A4,4 0 0,1 8.5,17.5V5A2.5,2.5 0 0,1 11,2.5A2.5,2.5 0 0,1 13.5,5V15.5A1,1 0 0,1 12.5,16.5A1,1 0 0,1 11.5,15.5V6H10V15.5A2.5,2.5 0 0,0 12.5,18A2.5,2.5 0 0,0 15,15.5V5A4,4 0 0,0 11,1A4,4 0 0,0 7,5V17.5A5.5,5.5 0 0,0 12.5,23A5.5,5.5 0 0,0 18,17.5V6H16.5Z"/>
-                </svg>
-            </button>
-            
-            <textarea class="message-input" id="messageInput" 
-                      placeholder="Type a message..." 
-                      rows="1"
-                      onkeydown="handleKeyPress(event)"
-                      oninput="autoResize(this)"></textarea>
-            
-            <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
-                <svg class="send-icon" viewBox="0 0 24 24">
-                    <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
-                </svg>
-            </button>
         </div>
     </div>
 
     <!-- Hidden file inputs -->
     <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
-    <input type="file" id="galleryInput" accept="image/*" multiple style="display: none;">
+    <input type="file" id="galleryInput" accept="image/*" style="display: none;">
 
-    <!-- ==================== -->
-    <!-- ALERT SYSTEM         -->
-    <!-- ==================== -->
-    <div class="custom-alert-overlay" id="customAlert" style="display: none;">
-        <div class="custom-alert">
-            <div class="custom-alert-icon" id="alertIcon">⚠️</div>
-            <h3 class="custom-alert-title" id="alertTitle"></h3>
-            <p class="custom-alert-message" id="alertMessage"></p>
-            <div class="custom-alert-buttons">
-                <button class="alert-btn confirm" id="alertConfirm">OK</button>
-                <button class="alert-btn cancel" id="alertCancel" style="display: none;">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== -->
-    <!-- TOAST NOTIFICATION   -->
-    <!-- ==================== -->
-    <div class="custom-toast" id="customToast" style="display: none;">
-        <span class="toast-icon" id="toastIcon">ℹ️</span>
-        <span class="toast-message" id="toastMessage"></span>
-    </div>
-
-    <!-- ==================== -->
-    <!-- USER INFO MODAL      -->
-    <!-- ==================== -->
+    <!-- User Info Modal -->
     <div class="modal-overlay" id="userInfoModal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">User Info</h2>
+                <h3 class="modal-title">User Info</h3>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
-            <div id="userInfoContent"></div>
+            <div class="modal-body" id="userInfoContent">
+                <!-- User info will be loaded here -->
+            </div>
         </div>
     </div>
 
+    <!-- Custom Alert Modal -->
+    <div class="modal-overlay" id="customAlert" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="alertTitle">Alert</h3>
+                <button class="modal-close" onclick="document.getElementById('customAlert').style.display='none'">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div id="alertIcon" style="font-size: 3rem; margin-bottom: 15px;"></div>
+                    <p id="alertMessage">Message goes here</p>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <button id="alertConfirm" class="btn-primary" style="min-width: 100px;">OK</button>
+                    <button id="alertCancel" class="btn-secondary" style="min-width: 100px; display: none;">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="modal-overlay" id="customToast" style="display: none; align-items: flex-end; justify-content: center; background: transparent; pointer-events: none;">
+        <div class="modal-content" style="max-width: 300px; margin-bottom: 20px; text-align: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span id="toastIcon" style="font-size: 1.2rem;"></span>
+                <p id="toastMessage" style="margin: 0; font-size: 0.9rem;"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import JavaScript Modules -->
     <script type="module" src="script.js"></script>
-    <script src="/utils/sw-manager.js"></script>
 </body>
 </html>
