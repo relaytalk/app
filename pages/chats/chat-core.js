@@ -197,6 +197,7 @@ function setupBackButtonPrevention() {
 // ====================
 // TEXT MESSAGE FUNCTIONS
 // ====================
+
 async function sendMessage() {
     if (isSending) {
         console.log('🔄 Message already being sent, skipping...');
@@ -208,8 +209,11 @@ async function sendMessage() {
 
     // Don't send if it's just slash or color picker is active
     if (text === '/' || window.colorPickerVisible === true) {
-        input.value = '';
-        autoResize(input);
+        // Clear the slash
+        if (text === '/') {
+            input.value = '';
+            autoResize(input);
+        }
         return;
     }
 
@@ -241,6 +245,7 @@ async function sendMessage() {
         // Check if we have a selected color from img-handler
         if (window.selectedColor) {
             messageData.color = window.selectedColor;
+            console.log('🎨 Sending message with color:', window.selectedColor);
             window.selectedColor = null; // Clear after use
         }
 
@@ -278,7 +283,7 @@ async function sendMessage() {
         sendBtn.disabled = false;
     }
 }
-
+        
 // ====================
 // MESSAGE LOADING
 // ====================
