@@ -3,7 +3,7 @@
 // ====================
 console.log('🚀 RelayTalk Chat Application Starting...');
 
-// This is the main entry point that imports both modules
+// Import modules
 import './chat-core.js';
 import './img-handler.js';
 
@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Add debug helper
         window.debugChatState = debugChatState;
+        
+        // Setup module coordination
+        setTimeout(setupModuleCoordination, 500);
     } else {
         console.error('❌ Some critical elements are missing from the DOM');
     }
@@ -49,46 +52,67 @@ document.addEventListener('DOMContentLoaded', () => {
 // FIX: IMAGE PICKER CLICK OUTSIDE HANDLER
 // ====================
 function setupImagePickerClickHandler() {
-    // This fixes the issue where image picker closes immediately
     document.addEventListener('click', (e) => {
         const picker = document.getElementById('imagePickerOverlay');
         const attachBtn = document.getElementById('attachBtn');
+        const preview = document.getElementById('imagePreviewOverlay');
+        const colorPicker = document.getElementById('colorPickerOverlay');
         
         // Check if image picker is open
         const isPickerOpen = picker && picker.style.display === 'flex';
+        const isColorPickerOpen = colorPicker && colorPicker.style.display === 'flex';
+        const isPreviewOpen = preview && preview.style.opacity !== '0';
         
-        if (isPickerOpen && !picker.contains(e.target) && e.target !== attachBtn) {
-            // Don't close if clicking on file inputs or preview elements
+        // Only close image picker if no preview is active and clicking outside
+        if (isPickerOpen && !isPreviewOpen && !picker.contains(e.target) && e.target !== attachBtn) {
             if (e.target.id !== 'cameraInput' && 
                 e.target.id !== 'galleryInput' &&
-                !e.target.closest('#imagePreviewOverlay')) {
-                // Use the closeImagePicker function from img-handler.js
+                !isColorPickerOpen) {
                 if (typeof closeImagePicker === 'function') {
                     closeImagePicker();
                 }
             }
         }
-    });
-    
-    // Also handle touch events for mobile
-    document.addEventListener('touchstart', (e) => {
-        const picker = document.getElementById('imagePickerOverlay');
-        const attachBtn = document.getElementById('attachBtn');
         
-        if (picker && picker.style.display === 'flex' && 
-            !picker.contains(e.target) && e.target !== attachBtn) {
-            e.preventDefault();
+        // Close color picker if clicking outside (except when typing slash)
+        if (isColorPickerOpen && !colorPicker.contains(e.target)) {
+            const input = document.getElementById('messageInput');
+            if (e.target !== input) {
+                if (typeof hideColorPicker === 'function') {
+                    hideColorPicker();
+                    // Clear slash from input
+                    if (input && input.value === '/') {
+                        input.value = '';
+                        if (typeof autoResize === 'function') {
+                            autoResize(input);
+                        }
+                    }
+                }
+            }
         }
-    }, { passive: false });
+    });
 }
 
 // ====================
-// COORDINATION FUNCTIONS BETWEEN MODULES
+// MODULE COORDINATION FUNCTIONS
 // ====================
+function setupModuleCoordination() {
+    console.log('🔧 Setting up module coordination...');
+    
+    // Ensure image messages display properly
+    overrideMessageDisplay();
+    
+    // Setup real-time image handling
+    overrideRealtimeHandling();
+    
+    // Initialize input handlers coordination
+    setupInputHandlersCoordination();
+    
+    console.log('✅ Module coordination complete!');
+}
 
-// Function to ensure image messages display properly
-function setupImageMessageDisplay() {
-    // Override the showMessages function in chat-core to handle images
+function overrideMessageDisplay() {
+    // Override showMessages to handle image messages
     if (typeof showMessages === 'function') {
         const originalShowMessages = showMessages;
         
@@ -113,7 +137,7 @@ function setupImageMessageDisplay() {
             let lastDate = '';
 
             messages.forEach(msg => {
-                const isSent = msg.sender_id === window.currentUser?.id;
+                const isSent = msg.sender_id === (window.currentUser?.id || '');
                 const time = new Date(msg.created_at).toLocaleTimeString([], {
                     hour: '2-digit',
                     minute: '2-digit'
@@ -153,12 +177,13 @@ function setupImageMessageDisplay() {
                 }
             }, 100);
         };
+        
+        console.log('✅ Override showMessages for image handling');
     }
 }
 
-// Function to ensure real-time messages with images display properly
-function setupRealtimeImageHandling() {
-    // Override addMessageToUI to handle image messages
+function overrideRealtimeHandling() {
+    // Override addMessageToUI to handle image messages in real-time
     if (typeof addMessageToUI === 'function') {
         const originalAddMessageToUI = addMessageToUI;
         
@@ -170,7 +195,7 @@ function setupRealtimeImageHandling() {
                 container.innerHTML = '';
             }
 
-            const isSent = message.sender_id === window.currentUser?.id;
+            const isSent = message.sender_id === (window.currentUser?.id || '');
             const time = new Date(message.created_at).toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit'
@@ -225,7 +250,7 @@ function setupRealtimeImageHandling() {
                 }
             }, 10);
 
-            if (message.sender_id === window.chatFriend?.id) {
+            if (message.sender_id === (window.chatFriend?.id || '')) {
                 if (typeof playReceivedSound === 'function') {
                     playReceivedSound();
                 }
@@ -236,6 +261,56 @@ function setupRealtimeImageHandling() {
                 }
             }
         };
+        
+        console.log('✅ Override addMessageToUI for real-time images');
+    }
+}
+
+function setupInputHandlersCoordination() {
+    // Ensure input handlers work together
+    const input = document.getElementById('messageInput');
+    if (input) {
+        console.log('🔧 Setting up input handlers coordination');
+        
+        // Store original handlers
+        const originalKeydown = input.onkeydown;
+        const originalInput = input.oninput;
+        
+        // Create coordinated handler
+        input.addEventListener('keydown', function(e) {
+            // Let slash handler work first
+            if (e.key === '/' && !window.colorPickerVisible) {
+                // Allow slash to be typed
+                return;
+            }
+            
+            // Call original handler if exists
+            if (originalKeydown) {
+                originalKeydown.call(this, e);
+            }
+            
+            // Call global handleKeyPress
+            if (typeof handleKeyPress === 'function') {
+                handleKeyPress(e);
+            }
+        });
+        
+        input.addEventListener('input', function(e) {
+            // Call original handler if exists
+            if (originalInput) {
+                originalInput.call(this, e);
+            }
+            
+            // Call autoResize
+            if (typeof autoResize === 'function') {
+                autoResize(e.target);
+            }
+            
+            // Call typing handler
+            if (typeof handleTyping === 'function') {
+                handleTyping();
+            }
+        });
     }
 }
 
@@ -264,6 +339,11 @@ function setupGlobalErrorHandlers() {
             showToast('An error occurred. Please try again.', '⚠️');
         }
     });
+    
+    // Catch-all for undefined function calls
+    window.addEventListener('undefined-function', function(e) {
+        console.error('Undefined function called:', e.detail);
+    });
 }
 
 // ====================
@@ -273,31 +353,20 @@ function debugChatState() {
     console.log('=== CHAT DEBUG INFO ===');
     console.log('Current User:', window.currentUser);
     console.log('Chat Friend:', window.chatFriend);
-    console.log('Current Messages:', window.currentMessages ? window.currentMessages.length : 0);
+    console.log('Color Picker Visible:', window.colorPickerVisible);
     console.log('Is Sending:', window.isSending);
     console.log('Is Typing:', window.isTyping);
     console.log('Selected Color:', window.selectedColor);
     console.log('Image Preview URL:', window.imagePreviewUrl);
+    console.log('Current Messages:', window.currentMessages ? window.currentMessages.length : 0);
     console.log('=====================');
 }
 
 // ====================
-// INITIALIZATION AFTER MODULES LOAD
+// UTILITY FUNCTIONS
 // ====================
-// Wait a bit for modules to load, then set up coordination
-setTimeout(() => {
-    console.log('🔧 Setting up module coordination...');
-    
-    // Setup image message display handling
-    setupImageMessageDisplay();
-    
-    // Setup real-time image handling
-    setupRealtimeImageHandling();
-    
-    console.log('✅ Module coordination complete!');
-}, 500);
 
-// Export additional helper functions
+// Refresh chat function
 window.refreshChat = function() {
     console.log('Refreshing chat...');
     const urlParams = new URLSearchParams(window.location.search);
@@ -308,9 +377,12 @@ window.refreshChat = function() {
         if (typeof showToast === 'function') {
             showToast('Chat refreshed', '🔄');
         }
+    } else {
+        console.log('No friendId found or loadOldMessages not available');
     }
 };
 
+// Reconnect real-time function
 window.reconnectRealtime = function() {
     console.log('Reconnecting real-time...');
     const urlParams = new URLSearchParams(window.location.search);
@@ -330,7 +402,68 @@ window.reconnectRealtime = function() {
         if (typeof showToast === 'function') {
             showToast('Reconnected', '🔗');
         }
+    } else {
+        console.log('No friendId found or setupRealtime not available');
     }
 };
 
-console.log('✅ Main script loaded - ready to import modules!');
+// Force reinitialize modules
+window.reinitializeModules = function() {
+    console.log('Reinitializing modules...');
+    
+    // Clear any existing intervals or timeouts
+    if (window.typingTimeout) {
+        clearTimeout(window.typingTimeout);
+        window.typingTimeout = null;
+    }
+    
+    if (window.friendTypingTimeout) {
+        clearTimeout(window.friendTypingTimeout);
+        window.friendTypingTimeout = null;
+    }
+    
+    // Re-run module coordination
+    setupModuleCoordination();
+    
+    if (typeof showToast === 'function') {
+        showToast('Modules reinitialized', '🔄');
+    }
+};
+
+// ====================
+// SLASH (/) HANDLER COORDINATION
+// ====================
+window.handleSlashKey = function(event) {
+    // This is called from chat-core.js when slash is detected
+    if (event.key === '/' && !window.colorPickerVisible) {
+        // Show color picker
+        if (typeof showColorPicker === 'function') {
+            showColorPicker();
+            return true; // Indicate we handled it
+        }
+    }
+    return false; // Not handled
+};
+
+// ====================
+// INITIALIZATION COMPLETE
+// ====================
+console.log('✅ Main script loaded - modules will be imported');
+
+// Add a small delay to ensure DOM is ready
+setTimeout(() => {
+    console.log('🏁 Chat application initialization sequence complete');
+    
+    // Check if we have a message input
+    const input = document.getElementById('messageInput');
+    if (input) {
+        console.log('✅ Message input found and ready');
+        
+        // Add a test listener to ensure slash works
+        input.addEventListener('keydown', function(e) {
+            if (e.key === '/' && e.target.value === '') {
+                console.log('✅ Slash key detected, should show color picker');
+            }
+        });
+    }
+}, 1000);
