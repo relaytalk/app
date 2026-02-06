@@ -700,6 +700,10 @@ function updateFriendStatus(status) {
 // ====================
 // INPUT HANDLERS - FIXED FOR SLASH (/)
 // ====================
+ 
+// ====================
+// INPUT HANDLERS - FIXED FOR SLASH (/)
+// ====================
 function handleKeyPress(event) {
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
@@ -712,11 +716,8 @@ function handleKeyPress(event) {
         event.preventDefault();
 
         // Don't send if we're in color picker mode
-        if (window.colorPickerVisible) {
-            // Hide color picker and clear slash
-            if (typeof hideColorPicker === 'function') {
-                hideColorPicker();
-            }
+        if (window.colorPickerVisible === true) {
+            // Clear slash and return
             if (input && input.value === '/') {
                 input.value = '';
                 autoResize(input);
@@ -734,8 +735,7 @@ function handleKeyPress(event) {
         }
     }
     
-    // Allow slash to be typed - don't block it
-    // The slash handler in img-handler.js will show color picker
+    // Allow slash to be typed - the slash handler in img-handler.js will handle it
 }
 
 function autoResize(textarea) {
@@ -748,14 +748,6 @@ function autoResize(textarea) {
     const sendBtn = document.getElementById('sendBtn');
     if (sendBtn) {
         sendBtn.disabled = textarea.value.trim() === '';
-    }
-    
-    // If textarea has just slash and we're not in color picker mode, clear it
-    if (textarea.value === '/' && !window.colorPickerVisible) {
-        textarea.value = '';
-        if (sendBtn) {
-            sendBtn.disabled = true;
-        }
     }
 }
 
