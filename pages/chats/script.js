@@ -1,5 +1,5 @@
 // ====================
-// MAIN SCRIPT - CHAT MODULE LOADER
+// MAIN SCRIPT - CHAT MODULE COORDINATOR
 // ====================
 console.log('🚀 RelayTalk Chat Application Starting...');
 
@@ -7,311 +7,419 @@ console.log('🚀 RelayTalk Chat Application Starting...');
 import './chat-core.js';
 import './img-handler.js';
 
-// Global initialization and coordination between modules
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ All chat modules imported successfully!');
-    
-    // Verify all critical elements are present
-    const criticalElements = [
-        'messagesContainer',
-        'messageInput',
-        'sendBtn',
-        'attachBtn',
-        'customAlert',
-        'customToast'
-    ];
-    
-    let allElementsFound = true;
-    criticalElements.forEach(id => {
-        if (!document.getElementById(id)) {
-            console.warn(`⚠️ Critical element not found: ${id}`);
-            allElementsFound = false;
-        }
-    });
-    
-    if (allElementsFound) {
-        console.log('🎉 Chat application ready for use!');
-        
-        // Setup click outside handler for image picker
-        setupImagePickerClickHandler();
-        
-        // Setup global error handlers
-        setupGlobalErrorHandlers();
-        
-        // Add debug helper
-        window.debugChatState = debugChatState;
-        
-        // Setup module coordination
-        setTimeout(setupModuleCoordination, 500);
-    } else {
-        console.error('❌ Some critical elements are missing from the DOM');
-    }
-});
+// Global state tracking
+window.chatModules = {
+    coreLoaded: false,
+    imgHandlerLoaded: false,
+    ready: false
+};
 
-// ====================
-// FIX: IMAGE PICKER CLICK OUTSIDE HANDLER
-// ====================
-function setupImagePickerClickHandler() {
-    document.addEventListener('click', (e) => {
-        const picker = document.getElementById('imagePickerOverlay');
-        const attachBtn = document.getElementById('attachBtn');
-        const preview = document.getElementById('imagePreviewOverlay');
-        const colorPicker = document.getElementById('colorPickerOverlay');
-        
-        // Check if image picker is open
-        const isPickerOpen = picker && picker.style.display === 'flex';
-        const isColorPickerOpen = colorPicker && colorPicker.style.display === 'flex';
-        const isPreviewOpen = preview && preview.style.opacity !== '0';
-        
-        // Only close image picker if no preview is active and clicking outside
-        if (isPickerOpen && !isPreviewOpen && !picker.contains(e.target) && e.target !== attachBtn) {
-            if (e.target.id !== 'cameraInput' && 
-                e.target.id !== 'galleryInput' &&
-                !isColorPickerOpen) {
-                if (typeof closeImagePicker === 'function') {
-                    closeImagePicker();
-                }
+// Wait for both modules to signal they're ready
+let moduleCheckInterval = setInterval(() => {
+    if (window.chatModules.coreLoaded && window.chatModules.imgHandlerLoaded && !window.chatModules.ready) {
+        window.chatModules.ready = true;
+        clearInterval(moduleCheckInterval);
+        initializeChatApp();
+    }
+}, 100);
+
+// Main initialization after modules are ready
+function initializeChatApp() {
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('✅ All chat modules ready!');
+
+        // Verify critical elements
+        const criticalElements = [
+            'messagesContainer',
+            'messageInput',
+            'sendBtn',
+            'attachBtn',
+            'customAlert',
+            'customToast'
+        ];
+
+        let allElementsFound = true;
+        criticalElements.forEach(id => {
+            if (!document.getElementById(id)) {
+                console.warn(`⚠️ Critical element not found: ${id}`);
+                allElementsFound = false;
+            }
+        });
+
+        if (allElementsFound) {
+            console.log('🎉 Chat application ready for use!');
+
+            // Setup global handlers
+            setupGlobalHandlers();
+
+            // Setup module coordination
+            setTimeout(setupModuleCoordination, 300);
+
+            // Setup debug helper
+            window.debugChatState = debugChatState;
+        } else {
+            console.error('❌ Some critical elements are missing');
+            if (typeof showCustomAlert === 'function') {
+                showCustomAlert('Some elements failed to load. Please refresh.', '❌', 'Error');
             }
         }
-        
-        // Close color picker if clicking outside (except when typing slash)
-        if (isColorPickerOpen && !colorPicker.contains(e.target)) {
-            const input = document.getElementById('messageInput');
-            if (e.target !== input) {
-                if (typeof hideColorPicker === 'function') {
-                    hideColorPicker();
-                    // Clear slash from input
-                    if (input && input.value === '/') {
-                        input.value = '';
-                        if (typeof autoResize === 'function') {
-                            autoResize(input);
-                        }
+    });
+}
+
+// ====================
+// GLOBAL HANDLERS
+// ====================
+function setupGlobalHandlers() {
+    // Click outside handlers
+    document.addEventListener('click', (e) => {
+        handleClickOutside(e);
+    });
+
+    // Setup global error handlers
+    setupGlobalErrorHandlers();
+
+    // Setup keyboard shortcuts
+    setupKeyboardShortcuts();
+}
+
+function handleClickOutside(e) {
+    const picker = document.getElementById('imagePickerOverlay');
+    const attachBtn = document.getElementById('attachBtn');
+    const preview = document.getElementById('imagePreviewOverlay');
+    const colorPicker = document.getElementById('colorPickerOverlay');
+
+    // Check if image picker is open
+    const isPickerOpen = picker && picker.style.display === 'flex';
+    const isColorPickerOpen = colorPicker && colorPicker.style.display === 'flex';
+    const isPreviewOpen = preview && preview.style.opacity === '1';
+
+    // Close image picker if clicking outside
+    if (isPickerOpen && !isPreviewOpen && !picker.contains(e.target) && e.target !== attachBtn) {
+        if (e.target.id !== 'cameraInput' && 
+            e.target.id !== 'galleryInput' &&
+            !isColorPickerOpen) {
+            if (typeof closeImagePicker === 'function') {
+                closeImagePicker();
+            }
+        }
+    }
+
+    // Close color picker if clicking outside
+    if (isColorPickerOpen && !colorPicker.contains(e.target)) {
+        const input = document.getElementById('messageInput');
+        if (e.target !== input) {
+            if (typeof hideColorPicker === 'function') {
+                hideColorPicker();
+                // Clear slash from input if empty
+                if (input && input.value === '/') {
+                    input.value = '';
+                    if (typeof autoResize === 'function') {
+                        autoResize(input);
                     }
                 }
             }
         }
+    }
+}
+
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Ctrl + R to refresh chat
+        if (e.ctrlKey && e.key === 'r') {
+            e.preventDefault();
+            window.refreshChat();
+        }
+
+        // Esc key closes modals
+        if (e.key === 'Escape') {
+            const activeModals = [
+                'imagePickerOverlay',
+                'imagePreviewOverlay',
+                'imageViewerOverlay',
+                'userInfoModal',
+                'customAlert'
+            ];
+
+            activeModals.forEach(id => {
+                const modal = document.getElementById(id);
+                if (modal && modal.style.display === 'flex') {
+                    if (id === 'imagePickerOverlay' && typeof closeImagePicker === 'function') {
+                        closeImagePicker();
+                    } else if (id === 'imagePreviewOverlay' && typeof cancelImageUpload === 'function') {
+                        cancelImageUpload();
+                    } else if (id === 'imageViewerOverlay' && typeof closeImageViewer === 'function') {
+                        closeImageViewer();
+                    } else if (id === 'userInfoModal' && typeof closeModal === 'function') {
+                        closeModal();
+                    } else if (id === 'customAlert') {
+                        modal.style.display = 'none';
+                    }
+                }
+            });
+        }
     });
 }
 
 // ====================
-// MODULE COORDINATION FUNCTIONS
+// MODULE COORDINATION
 // ====================
 function setupModuleCoordination() {
     console.log('🔧 Setting up module coordination...');
-    
-    // Ensure image messages display properly
+
+    // Override message display to handle images
     overrideMessageDisplay();
-    
-    // Setup real-time image handling
+
+    // Override real-time message handling
     overrideRealtimeHandling();
-    
-    // Initialize input handlers coordination
-    setupInputHandlersCoordination();
-    
+
+    // Setup input coordination
+    setupInputCoordination();
+
     console.log('✅ Module coordination complete!');
 }
 
 function overrideMessageDisplay() {
-    // Override showMessages to handle image messages
-    if (typeof showMessages === 'function') {
-        const originalShowMessages = showMessages;
-        
-        window.showMessages = function(messages) {
-            const container = document.getElementById('messagesContainer');
-            if (!container) return;
+    // Store original if exists
+    if (typeof window.originalShowMessages === 'undefined' && typeof showMessages === 'function') {
+        window.originalShowMessages = showMessages;
+    }
 
-            if (!messages || messages.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-chat">
-                        <svg class="empty-chat-icon" viewBox="0 0 24 24">
-                            <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2Z"/>
-                        </svg>
-                        <h3>No messages yet</h3>
-                        <p style="margin-top: 10px;">Say hello to start the conversation!</p>
-                    </div>
-                `;
-                return;
+    // Create new showMessages that handles images
+    window.showMessages = function(messages) {
+        const container = document.getElementById('messagesContainer');
+        if (!container) return;
+
+        // If no messages, show empty state
+        if (!messages || messages.length === 0) {
+            container.innerHTML = `
+                <div class="empty-chat">
+                    <svg class="empty-chat-icon" viewBox="0 0 24 24">
+                        <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2Z"/>
+                    </svg>
+                    <h3>No messages yet</h3>
+                    <p style="margin-top: 10px;">Say hello to start the conversation!</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        let lastDate = '';
+
+        messages.forEach(msg => {
+            const isSent = msg.sender_id === (window.currentUser?.id || '');
+            const time = new Date(msg.created_at).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const date = new Date(msg.created_at).toLocaleDateString();
+
+            // Add date separator if new date
+            if (date !== lastDate) {
+                html += `<div class="date-separator"><span>${date}</span></div>`;
+                lastDate = date;
             }
 
-            let html = '';
-            let lastDate = '';
+            // Get color from database
+            const color = msg.color || null;
+            const colorAttr = color ? `data-color="${color}"` : '';
 
-            messages.forEach(msg => {
-                const isSent = msg.sender_id === (window.currentUser?.id || '');
-                const time = new Date(msg.created_at).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                const date = new Date(msg.created_at).toLocaleDateString();
-
-                if (date !== lastDate) {
-                    html += `<div class="date-separator"><span>${date}</span></div>`;
-                    lastDate = date;
-                }
-
-                // Get color from database
-                const color = msg.color || null;
-                const colorAttr = color ? `data-color="${color}"` : '';
-
-                // Check if message has image
-                if (msg.image_url && typeof createImageMessageHTML === 'function') {
-                    // Use the image message HTML creator from img-handler.js
+            // Check if message has image
+            if (msg.image_url) {
+                // Try to use image message HTML creator
+                if (typeof createImageMessageHTML === 'function') {
                     html += createImageMessageHTML(msg, isSent, colorAttr, time);
                 } else {
-                    // Use text message HTML
+                    // Fallback to text display with image link
                     html += `
                         <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}" ${colorAttr}>
-                            <div class="message-content">${msg.content || ''}</div>
+                            <div class="message-content">📸 Image shared</div>
                             <div class="message-time">${time}</div>
                         </div>
                     `;
                 }
-            });
-
-            html += `<div style="height: 30px; opacity: 0;"></div>`;
-            container.innerHTML = html;
-
-            setTimeout(() => {
-                if (typeof forceScrollToBottom === 'function') {
-                    forceScrollToBottom();
-                }
-            }, 100);
-        };
-        
-        console.log('✅ Override showMessages for image handling');
-    }
-}
-
-function overrideRealtimeHandling() {
-    // Override addMessageToUI to handle image messages in real-time
-    if (typeof addMessageToUI === 'function') {
-        const originalAddMessageToUI = addMessageToUI;
-        
-        window.addMessageToUI = function(message, isFromRealtime = false) {
-            const container = document.getElementById('messagesContainer');
-            if (!container || !message) return;
-
-            if (container.querySelector('.empty-chat')) {
-                container.innerHTML = '';
-            }
-
-            const isSent = message.sender_id === (window.currentUser?.id || '');
-            const time = new Date(message.created_at).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            const color = message.color || null;
-            const colorAttr = color ? `data-color="${color}"` : '';
-
-            let messageHTML;
-
-            if (message.image_url && typeof createImageMessageHTML === 'function') {
-                messageHTML = createImageMessageHTML(message, isSent, colorAttr, time);
             } else {
-                messageHTML = `
-                    <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr}>
-                        <div class="message-content">${message.content || ''}</div>
+                // Regular text message
+                html += `
+                    <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}" ${colorAttr}>
+                        <div class="message-content">${msg.content || ''}</div>
                         <div class="message-time">${time}</div>
                     </div>
                 `;
             }
+        });
 
-            container.insertAdjacentHTML('beforeend', messageHTML);
+        // Add padding at bottom
+        html += `<div style="height: 30px; opacity: 0;"></div>`;
+        container.innerHTML = html;
 
-            // Check if message already exists
-            const isDuplicate = document.querySelector(`[data-message-id="${message.id}"]`);
-            if (isDuplicate && isDuplicate !== container.lastElementChild) {
-                container.removeChild(container.lastElementChild);
-                return;
+        // Scroll to bottom
+        setTimeout(() => {
+            if (typeof forceScrollToBottom === 'function') {
+                forceScrollToBottom();
             }
+        }, 100);
+    };
 
-            // Add to messages array if it exists
-            if (window.currentMessages && !window.currentMessages.some(msg => msg.id === message.id)) {
-                window.currentMessages.push(message);
-            }
-
-            // Animate new message
-            const newMessage = container.lastElementChild;
-            if (newMessage && isFromRealtime) {
-                newMessage.style.opacity = '0';
-                newMessage.style.transform = 'translateY(10px)';
-
-                setTimeout(() => {
-                    newMessage.style.transition = 'all 0.3s ease';
-                    newMessage.style.opacity = '1';
-                    newMessage.style.transform = 'translateY(0)';
-                }, 10);
-            }
-
-            setTimeout(() => {
-                if (typeof forceScrollToBottom === 'function') {
-                    forceScrollToBottom();
-                }
-            }, 10);
-
-            if (message.sender_id === (window.chatFriend?.id || '')) {
-                if (typeof playReceivedSound === 'function') {
-                    playReceivedSound();
-                }
-                if (!document.hasFocus()) {
-                    const originalTitle = document.title;
-                    document.title = '📸 ' + (window.chatFriend?.username || 'Friend');
-                    setTimeout(() => document.title = originalTitle, 1000);
-                }
-            }
-        };
-        
-        console.log('✅ Override addMessageToUI for real-time images');
-    }
+    console.log('✅ Message display override set');
 }
 
-function setupInputHandlersCoordination() {
-    // Ensure input handlers work together
-    const input = document.getElementById('messageInput');
-    if (input) {
-        console.log('🔧 Setting up input handlers coordination');
-        
-        // Store original handlers
-        const originalKeydown = input.onkeydown;
-        const originalInput = input.oninput;
-        
-        // Create coordinated handler
-        input.addEventListener('keydown', function(e) {
-            // Let slash handler work first
-            if (e.key === '/' && !window.colorPickerVisible) {
-                // Allow slash to be typed
-                return;
-            }
-            
-            // Call original handler if exists
-            if (originalKeydown) {
-                originalKeydown.call(this, e);
-            }
-            
-            // Call global handleKeyPress
-            if (typeof handleKeyPress === 'function') {
-                handleKeyPress(e);
-            }
-        });
-        
-        input.addEventListener('input', function(e) {
-            // Call original handler if exists
-            if (originalInput) {
-                originalInput.call(this, e);
-            }
-            
-            // Call autoResize
-            if (typeof autoResize === 'function') {
-                autoResize(e.target);
-            }
-            
-            // Call typing handler
-            if (typeof handleTyping === 'function') {
-                handleTyping();
-            }
-        });
+function overrideRealtimeHandling() {
+    // Store original if exists
+    if (typeof window.originalAddMessageToUI === 'undefined' && typeof addMessageToUI === 'function') {
+        window.originalAddMessageToUI = addMessageToUI;
     }
+
+    // Create new addMessageToUI for real-time
+    window.addMessageToUI = function(message, isFromRealtime = false) {
+        const container = document.getElementById('messagesContainer');
+        if (!container || !message) return;
+
+        // Remove empty chat state if present
+        if (container.querySelector('.empty-chat')) {
+            container.innerHTML = '';
+        }
+
+        const isSent = message.sender_id === (window.currentUser?.id || '');
+        const time = new Date(message.created_at).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const color = message.color || null;
+        const colorAttr = color ? `data-color="${color}"` : '';
+
+        let messageHTML;
+
+        // Check if message has image
+        if (message.image_url) {
+            // Try to use image message HTML creator
+            if (typeof createImageMessageHTML === 'function') {
+                messageHTML = createImageMessageHTML(message, isSent, colorAttr, time);
+            } else {
+                // Fallback
+                messageHTML = `
+                    <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr}>
+                        <div class="message-content">📸 Image shared</div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                `;
+            }
+        } else {
+            // Text message
+            messageHTML = `
+                <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr}>
+                    <div class="message-content">${message.content || ''}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+        }
+
+        // Add to container
+        container.insertAdjacentHTML('beforeend', messageHTML);
+
+        // Check for duplicates
+        const existingMessage = document.querySelector(`[data-message-id="${message.id}"]`);
+        if (existingMessage && existingMessage !== container.lastElementChild) {
+            container.removeChild(container.lastElementChild);
+            return;
+        }
+
+        // Add to messages array if it exists
+        if (window.currentMessages && !window.currentMessages.some(msg => msg.id === message.id)) {
+            window.currentMessages.push(message);
+        }
+
+        // Animate new message
+        const newMessage = container.lastElementChild;
+        if (newMessage && isFromRealtime) {
+            newMessage.style.opacity = '0';
+            newMessage.style.transform = 'translateY(10px)';
+
+            setTimeout(() => {
+                newMessage.style.transition = 'all 0.3s ease';
+                newMessage.style.opacity = '1';
+                newMessage.style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        // Scroll to bottom
+        setTimeout(() => {
+            if (typeof forceScrollToBottom === 'function') {
+                forceScrollToBottom();
+            }
+        }, 10);
+
+        // Notification for received messages
+        if (message.sender_id === (window.chatFriend?.id || '')) {
+            if (typeof playReceivedSound === 'function') {
+                playReceivedSound();
+            }
+            if (!document.hasFocus()) {
+                const originalTitle = document.title;
+                document.title = '📸 ' + (window.chatFriend?.username || 'Friend');
+                setTimeout(() => document.title = originalTitle, 1000);
+            }
+        }
+    };
+
+    console.log('✅ Real-time handling override set');
+}
+
+function setupInputCoordination() {
+    const input = document.getElementById('messageInput');
+    if (!input) return;
+
+    console.log('🔧 Setting up input coordination');
+
+    // Store original handlers
+    const originalKeydown = input.onkeydown;
+    const originalInput = input.oninput;
+
+    // Create coordinated keydown handler
+    input.addEventListener('keydown', function(e) {
+        // First, let slash handler from img-handler work
+        if (e.key === '/' && !window.colorPickerVisible) {
+            // This will be handled by img-handler's input listener
+            return;
+        }
+
+        // Then call original if exists
+        if (originalKeydown) {
+            originalKeydown.call(this, e);
+        }
+
+        // Call global handleKeyPress
+        if (typeof handleKeyPress === 'function') {
+            handleKeyPress(e);
+        }
+    });
+
+    // Create coordinated input handler
+    input.addEventListener('input', function(e) {
+        // Call original if exists
+        if (originalInput) {
+            originalInput.call(this, e);
+        }
+
+        // Call autoResize
+        if (typeof autoResize === 'function') {
+            autoResize(e.target);
+        }
+
+        // Call typing handler
+        if (typeof handleTyping === 'function') {
+            handleTyping();
+        }
+    });
+
+    // Ensure slash handler works
+    input.addEventListener('keypress', function(e) {
+        if (e.key === '/' && e.target.value === '') {
+            // Let img-handler handle this
+            return;
+        }
+    });
 }
 
 // ====================
@@ -321,33 +429,24 @@ function setupGlobalErrorHandlers() {
     // Global error handler
     window.addEventListener('error', function(e) {
         console.error('Global error caught:', e.error);
-        
         const errorMessage = e.error ? e.error.message : 'An unexpected error occurred';
-        
+
         if (typeof showCustomAlert === 'function') {
-            showCustomAlert(`Error: ${errorMessage}. Please refresh the page.`, '❌', 'Application Error');
-        } else {
-            alert(`Error: ${errorMessage}. Please refresh the page.`);
+            showCustomAlert(`Error: ${errorMessage}. Please refresh.`, '❌', 'Application Error');
         }
     });
 
-    // Unhandled promise rejection handler
+    // Unhandled promise rejection
     window.addEventListener('unhandledrejection', function(e) {
         console.error('Unhandled promise rejection:', e.reason);
-        
         if (typeof showToast === 'function') {
             showToast('An error occurred. Please try again.', '⚠️');
         }
     });
-    
-    // Catch-all for undefined function calls
-    window.addEventListener('undefined-function', function(e) {
-        console.error('Undefined function called:', e.detail);
-    });
 }
 
 // ====================
-// DEBUG HELPER
+// DEBUG & UTILITY FUNCTIONS
 // ====================
 function debugChatState() {
     console.log('=== CHAT DEBUG INFO ===');
@@ -359,35 +458,30 @@ function debugChatState() {
     console.log('Selected Color:', window.selectedColor);
     console.log('Image Preview URL:', window.imagePreviewUrl);
     console.log('Current Messages:', window.currentMessages ? window.currentMessages.length : 0);
+    console.log('Chat Modules Ready:', window.chatModules?.ready);
     console.log('=====================');
 }
-
-// ====================
-// UTILITY FUNCTIONS
-// ====================
 
 // Refresh chat function
 window.refreshChat = function() {
     console.log('Refreshing chat...');
     const urlParams = new URLSearchParams(window.location.search);
     const friendId = urlParams.get('friendId');
-    
+
     if (friendId && typeof loadOldMessages === 'function') {
         loadOldMessages(friendId);
         if (typeof showToast === 'function') {
             showToast('Chat refreshed', '🔄');
         }
-    } else {
-        console.log('No friendId found or loadOldMessages not available');
     }
 };
 
-// Reconnect real-time function
+// Reconnect real-time
 window.reconnectRealtime = function() {
     console.log('Reconnecting real-time...');
     const urlParams = new URLSearchParams(window.location.search);
     const friendId = urlParams.get('friendId');
-    
+
     if (friendId && typeof setupRealtime === 'function') {
         // Clean up existing channels
         if (window.chatChannel && typeof supabase !== 'undefined') {
@@ -396,74 +490,55 @@ window.reconnectRealtime = function() {
         if (window.statusChannel && typeof supabase !== 'undefined') {
             supabase.removeChannel(window.statusChannel);
         }
-        
+
         // Reconnect
         setupRealtime(friendId);
         if (typeof showToast === 'function') {
             showToast('Reconnected', '🔗');
         }
-    } else {
-        console.log('No friendId found or setupRealtime not available');
     }
 };
 
-// Force reinitialize modules
+// Force reinitialize
 window.reinitializeModules = function() {
     console.log('Reinitializing modules...');
-    
+
     // Clear any existing intervals or timeouts
     if (window.typingTimeout) {
         clearTimeout(window.typingTimeout);
         window.typingTimeout = null;
     }
-    
+
     if (window.friendTypingTimeout) {
         clearTimeout(window.friendTypingTimeout);
         window.friendTypingTimeout = null;
     }
-    
+
     // Re-run module coordination
     setupModuleCoordination();
-    
+
     if (typeof showToast === 'function') {
         showToast('Modules reinitialized', '🔄');
     }
 };
 
 // ====================
-// SLASH (/) HANDLER COORDINATION
+// SLASH HANDLER COORDINATION
 // ====================
 window.handleSlashKey = function(event) {
-    // This is called from chat-core.js when slash is detected
     if (event.key === '/' && !window.colorPickerVisible) {
-        // Show color picker
         if (typeof showColorPicker === 'function') {
             showColorPicker();
-            return true; // Indicate we handled it
+            return true;
         }
     }
-    return false; // Not handled
+    return false;
 };
 
 // ====================
-// INITIALIZATION COMPLETE
+// INITIALIZATION SIGNAL
 // ====================
-console.log('✅ Main script loaded - modules will be imported');
+console.log('✅ Main coordinator loaded - waiting for modules...');
 
-// Add a small delay to ensure DOM is ready
-setTimeout(() => {
-    console.log('🏁 Chat application initialization sequence complete');
-    
-    // Check if we have a message input
-    const input = document.getElementById('messageInput');
-    if (input) {
-        console.log('✅ Message input found and ready');
-        
-        // Add a test listener to ensure slash works
-        input.addEventListener('keydown', function(e) {
-            if (e.key === '/' && e.target.value === '') {
-                console.log('✅ Slash key detected, should show color picker');
-            }
-        });
-    }
-}, 1000);
+// Signal that main script is loaded
+window.mainScriptLoaded = true;
