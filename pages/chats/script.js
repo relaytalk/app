@@ -25,51 +25,60 @@ let moduleCheckInterval = setInterval(() => {
 
 // Main initialization after modules are ready
 function initializeChatApp() {
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('✅ All chat modules ready!');
+    console.log('✅ All chat modules ready!');
 
-        // Verify critical elements
-        const criticalElements = [
-            'messagesContainer',
-            'messageInput',
-            'sendBtn',
-            'attachBtn',
-            'customAlert',
-            'customToast'
-        ];
+    // Verify critical elements exist
+    const criticalElements = [
+        'messagesContainer',
+        'messageInput',
+        'sendBtn',
+        'attachBtn'
+    ];
 
-        let allElementsFound = true;
-        criticalElements.forEach(id => {
-            if (!document.getElementById(id)) {
-                console.warn(`⚠️ Critical element not found: ${id}`);
-                allElementsFound = false;
-            }
-        });
-
-        if (allElementsFound) {
-            console.log('🎉 Chat application ready for use!');
-
-            // Setup global handlers
-            setupGlobalHandlers();
-
-            // Setup module coordination
-            setTimeout(setupModuleCoordination, 300);
-
-            // Setup debug helper
-            window.debugChatState = debugChatState;
-        } else {
-            console.error('❌ Some critical elements are missing');
-            if (typeof showCustomAlert === 'function') {
-                showCustomAlert('Some elements failed to load. Please refresh.', '❌', 'Error');
-            }
+    let allElementsFound = true;
+    criticalElements.forEach(id => {
+        if (!document.getElementById(id)) {
+            console.warn(`⚠️ Critical element not found: ${id}`);
+            allElementsFound = false;
         }
     });
+
+    if (allElementsFound) {
+        console.log('🎉 Chat application ready for use!');
+
+        // Setup event listeners after DOM is fully loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupApplication);
+        } else {
+            setupApplication();
+        }
+    } else {
+        console.error('❌ Some critical elements are missing');
+        if (typeof showCustomAlert === 'function') {
+            showCustomAlert('Some elements failed to load. Please refresh.', '❌', 'Error');
+        }
+    }
+}
+
+function setupApplication() {
+    console.log('🔧 Setting up application...');
+    
+    // Setup global handlers
+    setupGlobalHandlers();
+
+    // Setup module coordination
+    setTimeout(() => {
+        setupModuleCoordination();
+        console.log('✅ Application setup complete!');
+    }, 300);
 }
 
 // ====================
 // GLOBAL HANDLERS
 // ====================
 function setupGlobalHandlers() {
+    console.log('🔧 Setting up global handlers...');
+
     // Click outside handlers
     document.addEventListener('click', (e) => {
         handleClickOutside(e);
@@ -80,6 +89,94 @@ function setupGlobalHandlers() {
 
     // Setup keyboard shortcuts
     setupKeyboardShortcuts();
+
+    // Setup input handlers
+    setupInputHandlers();
+}
+
+function setupInputHandlers() {
+    const input = document.getElementById('messageInput');
+    if (!input) return;
+
+    console.log('🔧 Setting up input handlers...');
+
+    // Remove any existing event listeners by cloning
+    const newInput = input.cloneNode(true);
+    if (input.parentNode) {
+        input.parentNode.replaceChild(newInput, input);
+    }
+
+    const freshInput = document.getElementById('messageInput');
+    
+    // Keydown handler for Enter and slash detection
+    freshInput.addEventListener('keydown', function(e) {
+        // Don't prevent slash key
+        if (e.key === '/') {
+            // Let the input event handle slash
+            return;
+        }
+
+        // Enter key sends message
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            
+            // Don't send if color picker is visible
+            if (window.colorPickerVisible === true) {
+                if (freshInput.value === '/') {
+                    freshInput.value = '';
+                    if (typeof autoResize === 'function') {
+                        autoResize(freshInput);
+                    }
+                }
+                return;
+            }
+
+            // Don't send if input is just slash
+            if (freshInput.value === '/') {
+                return;
+            }
+
+            // Send message if input has content
+            if (freshInput.value.trim()) {
+                if (typeof sendMessage === 'function') {
+                    sendMessage();
+                }
+            }
+        }
+    });
+
+    // Input handler for typing, resize, and slash detection
+    freshInput.addEventListener('input', function(e) {
+        const text = e.target.value;
+
+        // Call autoResize
+        if (typeof autoResize === 'function') {
+            autoResize(e.target);
+        }
+
+        // Update send button state
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) {
+            sendBtn.disabled = !text.trim();
+        }
+
+        // Call typing handler
+        if (typeof handleTyping === 'function') {
+            handleTyping();
+        }
+    });
+
+    // Focus handler
+    freshInput.addEventListener('focus', function() {
+        if (this.value === '/' && !window.colorPickerVisible) {
+            this.value = '';
+            if (typeof autoResize === 'function') {
+                autoResize(this);
+            }
+        }
+    });
+
+    console.log('✅ Input handlers setup complete');
 }
 
 function handleClickOutside(e) {
@@ -87,30 +184,26 @@ function handleClickOutside(e) {
     const attachBtn = document.getElementById('attachBtn');
     const preview = document.getElementById('imagePreviewOverlay');
     const colorPicker = document.getElementById('colorPickerOverlay');
+    const input = document.getElementById('messageInput');
 
-    // Check if image picker is open
-    const isPickerOpen = picker && picker.style.display === 'flex';
+    // Check if color picker is open
     const isColorPickerOpen = colorPicker && colorPicker.style.display === 'flex';
-    const isPreviewOpen = preview && preview.style.opacity === '1';
-
-    // Close image picker if clicking outside
-    if (isPickerOpen && !isPreviewOpen && !picker.contains(e.target) && e.target !== attachBtn) {
-        if (e.target.id !== 'cameraInput' && 
-            e.target.id !== 'galleryInput' &&
-            !isColorPickerOpen) {
-            if (typeof closeImagePicker === 'function') {
-                closeImagePicker();
-            }
+    
+    // Close color picker if clicking outside
+    if (isColorPickerOpen && !colorPicker.contains(e.target) && e.target !== input) {
+        if (typeof cancelColorSelection === 'function') {
+            cancelColorSelection();
         }
     }
 
-    // Close color picker if clicking outside
-    if (isColorPickerOpen && !colorPicker.contains(e.target)) {
-        const input = document.getElementById('messageInput');
-        if (e.target !== input) {
-            if (typeof cancelColorSelection === 'function') {
-                cancelColorSelection();
-            }
+    // Check if image picker is open
+    const isPickerOpen = picker && picker.style.display === 'flex';
+    const isPreviewOpen = preview && (preview.style.opacity === '1' || preview.style.display === 'flex');
+
+    // Close image picker if clicking outside
+    if (isPickerOpen && !isPreviewOpen && !picker.contains(e.target) && e.target !== attachBtn) {
+        if (typeof closeImagePicker === 'function') {
+            closeImagePicker();
         }
     }
 }
@@ -120,7 +213,9 @@ function setupKeyboardShortcuts() {
         // Ctrl + R to refresh chat
         if (e.ctrlKey && e.key === 'r') {
             e.preventDefault();
-            window.refreshChat();
+            if (typeof window.refreshChat === 'function') {
+                window.refreshChat();
+            }
         }
 
         // Esc key closes modals
@@ -135,7 +230,7 @@ function setupKeyboardShortcuts() {
 
             activeModals.forEach(id => {
                 const modal = document.getElementById(id);
-                if (modal && modal.style.display === 'flex') {
+                if (modal && (modal.style.display === 'flex' || modal.style.opacity === '1')) {
                     if (id === 'imagePickerOverlay' && typeof closeImagePicker === 'function') {
                         closeImagePicker();
                     } else if (id === 'imagePreviewOverlay' && typeof cancelImageUpload === 'function') {
@@ -165,18 +260,10 @@ function setupModuleCoordination() {
     // Override real-time message handling
     overrideRealtimeHandling();
 
-    // Setup input coordination
-    setupInputCoordination();
-
     console.log('✅ Module coordination complete!');
 }
 
 function overrideMessageDisplay() {
-    // Store original if exists
-    if (typeof window.originalShowMessages === 'undefined' && typeof showMessages === 'function') {
-        window.originalShowMessages = showMessages;
-    }
-
     // Create new showMessages that handles images
     window.showMessages = function(messages) {
         const container = document.getElementById('messagesContainer');
@@ -258,11 +345,6 @@ function overrideMessageDisplay() {
 }
 
 function overrideRealtimeHandling() {
-    // Store original if exists
-    if (typeof window.originalAddMessageToUI === 'undefined' && typeof addMessageToUI === 'function') {
-        window.originalAddMessageToUI = addMessageToUI;
-    }
-
     // Create new addMessageToUI for real-time
     window.addMessageToUI = function(message, isFromRealtime = false) {
         const container = document.getElementById('messagesContainer');
@@ -359,76 +441,6 @@ function overrideRealtimeHandling() {
     console.log('✅ Real-time handling override set');
 }
 
-function setupInputCoordination() {
-    const input = document.getElementById('messageInput');
-    if (!input) return;
-
-    console.log('🔧 Setting up input coordination');
-
-    // Clear any existing listeners by cloning
-    const newInput = input.cloneNode(true);
-    input.parentNode.replaceChild(newInput, input);
-    
-    const freshInput = document.getElementById('messageInput');
-
-    // Store original handlers
-    const originalKeydown = freshInput.onkeydown;
-    const originalInput = freshInput.oninput;
-
-    // Create coordinated keydown handler
-    freshInput.addEventListener('keydown', function(e) {
-        // Don't prevent slash key
-        if (e.key === '/') {
-            return; // Let img-handler handle it
-        }
-
-        // Call original if exists
-        if (originalKeydown) {
-            originalKeydown.call(this, e);
-        }
-
-        // Call global handleKeyPress
-        if (typeof handleKeyPress === 'function') {
-            handleKeyPress(e);
-        }
-    });
-
-    // Create coordinated input handler
-    freshInput.addEventListener('input', function(e) {
-        const text = e.target.value;
-        
-        // Don't interfere with slash handler
-        if (text === '/') {
-            return;
-        }
-
-        // Call original if exists
-        if (originalInput) {
-            originalInput.call(this, e);
-        }
-
-        // Call autoResize
-        if (typeof autoResize === 'function') {
-            autoResize(e.target);
-        }
-
-        // Call typing handler
-        if (typeof handleTyping === 'function') {
-            handleTyping();
-        }
-    });
-
-    // Add focus handler to clear slash if color picker closed
-    freshInput.addEventListener('focus', function() {
-        if (this.value === '/' && !window.colorPickerVisible) {
-            this.value = '';
-            if (typeof autoResize === 'function') {
-                autoResize(this);
-            }
-        }
-    });
-}
-
 // ====================
 // GLOBAL ERROR HANDLERS
 // ====================
@@ -463,7 +475,6 @@ function debugChatState() {
     console.log('Is Sending:', window.isSending);
     console.log('Is Typing:', window.isTyping);
     console.log('Selected Color:', window.selectedColor);
-    console.log('Image Preview URL:', window.imagePreviewUrl);
     console.log('Current Messages:', window.currentMessages ? window.currentMessages.length : 0);
     console.log('Chat Modules Ready:', window.chatModules?.ready);
     console.log('=====================');
@@ -527,19 +538,6 @@ window.reinitializeModules = function() {
     if (typeof showToast === 'function') {
         showToast('Modules reinitialized', '🔄');
     }
-};
-
-// ====================
-// SLASH HANDLER COORDINATION
-// ====================
-window.handleSlashKey = function(event) {
-    if (event.key === '/' && !window.colorPickerVisible) {
-        if (typeof showColorPicker === 'function') {
-            showColorPicker();
-            return true;
-        }
-    }
-    return false;
 };
 
 // ====================
