@@ -55,10 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setupSlashHandler();
         setupFileInputListeners();
         setupColorPickerClickOutside();
-        
+
         // Signal ready
         console.log('✅ Image handler ready!');
-        
+
         // Add color picker to DOM if not exists
         setTimeout(addColorPickerToDOM, 200);
     }, 500);
@@ -123,7 +123,7 @@ function addColorPickerToDOM() {
     `;
 
     // Insert after message input wrapper
-    const inputWrapper = document.getElementById('messageInputWrapper');
+    const inputWrapper = document.querySelector('.message-input-wrapper');
     if (inputWrapper) {
         inputWrapper.insertAdjacentHTML('beforebegin', colorPickerHTML);
         console.log('✅ Color picker added to DOM');
@@ -132,6 +132,15 @@ function addColorPickerToDOM() {
         document.body.insertAdjacentHTML('beforeend', colorPickerHTML);
         console.log('✅ Color picker added to body');
     }
+}
+
+function initializeColorPicker() {
+    // Make sure color picker is in DOM
+    setTimeout(() => {
+        if (!document.getElementById('colorPickerOverlay')) {
+            addColorPickerToDOM();
+        }
+    }, 300);
 }
 
 function setupColorPickerClickOutside() {
@@ -153,7 +162,7 @@ function showColorPicker() {
     if (colorPicker) {
         colorPickerVisible = true;
         window.colorPickerVisible = true;
-        
+
         colorPicker.style.display = 'flex';
         setTimeout(() => {
             colorPicker.style.opacity = '1';
@@ -179,7 +188,7 @@ function hideColorPicker() {
     if (colorPicker) {
         colorPickerVisible = false;
         window.colorPickerVisible = false;
-        
+
         colorPicker.style.opacity = '0';
         setTimeout(() => {
             colorPicker.style.display = 'none';
@@ -189,11 +198,10 @@ function hideColorPicker() {
     }
 }
 
-// NEW: Cancel color selection
 function cancelColorSelection() {
     console.log('Cancelling color selection');
     hideColorPicker();
-    
+
     // Clear slash from input
     const input = document.getElementById('messageInput');
     if (input && input.value === '/') {
@@ -204,27 +212,26 @@ function cancelColorSelection() {
     }
 }
 
-// NEW: Remove selected color
 function removeSelectedColor() {
     console.log('Removing selected color');
     selectedColor = null;
     window.selectedColor = null;
-    
+
     // Update UI
     const colorOptions = document.querySelectorAll('.color-option');
     colorOptions.forEach(option => {
         option.classList.remove('selected');
     });
-    
+
     // Show feedback
     if (typeof showToast === 'function') {
         showToast('Color cleared', '↩️', 1000);
     }
-    
+
     // Hide picker after delay
     setTimeout(() => {
         hideColorPicker();
-        
+
         // Focus input
         const input = document.getElementById('messageInput');
         if (input) {
@@ -244,7 +251,7 @@ function selectColor(color) {
     console.log('Selected color:', color);
     selectedColor = color;
     window.selectedColor = color;
-    
+
     // Update UI
     const colorOptions = document.querySelectorAll('.color-option');
     colorOptions.forEach(option => {
@@ -262,7 +269,7 @@ function selectColor(color) {
     // Hide picker after delay
     setTimeout(() => {
         hideColorPicker();
-        
+
         // Focus input but DON'T add /color to input
         const input = document.getElementById('messageInput');
         if (input) {
@@ -403,8 +410,8 @@ function setupFileInputListeners() {
 function handleImageSelect(event) {
     console.log('File selected');
     const file = event.target.files[0];
-    
-    // FIX: Check if file exists
+
+    // Check if file exists
     if (!file) {
         console.log('No file selected');
         if (typeof showToast === 'function') {
@@ -558,7 +565,7 @@ async function uploadImageFromPreview() {
         return;
     }
 
-    // FIX: Check if file exists before uploading
+    // Check if file exists before uploading
     if (!currentFileForUpload) {
         console.log('No file to upload');
         if (typeof showToast === 'function') {
@@ -594,8 +601,8 @@ async function uploadImageFromPreview() {
 
 async function uploadImageToImgBB(file) {
     console.log('Starting ImgBB upload');
-    
-    // FIX: Check if file exists and has size property
+
+    // Check if file exists and has size property
     if (!file || typeof file.size === 'undefined') {
         console.error('Invalid file object:', file);
         throw new Error('No valid image file selected');
@@ -668,17 +675,17 @@ async function uploadImageToImgBB(file) {
 }
 
 async function compressImage(file, maxSize = 800 * 1024) {
-    // FIX: Check if file exists
+    // Check if file exists
     if (!file) {
         throw new Error('No file provided for compression');
     }
-    
-    // FIX: Check if file has size property
+
+    // Check if file has size property
     if (typeof file.size === 'undefined') {
         console.warn('File missing size property, skipping compression');
         return file;
     }
-    
+
     if (file.size <= maxSize) {
         return file;
     }
@@ -720,7 +727,7 @@ async function compressImage(file, maxSize = 800 * 1024) {
                             reject(new Error('Failed to create blob'));
                             return;
                         }
-                        
+
                         if (blob.size <= maxSize || quality <= 0.3) {
                             const compressedFile = new File([blob], file.name, {
                                 type: 'image/jpeg',
@@ -875,11 +882,11 @@ function createImageMessageHTML(msg, isSent, colorAttr, time) {
     const imageUrl = msg.image_url || '';
     const thumbnailUrl = msg.thumbnail_url || imageUrl;
     const content = msg.content || '';
-    
+
     // Use https for ImgBB images
     let displayImageUrl = imageUrl;
     let displayThumbnailUrl = thumbnailUrl;
-    
+
     if (imageUrl && imageUrl.includes('i.ibb.co')) {
         displayImageUrl = imageUrl.replace('http://', 'https://');
         displayThumbnailUrl = thumbnailUrl.replace('http://', 'https://');
@@ -915,14 +922,14 @@ function handleImageLoad(imgElement) {
 
 function handleImageError(imgElement, originalUrl) {
     console.error('Failed to load image:', originalUrl);
-    
+
     // Try https if failed with http
     if (originalUrl && originalUrl.includes('i.ibb.co') && originalUrl.startsWith('http://')) {
         const httpsUrl = originalUrl.replace('http://', 'https://');
         imgElement.src = httpsUrl;
         return;
     }
-    
+
     // Fallback to placeholder
     imgElement.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24"><path fill="%23ccc" d="M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/></svg>';
     imgElement.style.opacity = '1';
