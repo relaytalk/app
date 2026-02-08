@@ -1,7 +1,7 @@
 import { auth } from '../../utils/auth.js';
 import { supabase } from '../../utils/supabase.js';
 
-console.log('✨ Chat Core Initialized - IMAGE FIX VERSION');
+console.log('✨ Chat Core Initialized - MULTI-IMAGE VERSION');
 
 // ====================
 // CORE CHAT VARIABLES
@@ -144,10 +144,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Focus the input after initialization
                 setTimeout(() => {
                     input.focus();
-                }, 200);
+                }, 100);
             }
             forceScrollToBottom();
-        }, 150);
+        }, 100);
 
         console.log('✅ Chat core ready!');
     } catch (error) {
@@ -202,7 +202,7 @@ function setupBackButtonPrevention() {
             setTimeout(() => {
                 goBack();
                 this.style.pointerEvents = 'auto';
-            }, 300);
+            }, 150);
         });
     }
 }
@@ -231,7 +231,7 @@ async function sendMessage() {
     }
 
     if (!text || !chatFriend) {
-        showToast('Please type a message!', '⚠️');
+        showToast('Please type a message!', '⚠️', 1500);
         return;
     }
 
@@ -291,7 +291,7 @@ async function sendMessage() {
             window.isSending = false;
             sendBtn.innerHTML = originalHTML;
             sendBtn.disabled = false;
-        }, 300);
+        }, 150);
     } catch (error) {
         console.error('Send failed:', error);
         showCustomAlert('Failed to send message: ' + error.message, '❌', 'Error');
@@ -404,7 +404,7 @@ function showMessages(messages) {
 
     setTimeout(() => {
         forceScrollToBottom();
-    }, 100);
+    }, 50);
 }
 
 function addMessageToUI(message, isFromRealtime = false) {
@@ -463,7 +463,7 @@ function addMessageToUI(message, isFromRealtime = false) {
         newMessage.style.transform = 'translateY(10px)';
 
         setTimeout(() => {
-            newMessage.style.transition = 'all 0.3s ease';
+            newMessage.style.transition = 'all 0.15s ease';
             newMessage.style.opacity = '1';
             newMessage.style.transform = 'translateY(0)';
         }, 10);
@@ -478,7 +478,7 @@ function addMessageToUI(message, isFromRealtime = false) {
         if (!document.hasFocus()) {
             const originalTitle = document.title;
             document.title = '📸 ' + chatFriend.username;
-            setTimeout(() => document.title = originalTitle, 1000);
+            setTimeout(() => document.title = originalTitle, 800);
         }
     }
 }
@@ -542,9 +542,9 @@ function setupRealtime(friendId) {
                 updateFriendStatus(payload.new.status);
 
                 if (payload.new.status === 'online') {
-                    showToast(`${chatFriend.username} is now online`, '🟢', 2000);
+                    showToast(`${chatFriend.username} is now online`, '🟢', 1500);
                 } else {
-                    showToast(`${chatFriend.username} is now offline`, '⚫', 2000);
+                    showToast(`${chatFriend.username} is now offline`, '⚫', 1500);
                 }
             }
         })
@@ -670,7 +670,7 @@ function playReceivedSound() {
 }
 
 // ====================
-// ALERT FUNCTIONS
+// ALERT FUNCTIONS - FASTER ANIMATIONS
 // ====================
 function showCustomAlert(message, icon = '⚠️', title = 'Alert', onConfirm = null) {
     const alertOverlay = document.getElementById('customAlert');
@@ -687,11 +687,17 @@ function showCustomAlert(message, icon = '⚠️', title = 'Alert', onConfirm = 
 
     alertConfirm.textContent = 'OK';
     alertConfirm.onclick = () => {
-        alertOverlay.style.display = 'none';
-        if (onConfirm) onConfirm();
+        alertOverlay.style.opacity = '0';
+        setTimeout(() => {
+            alertOverlay.style.display = 'none';
+            if (onConfirm) onConfirm();
+        }, 150);
     };
 
     alertOverlay.style.display = 'flex';
+    setTimeout(() => {
+        alertOverlay.style.opacity = '1';
+    }, 10);
 }
 
 function showConfirmAlert(message, icon = '❓', title = 'Confirm', onConfirm, onCancel = null) {
@@ -709,20 +715,29 @@ function showConfirmAlert(message, icon = '❓', title = 'Confirm', onConfirm, o
 
     alertConfirm.textContent = 'Yes';
     alertConfirm.onclick = () => {
-        alertOverlay.style.display = 'none';
-        if (onConfirm) onConfirm();
+        alertOverlay.style.opacity = '0';
+        setTimeout(() => {
+            alertOverlay.style.display = 'none';
+            if (onConfirm) onConfirm();
+        }, 150);
     };
 
     alertCancel.textContent = 'No';
     alertCancel.onclick = () => {
-        alertOverlay.style.display = 'none';
-        if (onCancel) onCancel();
+        alertOverlay.style.opacity = '0';
+        setTimeout(() => {
+            alertOverlay.style.display = 'none';
+            if (onCancel) onCancel();
+        }, 150);
     };
 
     alertOverlay.style.display = 'flex';
+    setTimeout(() => {
+        alertOverlay.style.opacity = '1';
+    }, 10);
 }
 
-function showToast(message, icon = 'ℹ️', duration = 3000) {
+function showToast(message, icon = 'ℹ️', duration = 2000) {
     const toast = document.getElementById('customToast');
     const toastIcon = document.getElementById('toastIcon');
     const toastMessage = document.getElementById('toastMessage');
@@ -738,7 +753,7 @@ function showToast(message, icon = 'ℹ️', duration = 3000) {
         toast.style.opacity = '0';
         setTimeout(() => {
             toast.style.display = 'none';
-        }, 300);
+        }, 150);
     }, duration);
 }
 
@@ -838,7 +853,7 @@ function goBack() {
     // Navigate after a short delay to ensure cleanup
     setTimeout(() => {
         window.location.href = '../home/index.html';
-    }, 100);
+    }, 50);
 }
 
 // ====================
@@ -847,7 +862,7 @@ function goBack() {
 
 function showUserInfo() {
     if (!chatFriend) {
-        showToast('User information not available', '⚠️');
+        showToast('User information not available', '⚠️', 1500);
         return;
     }
 
@@ -876,7 +891,13 @@ function showUserInfo() {
 }
 
 function closeModal() {
-    document.getElementById('userInfoModal').style.display = 'none';
+    const modal = document.getElementById('userInfoModal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 150);
+    }
 }
 
 function blockUserPrompt() {
@@ -885,8 +906,8 @@ function blockUserPrompt() {
         '🚫',
         'Block User',
         () => {
-            showToast('User blocked!', '✅');
-            setTimeout(goBack, 1000);
+            showToast('User blocked!', '✅', 1500);
+            setTimeout(goBack, 800);
         }
     );
 }
@@ -909,7 +930,7 @@ async function clearChatPrompt() {
 
                 if (error) throw error;
 
-                showToast('Chat cleared!', '✅');
+                showToast('Chat cleared!', '✅', 1500);
                 currentMessages = [];
                 window.currentMessages = currentMessages;
 
@@ -945,8 +966,8 @@ function forceScrollToBottom() {
         }
         setTimeout(() => {
             container.scrollTop = container.scrollHeight;
-        }, 100);
-    }, 100);
+        }, 50);
+    }, 50);
 }
 
 // ====================
@@ -977,7 +998,7 @@ function showLoading(show, text = 'Sending...') {
         loadingOverlay.style.opacity = '0';
         setTimeout(() => {
             loadingOverlay.style.display = 'none';
-        }, 300);
+        }, 150);
     }
 }
 
@@ -989,7 +1010,7 @@ function refreshChat() {
     const friendId = urlParams.get('friendId');
     if (friendId) {
         loadOldMessages(friendId);
-        showToast('Chat refreshed', '🔄');
+        showToast('Chat refreshed', '🔄', 1500);
     }
 }
 
@@ -998,7 +1019,7 @@ function reconnectRealtime() {
     const friendId = urlParams.get('friendId');
     if (friendId) {
         setupRealtime(friendId);
-        showToast('Reconnected', '🔗');
+        showToast('Reconnected', '🔗', 1500);
     }
 }
 
@@ -1012,7 +1033,7 @@ if (navigator.userAgent.includes('Chrome')) {
             if (container) {
                 container.style.transform = 'translateZ(0)';
             }
-        }, 500);
+        }, 300);
     });
 }
 
