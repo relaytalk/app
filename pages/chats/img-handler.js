@@ -446,6 +446,9 @@ function createImagePreview(file) {
 
     if (!file) {
         console.error('No file provided for preview');
+        if (typeof showToast === 'function') {
+            showToast('No image file selected', '⚠️');
+        }
         return;
     }
 
@@ -507,6 +510,7 @@ function createImagePreview(file) {
         // Reset file inputs
         document.getElementById('cameraInput').value = '';
         document.getElementById('galleryInput').value = '';
+        currentFileForUpload = null;
     };
 
     reader.readAsDataURL(file);
@@ -614,17 +618,24 @@ async function uploadImageFromPreview() {
 }
 
 // ====================
-// FIXED: IMAGE UPLOAD TO IMGBB
+// FIXED: IMAGE UPLOAD TO IMGBB (NULL CHECK ADDED)
 // ====================
 
 async function uploadImageToImgBB(file) {
-    console.log('Starting ImgBB upload for file:', file.name);
+    console.log('Starting ImgBB upload');
 
-    // Validate file
-    if (!file || !file.name || !file.type || typeof file.size === 'undefined') {
-        console.error('Invalid file object:', file);
-        throw new Error('No valid image file selected');
+    // VALIDATE FILE FIRST - FIX FOR NULL ERROR
+    if (!file) {
+        console.error('File is null or undefined');
+        throw new Error('No image file selected');
     }
+
+    if (!file.name || !file.type || typeof file.size === 'undefined') {
+        console.error('Invalid file object:', file);
+        throw new Error('Invalid image file');
+    }
+
+    console.log('Uploading file:', file.name);
 
     try {
         console.log('File details:', {
@@ -641,6 +652,12 @@ async function uploadImageToImgBB(file) {
             console.log('Compression complete:', processedFile?.name);
         } catch (compressError) {
             console.warn('Compression failed, using original file:', compressError.message);
+            processedFile = file;
+        }
+
+        // Double-check processed file
+        if (!processedFile) {
+            console.error('Processed file is null, using original');
             processedFile = file;
         }
 
@@ -705,6 +722,11 @@ async function uploadImageToImgBB(file) {
 // ====================
 async function compressImage(file, maxSize = 1024 * 1024) {
     return new Promise((resolve, reject) => {
+        if (!file) {
+            reject(new Error('No file to compress'));
+            return;
+        }
+
         if (file.size <= maxSize) {
             console.log('File already small enough, skipping compression');
             resolve(file);
@@ -746,7 +768,8 @@ async function compressImage(file, maxSize = 1024 * 1024) {
                 const tryCompress = () => {
                     canvas.toBlob((blob) => {
                         if (!blob) {
-                            reject(new Error('Failed to create blob'));
+                            console.warn('Failed to create blob, using original file');
+                            resolve(file);
                             return;
                         }
 
@@ -866,6 +889,9 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
         // Reset file inputs
         document.getElementById('cameraInput').value = '';
         document.getElementById('galleryInput').value = '';
+        
+        // Clear current file
+        currentFileForUpload = null;
 
         // Reset typing
         if (window.isTyping !== undefined) {
