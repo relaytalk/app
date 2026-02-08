@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ====================
-// COLOR PICKER SETUP - UPDATED WITH CANCEL BUTTON
+// COLOR PICKER SETUP
 // ====================
 function addColorPickerToDOM() {
     // Check if already exists
@@ -74,46 +74,28 @@ function addColorPickerToDOM() {
         return;
     }
 
-    // Create color picker HTML with cancel button
+    // Create color picker HTML
     const colorPickerHTML = `
-        <div class="color-picker-overlay" id="colorPickerOverlay" style="display: none; opacity: 0;">
-            <div class="color-picker-header">
-                <div class="color-picker-title">Choose text color</div>
-                <button class="color-picker-cancel" onclick="cancelColorSelection()">×</button>
+        <div class="color-picker-overlay" id="colorPickerOverlay" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div style="font-size: 0.9rem; color: #a0a0c0;">Choose text color</div>
+                <button class="color-close-btn" onclick="cancelColorSelection()">×</button>
             </div>
             <div class="color-picker-grid">
-                <div class="color-option" data-color="red" onclick="selectColor('red')" title="Red">
-                    <div class="color-preview" style="background-color: #ff4444;"></div>
-                    <span class="color-name">Red</span>
-                </div>
-                <div class="color-option" data-color="green" onclick="selectColor('green')" title="Green">
-                    <div class="color-preview" style="background-color: #44ff44;"></div>
-                    <span class="color-name">Green</span>
-                </div>
-                <div class="color-option" data-color="blue" onclick="selectColor('blue')" title="Blue">
-                    <div class="color-preview" style="background-color: #4444ff;"></div>
-                    <span class="color-name">Blue</span>
-                </div>
-                <div class="color-option" data-color="white" onclick="selectColor('white')" title="White">
-                    <div class="color-preview" style="background-color: #ffffff; border: 1px solid #ccc;"></div>
-                    <span class="color-name">White</span>
-                </div>
-                <div class="color-option" data-color="black" onclick="selectColor('black')" title="Black">
-                    <div class="color-preview" style="background-color: #000000;"></div>
-                    <span class="color-name">Black</span>
-                </div>
-                <div class="color-option" data-color="yellow" onclick="selectColor('yellow')" title="Yellow">
-                    <div class="color-preview" style="background-color: #ffff44;"></div>
-                    <span class="color-name">Yellow</span>
-                </div>
-                <div class="color-option" data-color="cyan" onclick="selectColor('cyan')" title="Cyan">
-                    <div class="color-preview" style="background-color: #44ffff;"></div>
-                    <span class="color-name">Cyan</span>
-                </div>
+                <div class="color-option" data-color="red" onclick="selectColor('red')" title="Red"></div>
+                <div class="color-option" data-color="green" onclick="selectColor('green')" title="Green"></div>
+                <div class="color-option" data-color="blue" onclick="selectColor('blue')" title="Blue"></div>
+                <div class="color-option" data-color="white" onclick="selectColor('white')" title="White"></div>
+                <div class="color-option" data-color="black" onclick="selectColor('black')" title="Black"></div>
+                <div class="color-option" data-color="yellow" onclick="selectColor('yellow')" title="Yellow"></div>
+                <div class="color-option" data-color="cyan" onclick="selectColor('cyan')" title="Cyan"></div>
+                <div class="color-option" data-color="purple" onclick="selectColor('purple')" title="Purple"></div>
+                <div class="color-option" data-color="pink" onclick="selectColor('pink')" title="Pink"></div>
+                <div class="color-option" data-color="orange" onclick="selectColor('orange')" title="Orange"></div>
             </div>
             <div class="color-picker-footer">
                 <button class="color-clear-btn" onclick="removeSelectedColor()">
-                    <svg viewBox="0 0 24 24" width="16" height="16">
+                    <svg viewBox="0 0 24 24" width="16" height="16" style="margin-right: 5px;">
                         <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
                     </svg>
                     Clear Color
@@ -286,7 +268,7 @@ function selectColor(color) {
 }
 
 // ====================
-// FIXED: SLASH HANDLER - SIMPLIFIED
+// SLASH HANDLER - FIXED
 // ====================
 function setupSlashHandler() {
     const input = document.getElementById('messageInput');
@@ -296,6 +278,9 @@ function setupSlashHandler() {
     }
 
     console.log('✅ Setting up slash handler');
+
+    // Store original oninput handler
+    const originalOnInput = input.oninput;
 
     // Listen for input changes
     input.addEventListener('input', function(e) {
@@ -310,6 +295,11 @@ function setupSlashHandler() {
         else if (colorPickerVisible && text !== '/') {
             console.log('❌ Text changed, hiding color picker');
             hideColorPicker();
+        }
+
+        // Call original handler if exists
+        if (originalOnInput) {
+            originalOnInput.call(this, e);
         }
     });
 
@@ -405,7 +395,7 @@ function setupFileInputListeners() {
 }
 
 // ====================
-// FIXED: IMAGE SELECTION AND PREVIEW
+// IMAGE SELECTION AND PREVIEW
 // ====================
 function handleImageSelect(event) {
     console.log('File selected');
@@ -596,7 +586,7 @@ async function uploadImageFromPreview() {
 }
 
 // ====================
-// FIXED: IMAGE UPLOAD FUNCTION
+// IMAGE UPLOAD FUNCTION
 // ====================
 
 async function uploadImageToImgBB(file) {
@@ -901,7 +891,7 @@ function createImageMessageHTML(msg, isSent, colorAttr, time) {
                      onload="handleImageLoad(this)"
                      onerror="handleImageError(this, '${displayImageUrl}')">
                 <div class="image-overlay">
-                    <svg viewBox="0 0 24 24" class="image-icon">
+                    <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: white;">
                         <path d="M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/>
                     </svg>
                 </div>
