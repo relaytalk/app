@@ -1,6 +1,6 @@
 import { supabase } from '../../utils/supabase.js';
 
-console.log('✨ Image Handler Initialized - CHROME COMPATIBLE VERSION 🎉');
+console.log('✨ Image Handler Initialized - CHROME MOBILE FIXED VERSION 🎉');
 
 // ====================
 // IMAGE HANDLING VARIABLES
@@ -38,6 +38,7 @@ window.uploadImageFromPreview = uploadImageFromPreview;
 window.removeSelectedColor = removeSelectedColor;
 window.cancelColorSelection = cancelColorSelection;
 window.handleImageSelect = handleImageSelect;
+window.isMobileChrome = isMobileChrome;
 
 // Signal that img-handler is loaded
 if (window.chatModules) {
@@ -46,11 +47,22 @@ if (window.chatModules) {
 }
 
 // ====================
+// MOBILE DETECTION
+// ====================
+function isMobileChrome() {
+    const ua = navigator.userAgent;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const isChrome = /Chrome/i.test(ua);
+    return isMobile && isChrome;
+}
+
+// ====================
 // INITIALIZATION
 // ====================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🔧 Initializing image handler...');
     console.log('🌐 Browser:', navigator.userAgent);
+    console.log('📱 Mobile Chrome:', isMobileChrome());
 
     // Initialize after a short delay
     setTimeout(() => {
@@ -59,25 +71,57 @@ document.addEventListener('DOMContentLoaded', () => {
         setupFileInputListeners();
         setupColorPickerClickOutside();
 
-        // Signal ready
-        console.log('✅ Image handler ready!');
+        // Mobile Chrome specific fixes
+        if (isMobileChrome()) {
+            applyMobileChromeFixes();
+        }
 
-        // Add color picker to DOM if not exists
+        console.log('✅ Image handler ready!');
         setTimeout(addColorPickerToDOM, 200);
     }, 500);
 });
 
 // ====================
+// MOBILE CHROME FIXES
+// ====================
+function applyMobileChromeFixes() {
+    console.log('Applying Mobile Chrome fixes...');
+    
+    // Fix for file input not working on mobile Chrome
+    document.addEventListener('touchstart', function(e) {
+        if (e.target.id === 'cameraInput' || e.target.id === 'galleryInput') {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Prevent default behaviors that cause issues
+    document.addEventListener('touchmove', function(e) {
+        if (e.target.classList.contains('message-image-container') || 
+            e.target.classList.contains('message-image')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Fix for iOS Safari input zoom
+    const inputs = document.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 100);
+        });
+    });
+}
+
+// ====================
 // COLOR PICKER SETUP
 // ====================
 function addColorPickerToDOM() {
-    // Check if already exists
     if (document.getElementById('colorPickerOverlay')) {
         console.log('Color picker already in DOM');
         return;
     }
 
-    // Create color picker HTML
     const colorPickerHTML = `
         <div class="color-picker-overlay" id="colorPickerOverlay" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -107,15 +151,12 @@ function addColorPickerToDOM() {
         </div>
     `;
 
-    // Insert after message input wrapper
     const inputWrapper = document.querySelector('.message-input-wrapper');
     if (inputWrapper) {
         inputWrapper.insertAdjacentHTML('beforebegin', colorPickerHTML);
         console.log('✅ Color picker added to DOM');
     } else {
-        // Fallback: add to body
         document.body.insertAdjacentHTML('beforeend', colorPickerHTML);
-        console.log('✅ Color picker added to body');
     }
 }
 
@@ -152,7 +193,6 @@ function showColorPicker() {
             colorPicker.style.opacity = '1';
         }, 10);
 
-        // Clear any selected colors
         const colorOptions = document.querySelectorAll('.color-option');
         colorOptions.forEach(option => {
             option.classList.remove('selected');
@@ -177,8 +217,6 @@ function hideColorPicker() {
         setTimeout(() => {
             colorPicker.style.display = 'none';
         }, 300);
-
-        console.log('✅ Color picker hidden');
     }
 }
 
@@ -186,7 +224,6 @@ function cancelColorSelection() {
     console.log('Cancelling color selection');
     hideColorPicker();
 
-    // Clear slash from input
     const input = document.getElementById('messageInput');
     if (input && input.value === '/') {
         input.value = '';
@@ -201,26 +238,21 @@ function removeSelectedColor() {
     selectedColor = null;
     window.selectedColor = null;
 
-    // Update UI
     const colorOptions = document.querySelectorAll('.color-option');
     colorOptions.forEach(option => {
         option.classList.remove('selected');
     });
 
-    // Show feedback
     if (typeof showToast === 'function') {
         showToast('Color cleared', '↩️', 1000);
     }
 
-    // Hide picker after delay
     setTimeout(() => {
         hideColorPicker();
 
-        // Focus input
         const input = document.getElementById('messageInput');
         if (input) {
             input.focus();
-            // Clear slash if it's just slash
             if (input.value === '/') {
                 input.value = '';
                 if (typeof autoResize === 'function') {
@@ -236,7 +268,6 @@ function selectColor(color) {
     selectedColor = color;
     window.selectedColor = color;
 
-    // Update UI
     const colorOptions = document.querySelectorAll('.color-option');
     colorOptions.forEach(option => {
         option.classList.remove('selected');
@@ -245,20 +276,16 @@ function selectColor(color) {
         }
     });
 
-    // Show feedback
     if (typeof showToast === 'function') {
         showToast(`${color} color selected`, '🎨', 1000);
     }
 
-    // Hide picker after delay
     setTimeout(() => {
         hideColorPicker();
 
-        // Focus input
         const input = document.getElementById('messageInput');
         if (input) {
             input.focus();
-            // Clear slash from input if it's just slash
             if (input.value === '/') {
                 input.value = '';
                 if (typeof autoResize === 'function') {
@@ -281,23 +308,19 @@ function setupSlashHandler() {
 
     console.log('✅ Setting up slash handler');
 
-    // Listen for input changes
     input.addEventListener('input', function(e) {
         const text = e.target.value;
 
-        // Show color picker when slash is typed
         if (text === '/' && !colorPickerVisible) {
             console.log('✅ Slash detected, showing color picker');
             showColorPicker();
         } 
-        // Hide color picker when text changes
         else if (colorPickerVisible && text !== '/') {
             console.log('❌ Text changed, hiding color picker');
             hideColorPicker();
         }
     });
 
-    // Handle Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && colorPickerVisible) {
             e.preventDefault();
@@ -307,12 +330,11 @@ function setupSlashHandler() {
 }
 
 // ====================
-// IMAGE PICKER FUNCTIONS
+// IMAGE PICKER FUNCTIONS - MOBILE FIXED
 // ====================
 function showImagePicker() {
     console.log('Showing image picker');
 
-    // Check authentication
     const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
     if (!currentUser) {
         console.log('User not authenticated');
@@ -322,21 +344,24 @@ function showImagePicker() {
         return;
     }
 
-    isImagePickerOpen = true;
-    const picker = document.getElementById('imagePickerOverlay');
-    if (picker) {
-        picker.style.display = 'flex';
-        setTimeout(() => {
-            picker.style.opacity = '1';
-        }, 10);
+    // MOBILE FIX: Delay to prevent immediate closing
+    setTimeout(() => {
+        isImagePickerOpen = true;
+        const picker = document.getElementById('imagePickerOverlay');
+        if (picker) {
+            picker.style.display = 'flex';
+            setTimeout(() => {
+                picker.style.opacity = '1';
+            }, 10);
 
-        document.body.style.overflow = 'hidden';
-        console.log('✅ Image picker shown');
-    }
+            // MOBILE FIX: Prevent body scrolling when picker is open
+            document.body.style.overflow = 'hidden';
+            console.log('✅ Image picker shown');
+        }
+    }, isMobileChrome() ? 100 : 0);
 }
 
 function closeImagePicker() {
-    // FIX: Allow closing even if preview is active, but check if upload is in progress
     if (uploadInProgress) {
         console.log('Upload in progress, not closing picker');
         return;
@@ -356,19 +381,61 @@ function closeImagePicker() {
 
 function openCamera() {
     console.log('Opening camera');
-    const cameraInput = document.getElementById('cameraInput');
-    if (cameraInput) {
-        cameraInput.value = '';
-        cameraInput.click();
+    
+    // MOBILE FIX: Use different approach for mobile
+    if (isMobileChrome()) {
+        const cameraInput = document.getElementById('cameraInput');
+        if (cameraInput) {
+            // Create a new input element to reset it
+            const newInput = cameraInput.cloneNode(true);
+            cameraInput.parentNode.replaceChild(newInput, cameraInput);
+            newInput.style.display = 'none';
+            newInput.id = 'cameraInput';
+            
+            // Add event listener
+            newInput.addEventListener('change', handleImageSelect);
+            
+            // Trigger click
+            setTimeout(() => {
+                newInput.click();
+            }, 100);
+        }
+    } else {
+        const cameraInput = document.getElementById('cameraInput');
+        if (cameraInput) {
+            cameraInput.value = '';
+            cameraInput.click();
+        }
     }
 }
 
 function openGallery() {
     console.log('Opening gallery');
-    const galleryInput = document.getElementById('galleryInput');
-    if (galleryInput) {
-        galleryInput.value = '';
-        galleryInput.click();
+    
+    // MOBILE FIX: Use different approach for mobile
+    if (isMobileChrome()) {
+        const galleryInput = document.getElementById('galleryInput');
+        if (galleryInput) {
+            // Create a new input element to reset it
+            const newInput = galleryInput.cloneNode(true);
+            galleryInput.parentNode.replaceChild(newInput, galleryInput);
+            newInput.style.display = 'none';
+            newInput.id = 'galleryInput';
+            
+            // Add event listener
+            newInput.addEventListener('change', handleImageSelect);
+            
+            // Trigger click
+            setTimeout(() => {
+                newInput.click();
+            }, 100);
+        }
+    } else {
+        const galleryInput = document.getElementById('galleryInput');
+        if (galleryInput) {
+            galleryInput.value = '';
+            galleryInput.click();
+        }
     }
 }
 
@@ -386,15 +453,14 @@ function setupFileInputListeners() {
 }
 
 // ====================
-// IMAGE SELECTION AND PREVIEW
+// IMAGE SELECTION AND PREVIEW - MOBILE OPTIMIZED
 // ====================
 function handleImageSelect(event) {
     console.log('File selected event triggered', event);
 
     try {
-        // Get the file from the event
         const fileInput = event.target;
-        
+
         if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
             console.error('No files selected in input');
             if (typeof showToast === 'function') {
@@ -404,7 +470,7 @@ function handleImageSelect(event) {
         }
 
         const file = fileInput.files[0];
-        
+
         if (!file) {
             console.error('File object is null');
             if (typeof showToast === 'function') {
@@ -420,7 +486,6 @@ function handleImageSelect(event) {
             lastModified: file.lastModified
         });
 
-        // Validate file
         if (!file.type.startsWith('image/')) {
             console.log('Not an image file:', file.type);
             if (typeof showToast === 'function') {
@@ -430,7 +495,6 @@ function handleImageSelect(event) {
             return;
         }
 
-        // Check file size (max 10MB)
         if (file.size > 10 * 1024 * 1024) {
             console.log('File too large:', file.size);
             if (typeof showToast === 'function') {
@@ -440,11 +504,9 @@ function handleImageSelect(event) {
             return;
         }
 
-        // Store file for upload
         currentFileForUpload = file;
         console.log('✅ File stored for upload:', currentFileForUpload?.name);
-        
-        // Create preview
+
         createImagePreview(file);
 
     } catch (error) {
@@ -452,8 +514,7 @@ function handleImageSelect(event) {
         if (typeof showToast === 'function') {
             showToast('Error selecting image', '❌');
         }
-        
-        // Reset inputs on error
+
         document.getElementById('cameraInput').value = '';
         document.getElementById('galleryInput').value = '';
         currentFileForUpload = null;
@@ -461,8 +522,9 @@ function handleImageSelect(event) {
 }
 
 // ====================
-// IMAGE PREVIEW
+// IMAGE PREVIEW - MOBILE COMPATIBLE
 // ====================
+
 function createImagePreview(file) {
     console.log('Creating image preview for file:', file?.name || 'unknown');
 
@@ -503,23 +565,27 @@ function createImagePreview(file) {
                 </div>
             `;
 
-            // Remove existing preview
             const existingPreview = document.getElementById('imagePreviewOverlay');
             if (existingPreview) {
                 existingPreview.remove();
             }
 
-            // Add new preview
             document.body.insertAdjacentHTML('beforeend', previewHTML);
 
-            // FIX: Close image picker BEFORE showing preview
             closeImagePicker();
 
-            // Show preview
             setTimeout(() => {
                 const preview = document.getElementById('imagePreviewOverlay');
                 if (preview) {
                     preview.style.opacity = '1';
+                    
+                    // MOBILE FIX: Prevent scrolling in preview
+                    if (isMobileChrome()) {
+                        preview.addEventListener('touchmove', function(e) {
+                            e.preventDefault();
+                        }, { passive: false });
+                    }
+                    
                     console.log('✅ Preview shown');
                 }
             }, 10);
@@ -536,11 +602,9 @@ function createImagePreview(file) {
         if (typeof showToast === 'function') {
             showToast('Error reading image file', '❌');
         }
-        // Reset everything
         document.getElementById('cameraInput').value = '';
         document.getElementById('galleryInput').value = '';
         currentFileForUpload = null;
-        // Close picker on error
         closeImagePicker();
     };
 
@@ -550,15 +614,12 @@ function createImagePreview(file) {
 // ====================
 // IMAGE PREVIEW FUNCTIONS
 // ====================
-
 function cancelImageUpload() {
     console.log('Cancelling image upload');
-    
-    // Reset file inputs
+
     document.getElementById('cameraInput').value = '';
     document.getElementById('galleryInput').value = '';
-    
-    // Reset all variables
+
     imagePreviewUrl = null;
     currentFileForUpload = null;
     uploadInProgress = false;
@@ -593,7 +654,6 @@ async function uploadImageFromPreview() {
         return;
     }
 
-    // Get user and friend info first
     const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
     const chatFriend = window.getChatFriend ? window.getChatFriend() : null;
 
@@ -615,7 +675,6 @@ async function uploadImageFromPreview() {
         return;
     }
 
-    // Check if we have a valid file
     if (!currentFileForUpload || !currentFileForUpload.name || !currentFileForUpload.type) {
         console.error('No valid file to upload');
         if (typeof showToast === 'function') {
@@ -628,10 +687,8 @@ async function uploadImageFromPreview() {
     console.log('Starting upload process for:', currentFileForUpload.name);
     uploadInProgress = true;
 
-    // Store file in a local variable
     const fileToUpload = currentFileForUpload;
-    
-    // Remove preview first
+
     const preview = document.getElementById('imagePreviewOverlay');
     if (preview) {
         preview.style.opacity = '0';
@@ -641,7 +698,6 @@ async function uploadImageFromPreview() {
         }, 300);
     }
 
-    // Show loading
     if (typeof showLoading === 'function') {
         showLoading(true, 'Uploading image...');
     }
@@ -662,12 +718,11 @@ async function uploadImageFromPreview() {
 }
 
 // ====================
-// IMAGE UPLOAD TO IMGBB - CHROME FIX
+// IMAGE UPLOAD TO IMGBB - MOBILE CHROME OPTIMIZED
 // ====================
 async function uploadImageToImgBB(file) {
     console.log('uploadImageToImgBB called with file:', file?.name || 'unknown');
 
-    // VALIDATION
     if (!file) {
         console.error('❌ uploadImageToImgBB: File is null');
         throw new Error('No image file selected');
@@ -688,18 +743,14 @@ async function uploadImageToImgBB(file) {
         console.log('File details:', {
             name: file.name,
             type: file.type,
-            size: file.size + ' bytes',
-            isFileInstance: file instanceof File
+            size: file.size + ' bytes'
         });
 
-        // Create a backup copy of the file
         const fileCopy = new File([file], file.name, {
             type: file.type,
             lastModified: Date.now()
         });
 
-        // First compress the image
-        console.log('Compressing image...');
         let processedFile;
         try {
             processedFile = await compressImage(fileCopy);
@@ -709,35 +760,38 @@ async function uploadImageToImgBB(file) {
             processedFile = fileCopy;
         }
 
-        // Final validation
         if (!processedFile) {
             console.error('Processed file is null, using original');
             processedFile = fileCopy;
         }
 
-        // Create FormData
         const formData = new FormData();
         formData.append('key', IMGBB_API_KEY);
         formData.append('image', processedFile);
         formData.append('name', `relaytalk_${Date.now()}_${file.name.replace(/\s+/g, '_')}`);
         formData.append('expiration', '600');
 
-        // Upload to ImgBB
         const url = 'https://api.imgbb.com/1/upload';
         console.log('Uploading to ImgBB...');
+
+        // MOBILE FIX: Different timeout for mobile
+        const timeout = isMobileChrome() ? 30000 : 15000;
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
 
         const response = await fetch(url, {
             method: 'POST',
             body: formData,
+            signal: controller.signal,
             headers: {
-                'Accept': 'application/json',
-                // Add Origin header for CORS
-                'Origin': window.location.origin
+                'Accept': 'application/json'
             },
-            // Add mode for Chrome compatibility
             mode: 'cors',
             credentials: 'omit'
         });
+
+        clearTimeout(timeoutId);
 
         console.log('Response status:', response.status);
 
@@ -760,61 +814,65 @@ async function uploadImageToImgBB(file) {
             throw new Error('No image URL returned from server');
         }
 
-        // Get image URLs
         let imageUrl = data.data.url;
         let thumbnailUrl = data.data.thumb?.url || data.data.url;
 
-        // FIX FOR CHROME: Ensure HTTPS and proper URL format
         imageUrl = ensureHttpsUrl(imageUrl);
         thumbnailUrl = ensureHttpsUrl(thumbnailUrl);
 
         console.log('✅ Image uploaded successfully!');
         console.log('Image URL (fixed):', imageUrl);
 
-        // Send image message
         await sendImageMessage(imageUrl, thumbnailUrl);
 
     } catch (error) {
         console.error('Image upload error:', error);
-        
-        // Check if it's a CORS error
-        if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
-            console.error('CORS error detected. Trying alternative method...');
+
+        if (error.name === 'AbortError') {
+            console.error('Upload timeout');
             if (typeof showToast === 'function') {
-                showToast('Browser security restriction. Please try again or use a different browser.', '⚠️', 4000);
+                showToast('Upload timed out. Please check your connection.', '⚠️', 4000);
+            }
+        } else if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
+            console.error('CORS error detected.');
+            if (typeof showToast === 'function') {
+                showToast('Browser security restriction. Please try again.', '⚠️', 4000);
             }
         }
-        
+
         throw error;
     }
 }
 
 // ====================
-// URL FIXER FOR CHROME
+// URL FIXER - ENHANCED FOR MOBILE
 // ====================
 function ensureHttpsUrl(url) {
     if (!url) return url;
-    
-    // Fix common ImgBB URL issues
+
     let fixedUrl = url;
-    
-    // 1. Ensure HTTPS
+
     if (fixedUrl.startsWith('http://')) {
         fixedUrl = fixedUrl.replace('http://', 'https://');
     }
-    
-    // 2. Remove double https
+
     if (fixedUrl.startsWith('https://https://')) {
         fixedUrl = fixedUrl.replace('https://https://', 'https://');
     }
-    
-    // 3. Ensure proper i.ibb.co domain
+
     if (fixedUrl.includes('i.ibb.co')) {
         fixedUrl = fixedUrl.replace('http://i.ibb.co', 'https://i.ibb.co');
     }
-    
-    // 4. Chrome specific: Add cache buster to prevent caching issues
-    if (navigator.userAgent.includes('Chrome')) {
+
+    // MOBILE FIX: Different cache busting for mobile
+    if (isMobileChrome()) {
+        const cacheBuster = `?mobile_cb=${Date.now()}`;
+        if (!fixedUrl.includes('?')) {
+            fixedUrl += cacheBuster;
+        } else {
+            fixedUrl += '&' + cacheBuster.substring(1);
+        }
+    } else if (navigator.userAgent.includes('Chrome')) {
         const cacheBuster = `?cb=${Date.now()}`;
         if (!fixedUrl.includes('?')) {
             fixedUrl += cacheBuster;
@@ -822,13 +880,13 @@ function ensureHttpsUrl(url) {
             fixedUrl += '&' + cacheBuster.substring(1);
         }
     }
-    
-    console.log('URL fixed for Chrome:', fixedUrl);
+
+    console.log('URL fixed:', fixedUrl);
     return fixedUrl;
 }
 
 // ====================
-// IMAGE COMPRESSION
+// IMAGE COMPRESSION - MOBILE OPTIMIZED
 // ====================
 async function compressImage(file, maxSize = 1024 * 1024) {
     return new Promise((resolve, reject) => {
@@ -856,7 +914,7 @@ async function compressImage(file, maxSize = 1024 * 1024) {
 
                 let width = img.width;
                 let height = img.height;
-                const MAX_DIMENSION = 1200;
+                const MAX_DIMENSION = isMobileChrome() ? 800 : 1200;
 
                 if (width > height && width > MAX_DIMENSION) {
                     height = Math.round((height * MAX_DIMENSION) / width);
@@ -870,10 +928,10 @@ async function compressImage(file, maxSize = 1024 * 1024) {
                 canvas.height = height;
 
                 ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
+                ctx.imageSmoothingQuality = 'medium'; // Lower quality for mobile
                 ctx.drawImage(img, 0, 0, width, height);
 
-                let quality = 0.8;
+                let quality = isMobileChrome() ? 0.7 : 0.8;
 
                 const tryCompress = () => {
                     canvas.toBlob((blob) => {
@@ -914,13 +972,14 @@ async function compressImage(file, maxSize = 1024 * 1024) {
             resolve(file);
         };
 
-    reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
     });
 }
 
 // ====================
-// SEND IMAGE MESSAGE - CHROME FIXED
+// SEND IMAGE MESSAGE - MOBILE COMPATIBLE
 // ====================
+
 async function sendImageMessage(imageUrl, thumbnailUrl) {
     console.log('Sending image message to Supabase');
 
@@ -957,7 +1016,6 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
             sendBtn.disabled = true;
         }
 
-        // Create message data with CHROME FIXED URLs
         const messageData = {
             sender_id: currentUser.id,
             receiver_id: chatFriend.id,
@@ -972,7 +1030,6 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
             thumbnail_url: thumbnailUrl
         });
 
-        // Add color if selected
         if (selectedColor) {
             messageData.color = selectedColor;
             console.log('Adding color to message:', selectedColor);
@@ -980,7 +1037,6 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
             window.selectedColor = null;
         }
 
-        // Insert into database
         const { data, error } = await supabaseClient
             .from('direct_messages')
             .insert(messageData)
@@ -994,19 +1050,15 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
 
         console.log('✅ Image message sent to database:', data.id);
 
-        // Play sound
         if (typeof playSentSound === 'function') {
             playSentSound();
         }
 
-        // Reset file inputs
         document.getElementById('cameraInput').value = '';
         document.getElementById('galleryInput').value = '';
-        
-        // Clear current file
+
         currentFileForUpload = null;
 
-        // Reset typing
         if (window.isTyping !== undefined) {
             window.isTyping = false;
         }
@@ -1037,7 +1089,6 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
             sendBtn.disabled = false;
         }
 
-        // Focus input
         const input = document.getElementById('messageInput');
         if (input) {
             setTimeout(() => input.focus(), 100);
@@ -1046,27 +1097,15 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
 }
 
 // ====================
-// IMAGE MESSAGE HTML CREATOR - CHROME COMPATIBLE
+// IMAGE MESSAGE HTML CREATOR - MOBILE OPTIMIZED
 // ====================
 function createImageMessageHTML(msg, isSent, colorAttr, time) {
     const imageUrl = msg.image_url || '';
     const thumbnailUrl = msg.thumbnail_url || imageUrl;
     const content = msg.content || '';
 
-    // FIX FOR CHROME: Use the ensureHttpsUrl function
     let displayImageUrl = ensureHttpsUrl(imageUrl);
     let displayThumbnailUrl = ensureHttpsUrl(thumbnailUrl);
-
-    // Add cache buster for Chrome only
-    if (navigator.userAgent.includes('Chrome')) {
-        const cacheBuster = `?cb=${Date.now()}`;
-        if (displayImageUrl && !displayImageUrl.includes('?')) {
-            displayImageUrl += cacheBuster;
-        }
-        if (displayThumbnailUrl && !displayThumbnailUrl.includes('?')) {
-            displayThumbnailUrl += cacheBuster;
-        }
-    }
 
     return `
         <div class="message ${isSent ? 'sent' : 'received'} image-message" data-message-id="${msg.id}" ${colorAttr}>
@@ -1091,7 +1130,7 @@ function createImageMessageHTML(msg, isSent, colorAttr, time) {
 }
 
 // ====================
-// IMAGE LOADING HANDLERS - CHROME COMPATIBLE
+// IMAGE LOADING HANDLERS
 // ====================
 function handleImageLoad(imgElement) {
     imgElement.style.opacity = '1';
@@ -1101,30 +1140,25 @@ function handleImageLoad(imgElement) {
 function handleImageError(imgElement, originalUrl) {
     console.error('Failed to load image:', originalUrl);
 
-    // Try to fix the URL
     let fixedUrl = ensureHttpsUrl(originalUrl);
-    
-    // If the URL is different, try loading with the fixed URL
+
     if (fixedUrl !== originalUrl) {
         imgElement.src = fixedUrl;
         return;
     }
 
-    // If still failing, use data URL as fallback
     imgElement.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24"><path fill="%23ccc" d="M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/></svg>';
     imgElement.style.opacity = '1';
     imgElement.classList.add('loaded');
 }
 
 // ====================
-// IMAGE VIEWER FUNCTIONS - CHROME COMPATIBLE
+// IMAGE VIEWER FUNCTIONS
 // ====================
-
 function viewImageFullscreen(imageUrl) {
     const existingViewer = document.getElementById('imageViewerOverlay');
     if (existingViewer) existingViewer.remove();
 
-    // FIX URL for Chrome
     let fixedImageUrl = ensureHttpsUrl(imageUrl);
 
     const viewerHTML = `
@@ -1167,7 +1201,6 @@ function viewImageFullscreen(imageUrl) {
 function handleImageViewerError(imgElement, originalUrl) {
     console.error('Failed to load image in viewer:', originalUrl);
 
-    // Try to fix the URL
     let fixedUrl = ensureHttpsUrl(originalUrl);
     if (fixedUrl !== originalUrl) {
         imgElement.src = fixedUrl;
@@ -1238,4 +1271,4 @@ function copyToClipboard(text) {
         });
 }
 
-console.log('✅ Image handler functions exported - CHROME COMPATIBLE 🎉💯');
+console.log('✅ Image handler functions exported - CHROME MOBILE FIXED 🎉💯');
