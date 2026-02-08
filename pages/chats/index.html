@@ -6,98 +6,47 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <!-- CHROME & SECURITY FIXES -->
+    <!-- SIMPLIFIED CSP FOR CHROME -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self' 
         https://*.supabase.co 
-        https://api.supabase.com 
-        https://*.supabase.in 
         https://api.imgbb.com 
-        https://*.ibb.co 
-        https://i.ibb.co 
-        https://*.github.io 
-        https://github.com;
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' 
-        https://*.supabase.co 
-        https://api.supabase.com 
-        https://cdn.jsdelivr.net;
-        style-src 'self' 'unsafe-inline' 
-        https://fonts.googleapis.com 
-        https://cdn.jsdelivr.net;
+        https://*.ibb.co;
         img-src 'self' data: blob: https: http: 
         https://*.ibb.co 
-        https://i.ibb.co 
-        https://*.supabase.co 
-        https://*.githubusercontent.com;
-        font-src 'self' data: 
-        https://fonts.gstatic.com 
-        https://cdn.jsdelivr.net;
+        https://i.ibb.co;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline';
         connect-src 'self' 
         wss://*.supabase.co 
         https://*.supabase.co 
-        https://api.supabase.com 
-        https://api.imgbb.com 
-        https://*.github.io;
-        frame-src 'self' 
-        https://*.supabase.co;
+        https://api.imgbb.com;
+        font-src 'self' data:;
+        media-src 'self';
         object-src 'none';
         base-uri 'self';
         form-action 'self';
-        frame-ancestors 'self';
     ">
     
-    <!-- PWA / APP SETTINGS -->
+    <!-- APP SETTINGS -->
     <meta name="theme-color" content="#0a0a1a">
-    <meta name="msapplication-TileColor" content="#0a0a1a">
-    <meta name="application-name" content="RelayTalk">
-    <meta name="description" content="Real-time chat application with image sharing">
-    <meta name="keywords" content="chat, messaging, realtime, relaytalk, images, friends">
-    <meta name="author" content="RelayTalk Team">
+    <meta name="description" content="RelayTalk - Real-time chat with friends">
+    <meta name="author" content="RelayTalk">
     
-    <!-- OPEN GRAPH / SOCIAL SHARING -->
-    <meta property="og:title" content="RelayTalk Chat">
-    <meta property="og:description" content="Real-time chat application with image sharing">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://relaytalk.github.io">
-    <meta property="og:image" content="https://i.ibb.co/placeholder/relaytalk-og.png">
-    
-    <!-- TWITTER CARDS -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="RelayTalk Chat">
-    <meta name="twitter:description" content="Real-time chat application with image sharing">
-    <meta name="twitter:image" content="https://i.ibb.co/placeholder/relaytalk-twitter.png">
-    
-    <!-- FAVICONS -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- BROWSER SPECIFIC -->
+    <!-- PREVENT PHONE NUMBER DETECTION -->
     <meta name="format-detection" content="telephone=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- CHROME SPECIFIC -->
-    <meta name="chrome-webstore-item" content="">
-    <meta name="google" content="notranslate">
-    
-    <!-- MICROSOFT SPECIFIC -->
-    <meta name="msapplication-config" content="browserconfig.xml">
-    <meta name="msapplication-TileImage" content="mstile-144x144.png">
     
     <title>RelayTalk Chat</title>
     
     <!-- STYLES -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- FONTS (OPTIONAL - IF YOU WANT CUSTOM FONTS) -->
+    <!-- FONT OPTIONAL -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* Login Overlay Styles */
+        /* Login Overlay Styles - KEEP YOUR EXISTING STYLES */
         .login-overlay {
             position: fixed;
             top: 0;
