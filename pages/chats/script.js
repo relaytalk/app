@@ -38,6 +38,12 @@ function initializeChatApp() {
 function setupApplication() {
     console.log('🔧 Setting up application...');
     
+    // Update placeholder text (removed "Press / for colors")
+    const input = document.getElementById('messageInput');
+    if (input) {
+        input.placeholder = 'Type a message...';
+    }
+
     // Verify critical elements exist
     const criticalElements = [
         'messagesContainer',
