@@ -1271,4 +1271,17 @@ function copyToClipboard(text) {
         });
 }
 
+
+// DNS fallback for Chrome mobile
+function getImgBBUrlWithFallback(imageCode) {
+  const baseUrls = [
+    `https://i.ibb.co/${imageCode}.jpg`,  // CDN URL (most reliable)
+    `https://ibb.co/${imageCode}`,        // Original URL
+  ];
+  
+  return baseUrls[0]; // Always use CDN for mobile
+}
+
+// Use in your image loading:
+const mobileSafeUrl = getImgBBUrlWithFallback('mC76sJ6s');
 console.log('✅ Image handler functions exported - CHROME MOBILE FIXED 🎉💯');
