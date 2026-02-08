@@ -17,14 +17,14 @@ let isTyping = false;
 let typingTimeout = null;
 let friendTypingTimeout = null;
 
-// Global variables for coordination with img-handler
+// Global variables for coordination
 window.colorPickerVisible = false;
 window.currentMessages = currentMessages;
 window.currentUser = null;
 window.chatFriend = null;
 
 // ====================
-// GLOBAL FUNCTION EXPORTS - CORE CHAT
+// GLOBAL FUNCTION EXPORTS
 // ====================
 window.sendMessage = sendMessage;
 window.handleKeyPress = handleKeyPress;
@@ -48,7 +48,7 @@ window.setupRealtime = setupRealtime;
 window.handleTyping = handleTyping;
 window.sendTypingStatus = sendTypingStatus;
 
-// Export user and friend data for img-handler.js
+// Export for img-handler
 window.getCurrentUser = () => currentUser;
 window.getChatFriend = () => chatFriend;
 window.getSupabaseClient = () => supabase;
@@ -742,7 +742,7 @@ function updateFriendStatus(status) {
 }
 
 // ====================
-// INPUT HANDLERS - FIXED
+// INPUT HANDLERS
 // ====================
 function handleKeyPress(event) {
     const input = document.getElementById('messageInput');
@@ -751,6 +751,7 @@ function handleKeyPress(event) {
     if (sendBtn) {
         sendBtn.disabled = !input || input.value.trim() === '';
     }
+    
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
 
