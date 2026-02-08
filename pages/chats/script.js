@@ -467,3 +467,53 @@ console.log('✅ Main coordinator loaded - waiting for modules...');
 
 // Signal that main script is loaded
 window.mainScriptLoaded = true;
+
+
+// ====================
+// CHROME IMAGE RELOAD FIX
+// ====================
+function setupChromeImageFix() {
+    if (!navigator.userAgent.includes('Chrome')) return;
+    
+    console.log('🔧 Setting up Chrome image fix...');
+    
+    // Monitor image loading
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add loaded class to prevent reloads
+        setTimeout(() => {
+            document.querySelectorAll('.message-image').forEach(img => {
+                if (img.complete) {
+                    img.classList.add('loaded');
+                    img.style.opacity = '1';
+                }
+            });
+        }, 500);
+        
+        // Listen for new images
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.addedNodes.length) {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1 && node.classList) {
+                            node.querySelectorAll('.message-image').forEach(img => {
+                                setTimeout(() => {
+                                    img.classList.add('loaded');
+                                    img.style.opacity = '1';
+                                }, 10);
+                            });
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Observe the messages container
+        const container = document.getElementById('messagesContainer');
+        if (container) {
+            observer.observe(container, { childList: true, subtree: true });
+        }
+    });
+}
+
+// Call the fix
+setTimeout(setupChromeImageFix, 1000);
