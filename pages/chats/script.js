@@ -27,12 +27,25 @@ let moduleCheckInterval = setInterval(() => {
 function initializeChatApp() {
     console.log('✅ All chat modules ready!');
 
+    // Setup application when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupApplication);
+    } else {
+        setupApplication();
+    }
+}
+
+function setupApplication() {
+    console.log('🔧 Setting up application...');
+    
     // Verify critical elements exist
     const criticalElements = [
         'messagesContainer',
         'messageInput',
         'sendBtn',
-        'attachBtn'
+        'attachBtn',
+        'customAlert',
+        'customToast'
     ];
 
     let allElementsFound = true;
@@ -46,31 +59,20 @@ function initializeChatApp() {
     if (allElementsFound) {
         console.log('🎉 Chat application ready for use!');
 
-        // Setup event listeners after DOM is fully loaded
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setupApplication);
-        } else {
-            setupApplication();
-        }
+        // Setup global handlers
+        setupGlobalHandlers();
+
+        // Setup module coordination
+        setTimeout(setupModuleCoordination, 300);
+
+        // Setup debug helper
+        window.debugChatState = debugChatState;
     } else {
         console.error('❌ Some critical elements are missing');
         if (typeof showCustomAlert === 'function') {
             showCustomAlert('Some elements failed to load. Please refresh.', '❌', 'Error');
         }
     }
-}
-
-function setupApplication() {
-    console.log('🔧 Setting up application...');
-    
-    // Setup global handlers
-    setupGlobalHandlers();
-
-    // Setup module coordination
-    setTimeout(() => {
-        setupModuleCoordination();
-        console.log('✅ Application setup complete!');
-    }, 300);
 }
 
 // ====================
@@ -89,94 +91,6 @@ function setupGlobalHandlers() {
 
     // Setup keyboard shortcuts
     setupKeyboardShortcuts();
-
-    // Setup input handlers
-    setupInputHandlers();
-}
-
-function setupInputHandlers() {
-    const input = document.getElementById('messageInput');
-    if (!input) return;
-
-    console.log('🔧 Setting up input handlers...');
-
-    // Remove any existing event listeners by cloning
-    const newInput = input.cloneNode(true);
-    if (input.parentNode) {
-        input.parentNode.replaceChild(newInput, input);
-    }
-
-    const freshInput = document.getElementById('messageInput');
-    
-    // Keydown handler for Enter and slash detection
-    freshInput.addEventListener('keydown', function(e) {
-        // Don't prevent slash key
-        if (e.key === '/') {
-            // Let the input event handle slash
-            return;
-        }
-
-        // Enter key sends message
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            
-            // Don't send if color picker is visible
-            if (window.colorPickerVisible === true) {
-                if (freshInput.value === '/') {
-                    freshInput.value = '';
-                    if (typeof autoResize === 'function') {
-                        autoResize(freshInput);
-                    }
-                }
-                return;
-            }
-
-            // Don't send if input is just slash
-            if (freshInput.value === '/') {
-                return;
-            }
-
-            // Send message if input has content
-            if (freshInput.value.trim()) {
-                if (typeof sendMessage === 'function') {
-                    sendMessage();
-                }
-            }
-        }
-    });
-
-    // Input handler for typing, resize, and slash detection
-    freshInput.addEventListener('input', function(e) {
-        const text = e.target.value;
-
-        // Call autoResize
-        if (typeof autoResize === 'function') {
-            autoResize(e.target);
-        }
-
-        // Update send button state
-        const sendBtn = document.getElementById('sendBtn');
-        if (sendBtn) {
-            sendBtn.disabled = !text.trim();
-        }
-
-        // Call typing handler
-        if (typeof handleTyping === 'function') {
-            handleTyping();
-        }
-    });
-
-    // Focus handler
-    freshInput.addEventListener('focus', function() {
-        if (this.value === '/' && !window.colorPickerVisible) {
-            this.value = '';
-            if (typeof autoResize === 'function') {
-                autoResize(this);
-            }
-        }
-    });
-
-    console.log('✅ Input handlers setup complete');
 }
 
 function handleClickOutside(e) {
