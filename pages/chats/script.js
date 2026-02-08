@@ -37,8 +37,8 @@ function initializeChatApp() {
 
 function setupApplication() {
     console.log('🔧 Setting up application...');
-    
-    // Update placeholder text (removed "Press / for colors")
+
+    // Update placeholder text
     const input = document.getElementById('messageInput');
     if (input) {
         input.placeholder = 'Type a message...';
@@ -108,7 +108,7 @@ function handleClickOutside(e) {
 
     // Check if color picker is open
     const isColorPickerOpen = colorPicker && colorPicker.style.display === 'flex';
-    
+
     // Close color picker if clicking outside
     if (isColorPickerOpen && !colorPicker.contains(e.target) && e.target !== input) {
         if (typeof cancelColorSelection === 'function') {
