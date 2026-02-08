@@ -1,6 +1,6 @@
 import { supabase } from '../../utils/supabase.js';
 
-console.log('✨ Image Handler Initialized');
+console.log('✨ Image Handler Initialized - FIXED IMAGE UPLOAD');
 
 // ====================
 // IMAGE HANDLING VARIABLES
@@ -79,7 +79,7 @@ function addColorPickerToDOM() {
         <div class="color-picker-overlay" id="colorPickerOverlay" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <div style="font-size: 0.9rem; color: #a0a0c0;">Choose text color</div>
-                <button class="color-close-btn" onclick="cancelColorSelection()">×</button>
+                <button style="background: rgba(255,255,255,0.1); border: none; color: #a0a0c0; width: 28px; height: 28px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;" onclick="cancelColorSelection()">×</button>
             </div>
             <div class="color-picker-grid">
                 <div class="color-option" data-color="red" onclick="selectColor('red')" title="Red"></div>
@@ -117,7 +117,6 @@ function addColorPickerToDOM() {
 }
 
 function initializeColorPicker() {
-    // Make sure color picker is in DOM
     setTimeout(() => {
         if (!document.getElementById('colorPickerOverlay')) {
             addColorPickerToDOM();
@@ -252,7 +251,7 @@ function selectColor(color) {
     setTimeout(() => {
         hideColorPicker();
 
-        // Focus input but DON'T add /color to input
+        // Focus input
         const input = document.getElementById('messageInput');
         if (input) {
             input.focus();
@@ -268,7 +267,7 @@ function selectColor(color) {
 }
 
 // ====================
-// SLASH HANDLER - FIXED
+// SLASH HANDLER
 // ====================
 function setupSlashHandler() {
     const input = document.getElementById('messageInput');
@@ -279,9 +278,6 @@ function setupSlashHandler() {
 
     console.log('✅ Setting up slash handler');
 
-    // Store original oninput handler
-    const originalOnInput = input.oninput;
-
     // Listen for input changes
     input.addEventListener('input', function(e) {
         const text = e.target.value;
@@ -291,15 +287,10 @@ function setupSlashHandler() {
             console.log('✅ Slash detected, showing color picker');
             showColorPicker();
         } 
-        // Hide color picker when text changes (unless it's still just slash)
+        // Hide color picker when text changes
         else if (colorPickerVisible && text !== '/') {
             console.log('❌ Text changed, hiding color picker');
             hideColorPicker();
-        }
-
-        // Call original handler if exists
-        if (originalOnInput) {
-            originalOnInput.call(this, e);
         }
     });
 
@@ -313,7 +304,7 @@ function setupSlashHandler() {
 }
 
 // ====================
-// IMAGE PICKER FUNCTIONS
+// IMAGE PICKER FUNCTIONS - FIXED
 // ====================
 function showImagePicker() {
     console.log('Showing image picker');
@@ -334,8 +325,6 @@ function showImagePicker() {
         picker.style.display = 'flex';
         setTimeout(() => {
             picker.style.opacity = '1';
-            const container = picker.querySelector('.image-picker-container');
-            if (container) container.style.transform = 'translateY(0)';
         }, 10);
 
         document.body.style.overflow = 'hidden';
@@ -353,8 +342,6 @@ function closeImagePicker() {
     const picker = document.getElementById('imagePickerOverlay');
     if (picker) {
         picker.style.opacity = '0';
-        const container = picker.querySelector('.image-picker-container');
-        if (container) container.style.transform = 'translateY(100%)';
         setTimeout(() => {
             picker.style.display = 'none';
             document.body.style.overflow = '';
@@ -395,30 +382,32 @@ function setupFileInputListeners() {
 }
 
 // ====================
-// IMAGE SELECTION AND PREVIEW
+// FIXED: IMAGE SELECTION AND PREVIEW
 // ====================
 function handleImageSelect(event) {
-    console.log('File selected');
+    console.log('File selected event triggered');
+    
+    // Get the file from the event
     const file = event.target.files[0];
-
-    // Check if file exists
+    
     if (!file) {
-        console.log('No file selected');
+        console.log('No file selected in event');
         if (typeof showToast === 'function') {
             showToast('No image selected', '⚠️');
         }
         return;
     }
 
-    console.log('File details:', {
+    console.log('File selected:', {
         name: file.name,
         type: file.type,
-        size: file.size + ' bytes'
+        size: file.size,
+        lastModified: file.lastModified
     });
 
-    // Check file type
+    // Validate file
     if (!file.type.startsWith('image/')) {
-        console.log('Not an image file');
+        console.log('Not an image file:', file.type);
         if (typeof showToast === 'function') {
             showToast('Please select an image file', '⚠️');
         }
@@ -427,7 +416,7 @@ function handleImageSelect(event) {
 
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-        console.log('File too large');
+        console.log('File too large:', file.size);
         if (typeof showToast === 'function') {
             showToast('Image too large. Max 10MB', '⚠️');
         }
@@ -436,17 +425,26 @@ function handleImageSelect(event) {
 
     // Store file for upload
     currentFileForUpload = file;
+    console.log('✅ File stored for upload:', currentFileForUpload?.name);
 
     // Create preview
     createImagePreview(file);
 
-    // Reset input
+    // Reset input for next selection
     event.target.value = '';
-    console.log('✅ File ready for upload');
 }
 
+// ====================
+// FIXED: IMAGE PREVIEW
+// ====================
 function createImagePreview(file) {
-    console.log('Creating image preview');
+    console.log('Creating image preview for:', file.name);
+    
+    if (!file) {
+        console.error('No file provided for preview');
+        return;
+    }
+
     const reader = new FileReader();
 
     reader.onload = function(e) {
@@ -475,17 +473,19 @@ function createImagePreview(file) {
             </div>
         `;
 
+        // Remove existing preview
         const existingPreview = document.getElementById('imagePreviewOverlay');
         if (existingPreview) {
             existingPreview.remove();
         }
 
+        // Add new preview
         document.body.insertAdjacentHTML('beforeend', previewHTML);
-        console.log('✅ Preview HTML added');
-
+        
         // Close image picker
         closeImagePicker();
 
+        // Show preview
         setTimeout(() => {
             const preview = document.getElementById('imagePreviewOverlay');
             if (preview) {
@@ -506,12 +506,13 @@ function createImagePreview(file) {
 }
 
 // ====================
-// IMAGE PREVIEW FUNCTIONS
+// IMAGE PREVIEW FUNCTIONS - FIXED
 // ====================
 function cancelImageUpload() {
     console.log('Cancelling image upload');
     imagePreviewUrl = null;
     currentFileForUpload = null;
+    
     const preview = document.getElementById('imagePreviewOverlay');
     if (preview) {
         preview.style.opacity = '0';
@@ -526,6 +527,9 @@ function sendImagePreview() {
     console.log('sendImagePreview called');
     if (!currentFileForUpload) {
         console.log('No image to send');
+        if (typeof showToast === 'function') {
+            showToast('No image selected', '⚠️');
+        }
         return;
     }
     uploadImageFromPreview();
@@ -534,6 +538,7 @@ function sendImagePreview() {
 async function uploadImageFromPreview() {
     console.log('Uploading image from preview');
 
+    // Get user and friend info
     const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
     const chatFriend = window.getChatFriend ? window.getChatFriend() : null;
 
@@ -555,7 +560,7 @@ async function uploadImageFromPreview() {
         return;
     }
 
-    // Check if file exists before uploading
+    // Check if file exists
     if (!currentFileForUpload) {
         console.log('No file to upload');
         if (typeof showToast === 'function') {
@@ -565,7 +570,9 @@ async function uploadImageFromPreview() {
         return;
     }
 
-    console.log('Starting upload process');
+    console.log('Starting upload process for:', currentFileForUpload.name);
+    
+    // Cancel preview first
     cancelImageUpload();
 
     // Show loading
@@ -586,16 +593,26 @@ async function uploadImageFromPreview() {
 }
 
 // ====================
-// IMAGE UPLOAD FUNCTION
+// FIXED: IMAGE UPLOAD TO IMGBB
 // ====================
 
 async function uploadImageToImgBB(file) {
-    console.log('Starting ImgBB upload');
+    console.log('Starting ImgBB upload for file:', file?.name || 'unknown');
 
-    // Check if file exists and has size property
-    if (!file || typeof file.size === 'undefined') {
-        console.error('Invalid file object:', file);
+    // Check if file exists
+    if (!file) {
+        console.error('Invalid file object: null');
         throw new Error('No valid image file selected');
+    }
+
+    // Check if file has required properties
+    if (!file.name || !file.type || typeof file.size === 'undefined') {
+        console.error('File missing required properties:', {
+            name: file.name,
+            type: file.type,
+            size: file.size
+        });
+        throw new Error('Invalid file format');
     }
 
     try {
@@ -605,21 +622,36 @@ async function uploadImageToImgBB(file) {
             size: file.size + ' bytes'
         });
 
-        // Compress image if needed
-        console.log('Compressing image if needed...');
-        const processedFile = await compressImage(file);
+        // First compress the image
+        console.log('Compressing image...');
+        let processedFile;
+        try {
+            processedFile = await compressImage(file);
+            console.log('Compression complete:', processedFile?.name);
+        } catch (compressError) {
+            console.warn('Compression failed, using original file:', compressError.message);
+            processedFile = file; // Use original if compression fails
+        }
 
         // Create FormData for ImgBB
         const formData = new FormData();
+        formData.append('key', IMGBB_API_KEY);
         formData.append('image', processedFile);
+        
+        // Optional parameters for better quality
+        formData.append('name', `relaytalk_${Date.now()}`);
+        formData.append('expiration', '600'); // 10 minutes expiration
 
         // ImgBB endpoint
-        const url = `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`;
+        const url = 'https://api.imgbb.com/1/upload';
         console.log('Uploading to ImgBB...');
 
         const response = await fetch(url, {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
         });
 
         console.log('Response status:', response.status);
@@ -631,123 +663,157 @@ async function uploadImageToImgBB(file) {
         }
 
         const data = await response.json();
-        console.log('ImgBB response:', data);
+        console.log('ImgBB response received:', data);
 
         if (!data.success) {
-            console.error('ImgBB error:', data.error);
+            console.error('ImgBB API error:', data.error?.message || 'Unknown error');
             throw new Error(data.error?.message || 'Upload failed');
         }
 
-        // Get image URL from response
-        const imageUrl = data.data.url || data.data.display_url;
-        const thumbnailUrl = data.data.thumb?.url || data.data.thumb_url || imageUrl;
-
-        if (!imageUrl) {
-            throw new Error('No image URL returned');
+        if (!data.data || !data.data.url) {
+            console.error('No URL in response:', data);
+            throw new Error('No image URL returned from server');
         }
 
-        console.log('✅ Image uploaded successfully:', imageUrl);
+        // Get image URLs from response
+        const imageUrl = data.data.url;
+        const thumbnailUrl = data.data.thumb?.url || data.data.url;
+        const mediumUrl = data.data.medium?.url || data.data.url;
+
+        console.log('✅ Image uploaded successfully!');
+        console.log('Image URL:', imageUrl);
+        console.log('Thumbnail URL:', thumbnailUrl);
 
         // Send image message
         await sendImageMessage(imageUrl, thumbnailUrl);
 
     } catch (error) {
         console.error('Image upload error:', error);
-        if (typeof showRetryAlert === 'function') {
-            showRetryAlert('Failed to upload image: ' + error.message, () => {
+        
+        // Show user-friendly error message
+        let errorMessage = 'Failed to upload image';
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+            errorMessage = 'Network error. Please check your connection.';
+        } else if (error.message.includes('413')) {
+            errorMessage = 'Image too large. Please try a smaller image.';
+        } else if (error.message.includes('Invalid file')) {
+            errorMessage = 'Invalid image file. Please try another image.';
+        }
+        
+        if (typeof showToast === 'function') {
+            showToast(errorMessage, '❌', 3000);
+        }
+        
+        // Also show retry option
+        if (typeof showRetryAlert === 'function' && file) {
+            showRetryAlert(errorMessage, () => {
                 uploadImageToImgBB(file);
             });
-        } else if (typeof showToast === 'function') {
-            showToast('Upload failed: ' + error.message, '❌');
         }
+        
         throw error;
     }
 }
 
-async function compressImage(file, maxSize = 800 * 1024) {
-    // Check if file exists
-    if (!file) {
-        throw new Error('No file provided for compression');
-    }
-
-    // Check if file has size property
-    if (typeof file.size === 'undefined') {
-        console.warn('File missing size property, skipping compression');
-        return file;
-    }
-
-    if (file.size <= maxSize) {
-        return file;
-    }
-
+// ====================
+// FIXED: IMAGE COMPRESSION
+// ====================
+async function compressImage(file, maxSize = 1024 * 1024) { // 1MB default
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
+        // If file is already small enough, return as-is
+        if (file.size <= maxSize) {
+            console.log('File already small enough, skipping compression');
+            resolve(file);
+            return;
+        }
 
+        console.log('Compressing file from', file.size, 'bytes');
+        
+        const reader = new FileReader();
+        
         reader.onload = function(e) {
             const img = new Image();
-            img.src = e.target.result;
-
+            
             img.onload = function() {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-
+                
+                // Calculate new dimensions (max 1200px on longest side)
                 let width = img.width;
                 let height = img.height;
-                const maxDimension = 1200;
-
-                if (width > height && width > maxDimension) {
-                    height = Math.round((height * maxDimension) / width);
-                    width = maxDimension;
-                } else if (height > maxDimension) {
-                    width = Math.round((width * maxDimension) / height);
-                    height = maxDimension;
+                const MAX_DIMENSION = 1200;
+                
+                if (width > height && width > MAX_DIMENSION) {
+                    height = Math.round((height * MAX_DIMENSION) / width);
+                    width = MAX_DIMENSION;
+                } else if (height > MAX_DIMENSION) {
+                    width = Math.round((width * MAX_DIMENSION) / height);
+                    height = MAX_DIMENSION;
                 }
-
+                
                 canvas.width = width;
                 canvas.height = height;
-
+                
+                // Draw image with smoothing
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, 0, 0, width, height);
-
-                const compressWithQuality = (quality = 0.8) => {
+                
+                // Convert to blob with quality adjustment
+                let quality = 0.8;
+                
+                const tryCompress = () => {
                     canvas.toBlob((blob) => {
                         if (!blob) {
                             reject(new Error('Failed to create blob'));
                             return;
                         }
-
+                        
+                        console.log('Compressed to:', blob.size, 'bytes, quality:', quality);
+                        
                         if (blob.size <= maxSize || quality <= 0.3) {
+                            // Create new file from blob
                             const compressedFile = new File([blob], file.name, {
                                 type: 'image/jpeg',
                                 lastModified: Date.now()
                             });
                             resolve(compressedFile);
                         } else {
-                            compressWithQuality(quality - 0.1);
+                            // Reduce quality and try again
+                            quality -= 0.1;
+                            tryCompress();
                         }
                     }, 'image/jpeg', quality);
                 };
-
-                compressWithQuality();
+                
+                tryCompress();
             };
-
-            img.onerror = () => reject(new Error('Failed to load image'));
+            
+            img.onerror = () => {
+                console.warn('Failed to load image for compression, using original');
+                resolve(file); // Fallback to original
+            };
+            
+            img.src = e.target.result;
         };
-
-        reader.onerror = () => reject(new Error('Failed to read file'));
+        
+        reader.onerror = () => {
+            console.warn('Failed to read file for compression, using original');
+            resolve(file); // Fallback to original
+        };
+        
+        reader.readAsDataURL(file);
     });
 }
 
 // ====================
-// SEND IMAGE MESSAGE
+// FIXED: SEND IMAGE MESSAGE
 // ====================
 async function sendImageMessage(imageUrl, thumbnailUrl) {
     console.log('Sending image message to Supabase');
 
     if (window.isSending) {
-        console.log('Already sending a message');
+        console.log('Already sending a message, please wait');
         return;
     }
 
@@ -756,9 +822,9 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
     const supabaseClient = window.getSupabaseClient ? window.getSupabaseClient() : supabase;
 
     if (!currentUser || !chatFriend || !supabaseClient) {
-        console.error('Missing required data');
+        console.error('Missing required data for sending image');
         if (typeof showToast === 'function') {
-            showToast('Cannot send image', '❌');
+            showToast('Cannot send image - missing user data', '❌');
         }
         return;
     }
@@ -779,29 +845,36 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
             sendBtn.disabled = true;
         }
 
+        // Create message data
         const messageData = {
             sender_id: currentUser.id,
             receiver_id: chatFriend.id,
-            content: '',
+            content: '', // Empty content for image-only messages
             image_url: imageUrl,
             thumbnail_url: thumbnailUrl,
             created_at: new Date().toISOString()
         };
 
-        console.log('Sending message data:', messageData);
+        console.log('Sending message data:', {
+            ...messageData,
+            image_url: imageUrl?.substring(0, 100) + '...' // Truncate for logging
+        });
 
         // Add color if selected
         if (selectedColor) {
             messageData.color = selectedColor;
+            console.log('Adding color to message:', selectedColor);
             selectedColor = null;
             window.selectedColor = null;
 
+            // Clear UI selection
             const colorOptions = document.querySelectorAll('.color-option');
             colorOptions.forEach(option => {
                 option.classList.remove('selected');
             });
         }
 
+        // Insert into database
         const { data, error } = await supabaseClient
             .from('direct_messages')
             .insert(messageData)
@@ -809,7 +882,7 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
             .single();
 
         if (error) {
-            console.error('Supabase error:', error);
+            console.error('Supabase insert error:', error);
             throw error;
         }
 
@@ -844,23 +917,27 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
 
         console.log('✅ Image message process complete');
 
-        setTimeout(() => {
-            if (input) input.focus();
-            window.isSending = false;
-            if (sendBtn) {
-                sendBtn.innerHTML = originalHTML;
-                sendBtn.disabled = false;
-            }
-        }, 300);
+        // Show success toast
+        if (typeof showToast === 'function') {
+            showToast('Image sent successfully!', '✅', 2000);
+        }
+
     } catch (error) {
         console.error('Send image failed:', error);
         if (typeof showCustomAlert === 'function') {
             showCustomAlert('Failed to send image: ' + error.message, '❌', 'Error');
         }
+    } finally {
         window.isSending = false;
         if (sendBtn) {
             sendBtn.innerHTML = originalHTML;
             sendBtn.disabled = false;
+        }
+        
+        // Focus input
+        const input = document.getElementById('messageInput');
+        if (input) {
+            setTimeout(() => input.focus(), 100);
         }
     }
 }
@@ -873,7 +950,7 @@ function createImageMessageHTML(msg, isSent, colorAttr, time) {
     const thumbnailUrl = msg.thumbnail_url || imageUrl;
     const content = msg.content || '';
 
-    // Use https for ImgBB images
+    // Ensure HTTPS for ImgBB images
     let displayImageUrl = imageUrl;
     let displayThumbnailUrl = thumbnailUrl;
 
@@ -913,7 +990,7 @@ function handleImageLoad(imgElement) {
 function handleImageError(imgElement, originalUrl) {
     console.error('Failed to load image:', originalUrl);
 
-    // Try https if failed with http
+    // Try HTTPS if failed with HTTP
     if (originalUrl && originalUrl.includes('i.ibb.co') && originalUrl.startsWith('http://')) {
         const httpsUrl = originalUrl.replace('http://', 'https://');
         imgElement.src = httpsUrl;
@@ -1124,4 +1201,4 @@ function showToast(message, icon = 'ℹ️', duration = 3000) {
     }
 }
 
-console.log('✅ Image handler functions exported');
+console.log('✅ Image handler functions exported - FIXED UPLOAD');
