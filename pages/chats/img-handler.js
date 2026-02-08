@@ -792,6 +792,11 @@ async function uploadImageToImgBB(file) {
 // ====================
 // URL FIXER FOR CHROME
 // ====================
+
+
+// ====================
+// URL FIXER FOR CHROME - FIXED VERSION
+// ====================
 function ensureHttpsUrl(url) {
     if (!url) return url;
     
@@ -813,19 +818,10 @@ function ensureHttpsUrl(url) {
         fixedUrl = fixedUrl.replace('http://i.ibb.co', 'https://i.ibb.co');
     }
     
-    // 4. Chrome specific: Add cache buster to prevent caching issues
-    if (navigator.userAgent.includes('Chrome')) {
-        const cacheBuster = `?cb=${Date.now()}`;
-        if (!fixedUrl.includes('?')) {
-            fixedUrl += cacheBuster;
-        } else {
-            fixedUrl += '&' + cacheBuster.substring(1);
-        }
-    }
-    
     console.log('URL fixed for Chrome:', fixedUrl);
     return fixedUrl;
 }
+
 
 // ====================
 // IMAGE COMPRESSION
@@ -1048,6 +1044,11 @@ async function sendImageMessage(imageUrl, thumbnailUrl) {
 // ====================
 // IMAGE MESSAGE HTML CREATOR - CHROME COMPATIBLE
 // ====================
+ 
+
+// ====================
+// IMAGE MESSAGE HTML CREATOR - CHROME COMPATIBLE (FINAL)
+// ====================
 function createImageMessageHTML(msg, isSent, colorAttr, time) {
     const imageUrl = msg.image_url || '';
     const thumbnailUrl = msg.thumbnail_url || imageUrl;
@@ -1057,17 +1058,6 @@ function createImageMessageHTML(msg, isSent, colorAttr, time) {
     let displayImageUrl = ensureHttpsUrl(imageUrl);
     let displayThumbnailUrl = ensureHttpsUrl(thumbnailUrl);
 
-    // Add cache buster for Chrome only
-    if (navigator.userAgent.includes('Chrome')) {
-        const cacheBuster = `?cb=${Date.now()}`;
-        if (displayImageUrl && !displayImageUrl.includes('?')) {
-            displayImageUrl += cacheBuster;
-        }
-        if (displayThumbnailUrl && !displayThumbnailUrl.includes('?')) {
-            displayThumbnailUrl += cacheBuster;
-        }
-    }
-
     return `
         <div class="message ${isSent ? 'sent' : 'received'} image-message" data-message-id="${msg.id}" ${colorAttr}>
             <div class="message-image-container" onclick="viewImageFullscreen('${displayImageUrl}')">
@@ -1075,7 +1065,8 @@ function createImageMessageHTML(msg, isSent, colorAttr, time) {
                      alt="Shared image" 
                      class="message-image"
                      onload="handleImageLoad(this)"
-                     onerror="handleImageError(this, '${displayImageUrl}')">
+                     onerror="handleImageError(this, '${displayImageUrl}')"
+                     crossorigin="anonymous">
                 <div class="image-overlay">
                     <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: white;">
                         <path d="M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/>
@@ -1090,12 +1081,21 @@ function createImageMessageHTML(msg, isSent, colorAttr, time) {
     `;
 }
 
+
+// ====================
+// IMAGE LOADING HANDLERS - CHROME COMPATIBLE
+// ====================
+
+
 // ====================
 // IMAGE LOADING HANDLERS - CHROME COMPATIBLE
 // ====================
 function handleImageLoad(imgElement) {
-    imgElement.style.opacity = '1';
-    imgElement.classList.add('loaded');
+    // Chrome fix: Add small delay to prevent flickering
+    setTimeout(() => {
+        imgElement.style.opacity = '1';
+        imgElement.classList.add('loaded');
+    }, 10);
 }
 
 function handleImageError(imgElement, originalUrl) {
@@ -1112,9 +1112,14 @@ function handleImageError(imgElement, originalUrl) {
 
     // If still failing, use data URL as fallback
     imgElement.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24"><path fill="%23ccc" d="M21,19V5C21,3.9 20.1,3 19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/></svg>';
-    imgElement.style.opacity = '1';
-    imgElement.classList.add('loaded');
+    
+    // Chrome fix: Delay the opacity change
+    setTimeout(() => {
+        imgElement.style.opacity = '1';
+        imgElement.classList.add('loaded');
+    }, 10);
 }
+
 
 // ====================
 // IMAGE VIEWER FUNCTIONS - CHROME COMPATIBLE
