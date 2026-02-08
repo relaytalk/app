@@ -22,6 +22,10 @@ window.colorPickerVisible = false;
 window.currentMessages = currentMessages;
 window.currentUser = null;
 window.chatFriend = null;
+window.isSending = false;
+window.isTyping = false;
+window.typingTimeout = null;
+window.friendTypingTimeout = null;
 
 // ====================
 // GLOBAL FUNCTION EXPORTS
@@ -47,6 +51,9 @@ window.addMessageToUI = addMessageToUI;
 window.setupRealtime = setupRealtime;
 window.handleTyping = handleTyping;
 window.sendTypingStatus = sendTypingStatus;
+window.showLoading = showLoading;
+window.refreshChat = refreshChat;
+window.reconnectRealtime = reconnectRealtime;
 
 // Export for img-handler
 window.getCurrentUser = () => currentUser;
@@ -229,6 +236,7 @@ async function sendMessage() {
     }
 
     isSending = true;
+    window.isSending = true;
     const sendBtn = document.getElementById('sendBtn');
     const originalHTML = sendBtn.innerHTML;
 
@@ -269,15 +277,18 @@ async function sendMessage() {
         autoResize(input);
 
         isTyping = false;
+        window.isTyping = false;
         if (typingTimeout) {
             clearTimeout(typingTimeout);
             typingTimeout = null;
+            window.typingTimeout = null;
         }
         sendTypingStatus(false);
 
         setTimeout(() => {
             if (input) input.focus();
             isSending = false;
+            window.isSending = false;
             sendBtn.innerHTML = originalHTML;
             sendBtn.disabled = false;
         }, 300);
@@ -285,6 +296,7 @@ async function sendMessage() {
         console.error('Send failed:', error);
         showCustomAlert('Failed to send message: ' + error.message, '❌', 'Error');
         isSending = false;
+        window.isSending = false;
         sendBtn.innerHTML = originalHTML;
         sendBtn.disabled = false;
     }
@@ -365,8 +377,8 @@ function showMessages(messages) {
         // Check if message has image
         if (msg.image_url) {
             // Try to use image message HTML creator from img-handler
-            if (typeof createImageMessageHTML === 'function') {
-                html += createImageMessageHTML(msg, isSent, colorAttr, time);
+            if (typeof window.createImageMessageHTML === 'function') {
+                html += window.createImageMessageHTML(msg, isSent, colorAttr, time);
             } else {
                 // Fallback to text with image indicator
                 html += `
@@ -416,8 +428,8 @@ function addMessageToUI(message, isFromRealtime = false) {
 
     if (message.image_url) {
         // Try to use image message HTML creator from img-handler
-        if (typeof createImageMessageHTML === 'function') {
-            messageHTML = createImageMessageHTML(message, isSent, colorAttr, time);
+        if (typeof window.createImageMessageHTML === 'function') {
+            messageHTML = window.createImageMessageHTML(message, isSent, colorAttr, time);
         } else {
             // Fallback
             messageHTML = `
@@ -481,9 +493,11 @@ function setupRealtime(friendId) {
     // Clean up existing channels
     if (chatChannel) {
         supabase.removeChannel(chatChannel);
+        window.chatChannel = null;
     }
     if (statusChannel) {
         supabase.removeChannel(statusChannel);
+        window.statusChannel = null;
     }
 
     // Chat message channel
@@ -511,6 +525,8 @@ function setupRealtime(friendId) {
         })
         .subscribe();
 
+    window.chatChannel = chatChannel;
+
     // Status update channel
     statusChannel = supabase.channel(`status:${friendId}`)
         .on('postgres_changes', {
@@ -534,24 +550,29 @@ function setupRealtime(friendId) {
         })
         .subscribe();
 
+    window.statusChannel = statusChannel;
+
     console.log('✅ Realtime active');
 }
 
 // ====================
 // TYPING FUNCTIONS
 // ====================
+
 function handleTyping() {
     if (!isTyping) {
         isTyping = true;
+        window.isTyping = true;
         sendTypingStatus(true);
     }
 
     if (typingTimeout) clearTimeout(typingTimeout);
-
     typingTimeout = setTimeout(() => {
         isTyping = false;
+        window.isTyping = false;
         sendTypingStatus(false);
     }, 2000);
+    window.typingTimeout = typingTimeout;
 }
 
 async function sendTypingStatus(isTyping) {
@@ -612,6 +633,7 @@ function showTypingIndicator(show) {
             friendTypingTimeout = setTimeout(() => {
                 indicator.style.display = 'none';
             }, 3000);
+            window.friendTypingTimeout = friendTypingTimeout;
         }
     }
 }
@@ -751,7 +773,7 @@ function handleKeyPress(event) {
     if (sendBtn) {
         sendBtn.disabled = !input || input.value.trim() === '';
     }
-    
+
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
 
@@ -956,6 +978,27 @@ function showLoading(show, text = 'Sending...') {
         setTimeout(() => {
             loadingOverlay.style.display = 'none';
         }, 300);
+    }
+}
+
+// ====================
+// REFRESH FUNCTIONS
+// ====================
+function refreshChat() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const friendId = urlParams.get('friendId');
+    if (friendId) {
+        loadOldMessages(friendId);
+        showToast('Chat refreshed', '🔄');
+    }
+}
+
+function reconnectRealtime() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const friendId = urlParams.get('friendId');
+    if (friendId) {
+        setupRealtime(friendId);
+        showToast('Reconnected', '🔗');
     }
 }
 
