@@ -1,5 +1,5 @@
 // ====================
-// MAIN SCRIPT - MOBILE CHROME FIXED VERSION
+// MAIN SCRIPT - MULTI-IMAGE SUPPORT
 // ====================
 console.log('🚀 RelayTalk Chat Application Starting...');
 
@@ -74,7 +74,7 @@ let moduleCheckInterval = setInterval(() => {
         clearInterval(moduleCheckInterval);
         initializeChatApp();
     }
-}, 100);
+}, 50);
 
 // Main initialization after modules are ready
 function initializeChatApp() {
@@ -108,7 +108,7 @@ function setupApplication() {
                         this.style.fontSize = '16px';
                     }
                     window.scrollTo(0, 0);
-                }, 100);
+                }, 50);
             });
 
             input.addEventListener('blur', function() {
@@ -144,7 +144,7 @@ function setupApplication() {
         setupGlobalHandlers();
 
         // Setup module coordination
-        setTimeout(setupModuleCoordination, 300);
+        setTimeout(setupModuleCoordination, 150);
 
         // Setup debug helper
         window.debugChatState = debugChatState;
@@ -247,20 +247,19 @@ function applyMobileCSSFixes() {
             -webkit-overflow-scrolling: touch !important;
         }
     `;
-    
+
     document.head.appendChild(style);
     console.log('✅ Mobile CSS fixes applied');
 }
 
 function updateViewportHeightForMobile() {
     if (!isMobileChrome() && !isIOSChrome()) return;
-    
+
     function updateVH() {
         const vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty('--vh', `${vh}px`);
-        console.log('📐 Viewport height updated:', vh);
     }
-    
+
     updateVH();
     window.addEventListener('resize', updateVH);
     window.addEventListener('orientationchange', updateVH);
@@ -292,9 +291,9 @@ function setupMobileChromeFixes() {
                     window.scrollTo(0, 0);
                     input.style.fontSize = '16px';
                 }
-            }, 100);
+            }, 50);
         });
-        
+
         input.addEventListener('blur', () => {
             if (isIOSChrome()) {
                 input.style.fontSize = '';
@@ -376,7 +375,7 @@ function setupTouchHandlers() {
     const messagesContainer = document.getElementById('messagesContainer');
     if (messagesContainer) {
         messagesContainer.style.webkitOverflowScrolling = 'touch';
-        
+
         messagesContainer.addEventListener('touchstart', function(e) {
             this.style.overflowY = 'hidden';
         });
@@ -493,9 +492,9 @@ function setupImageURLFixing() {
     // Override URL fixing for all image URLs
     window.fixAllImageURLs = function() {
         if (!isMobileChrome() && !isIOSChrome()) return;
-        
+
         console.log('🔧 Fixing all image URLs for mobile...');
-        
+
         // Fix existing image URLs
         const images = document.querySelectorAll('img[src*="ibb.co"], img[src*="imgbb.com"]');
         images.forEach(img => {
@@ -504,11 +503,10 @@ function setupImageURLFixing() {
                 const fixedSrc = fixImgBBUrls(originalSrc);
                 if (fixedSrc !== originalSrc) {
                     img.src = fixedSrc;
-                    console.log('Fixed image URL:', originalSrc, '→', fixedSrc);
                 }
             }
         });
-        
+
         // Fix background images
         const elements = document.querySelectorAll('[style*="background-image"]');
         elements.forEach(el => {
@@ -523,15 +521,15 @@ function setupImageURLFixing() {
             }
         });
     };
-    
+
     // Run initially and on new messages
-    setTimeout(window.fixAllImageURLs, 500);
-    
+    setTimeout(window.fixAllImageURLs, 300);
+
     // Observe DOM for new images
     const observer = new MutationObserver(() => {
         window.fixAllImageURLs();
     });
-    
+
     observer.observe(document.body, {
         childList: true,
         subtree: true
@@ -555,9 +553,9 @@ function overrideMessageDisplay() {
                     <p style="margin-top: 10px;">Say hello to start the conversation!</p>
                 </div>
             `;
-            
+
             // Fix URLs for mobile
-            setTimeout(window.fixAllImageURLs, 100);
+            setTimeout(window.fixAllImageURLs, 50);
             return;
         }
 
@@ -587,12 +585,12 @@ function overrideMessageDisplay() {
                 // CHROME MOBILE FIX: Apply URL fixing before creating HTML
                 let imageUrl = msg.image_url;
                 let thumbnailUrl = msg.thumbnail_url || msg.image_url;
-                
+
                 if (typeof fixImgBBUrls === 'function') {
                     imageUrl = fixImgBBUrls(imageUrl);
                     thumbnailUrl = fixImgBBUrls(thumbnailUrl);
                 }
-                
+
                 // Use image message HTML creator
                 if (typeof createImageMessageHTML === 'function') {
                     // Create a modified message object with fixed URLs
@@ -631,14 +629,14 @@ function overrideMessageDisplay() {
             if (typeof window.fixAllImageURLs === 'function') {
                 window.fixAllImageURLs();
             }
-        }, 100);
+        }, 50);
 
         // Scroll to bottom
         setTimeout(() => {
             if (typeof forceScrollToBottom === 'function') {
                 forceScrollToBottom();
             }
-        }, 150);
+        }, 100);
     };
 
     console.log('✅ Message display override set');
@@ -720,7 +718,7 @@ function overrideRealtimeHandling() {
             newMessage.style.transform = 'translateY(10px)';
 
             setTimeout(() => {
-                newMessage.style.transition = 'all 0.3s ease';
+                newMessage.style.transition = 'all 0.15s ease';
                 newMessage.style.opacity = '1';
                 newMessage.style.transform = 'translateY(0)';
             }, 10);
@@ -731,7 +729,7 @@ function overrideRealtimeHandling() {
             if (typeof window.fixAllImageURLs === 'function') {
                 window.fixAllImageURLs();
             }
-        }, 50);
+        }, 30);
 
         // Scroll to bottom
         setTimeout(() => {
@@ -748,7 +746,7 @@ function overrideRealtimeHandling() {
             if (!document.hasFocus()) {
                 const originalTitle = document.title;
                 document.title = '📸 ' + (window.chatFriend?.username || 'Friend');
-                setTimeout(() => document.title = originalTitle, 1000);
+                setTimeout(() => document.title = originalTitle, 800);
             }
         }
     };
@@ -781,13 +779,13 @@ function setupGlobalErrorHandlers() {
     // Network error handling
     window.addEventListener('online', function() {
         if (typeof showToast === 'function') {
-            showToast('Back online', '🟢', 2000);
+            showToast('Back online', '🟢', 1500);
         }
     });
 
     window.addEventListener('offline', function() {
         if (typeof showToast === 'function') {
-            showToast('No internet connection', '⚠️', 2000);
+            showToast('No internet connection', '⚠️', 1500);
         }
     });
 
@@ -801,7 +799,6 @@ function setupGlobalErrorHandlers() {
                     const fixedSrc = fixImgBBUrls(img.src);
                     if (fixedSrc !== img.src) {
                         img.src = fixedSrc;
-                        console.log('Retrying with fixed URL:', fixedSrc);
                     }
                 }
             }
@@ -839,7 +836,7 @@ window.refreshChat = function() {
     if (friendId && typeof loadOldMessages === 'function') {
         loadOldMessages(friendId);
         if (typeof showToast === 'function') {
-            showToast('Chat refreshed', '🔄');
+            showToast('Chat refreshed', '🔄', 1500);
         }
     }
 };
@@ -862,7 +859,7 @@ window.reconnectRealtime = function() {
         // Reconnect
         setupRealtime(friendId);
         if (typeof showToast === 'function') {
-            showToast('Reconnected', '🔗');
+            showToast('Reconnected', '🔗', 1500);
         }
     }
 };
@@ -892,18 +889,17 @@ window.reinitializeModules = function() {
     }
 
     if (typeof showToast === 'function') {
-        showToast('Modules reinitialized', '🔄');
+        showToast('Modules reinitialized', '🔄', 1500);
     }
 };
 
 // CHROME MOBILE UTILITY: Fix broken image URLs
 window.fixBrokenImages = function() {
     if (!isMobileChrome() && !isIOSChrome()) return;
-    
-    console.log('🛠️ Checking for broken images...');
+
     const images = document.querySelectorAll('img');
     let fixedCount = 0;
-    
+
     images.forEach(img => {
         if (img.complete && img.naturalHeight === 0) {
             // Image failed to load
@@ -914,13 +910,12 @@ window.fixBrokenImages = function() {
                     if (fixedSrc !== src) {
                         img.src = fixedSrc;
                         fixedCount++;
-                        console.log('Fixed broken image:', src, '→', fixedSrc);
                     }
                 }
             }
         }
     });
-    
+
     if (fixedCount > 0) {
         console.log(`✅ Fixed ${fixedCount} broken images`);
     }
@@ -943,4 +938,3 @@ window.mainScriptLoaded = true;
 window.isMobileDevice = isMobileChrome() || isIOSChrome();
 
 console.log('📱 Mobile Device:', window.isMobileDevice);
-console.log('🌐 User Agent:', navigator.userAgent); 
