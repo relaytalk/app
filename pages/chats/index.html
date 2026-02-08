@@ -269,6 +269,45 @@
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+/* Fix for consistent image preview sizing */
+.preview-image-container {
+    max-height: 400px !important;
+    min-height: 200px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+
+.preview-image {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: 0 auto !important;
+    border-radius: 10px !important;
+}
+
+/* For Chrome Mobile optimization */
+body.chrome-mobile .preview-image-container {
+    max-height: 350px !important;
+    min-height: 250px !important;
+}
+
+/* Ensure all images maintain aspect ratio */
+.preview-image[src*="ibb.co"],
+.preview-image[src*="i.ibb.co"] {
+    -webkit-backface-visibility: hidden !important;
+    -webkit-transform: translateZ(0) !important;
+    transform: translateZ(0) !important;
+    image-rendering: -webkit-optimize-contrast !important;
+    image-rendering: crisp-edges !important;
+    backface-visibility: hidden !important;
+}
     </style>
 </head>
 <body>
