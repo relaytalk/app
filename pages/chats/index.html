@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- BETTER MOBILE VIEWPORT -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <!-- CHROME & SECURITY FIXES -->
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- FIXED CSP - REMOVED frame-ancestors FROM META TAG -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self' 
         https://*.supabase.co 
@@ -16,19 +18,18 @@
         https://*.ibb.co 
         https://i.ibb.co 
         https://*.github.io 
-        https://github.com;
+        https://github.com
+        https://fonts.googleapis.com;
         script-src 'self' 'unsafe-inline' 'unsafe-eval' 
         https://*.supabase.co 
         https://api.supabase.com 
-        https://cdn.jsdelivr.net;
+        https://cdn.jsdelivr.net
+        https://fonts.googleapis.com;
         style-src 'self' 'unsafe-inline' 
         https://fonts.googleapis.com 
-        https://cdn.jsdelivr.net;
-        img-src 'self' data: blob: https: http: 
-        https://*.ibb.co 
-        https://i.ibb.co 
-        https://*.supabase.co 
-        https://*.githubusercontent.com;
+        https://cdn.jsdelivr.net
+        https://fonts.gstatic.com;
+        img-src 'self' data: blob: *;
         font-src 'self' data: 
         https://fonts.gstatic.com 
         https://cdn.jsdelivr.net;
@@ -37,65 +38,58 @@
         https://*.supabase.co 
         https://api.supabase.com 
         https://api.imgbb.com 
-        https://*.github.io;
-        frame-src 'self' 
-        https://*.supabase.co;
+        https://*.github.io
+        https://i.ibb.co;
         object-src 'none';
         base-uri 'self';
         form-action 'self';
-        frame-ancestors 'self';
     ">
-    
-    <!-- PWA / APP SETTINGS -->
+
+    <!-- CHROME MOBILE FIXES -->
     <meta name="theme-color" content="#0a0a1a">
     <meta name="msapplication-TileColor" content="#0a0a1a">
     <meta name="application-name" content="RelayTalk">
     <meta name="description" content="Real-time chat application with image sharing">
     <meta name="keywords" content="chat, messaging, realtime, relaytalk, images, friends">
     <meta name="author" content="RelayTalk Team">
+
+    <!-- CHROME MOBILE SPECIFIC -->
+    <meta name="format-detection" content="telephone=no">
+    <meta name="google" content="notranslate">
     
-    <!-- OPEN GRAPH / SOCIAL SHARING -->
+    <!-- PREVENT TEXT SIZE ADJUSTMENT -->
+    <style>
+        html {
+            -webkit-text-size-adjust: 100%;
+            -moz-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+    </style>
+
+    <!-- OPEN GRAPH -->
     <meta property="og:title" content="RelayTalk Chat">
     <meta property="og:description" content="Real-time chat application with image sharing">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://relaytalk.github.io">
     <meta property="og:image" content="https://i.ibb.co/placeholder/relaytalk-og.png">
-    
-    <!-- TWITTER CARDS -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="RelayTalk Chat">
-    <meta name="twitter:description" content="Real-time chat application with image sharing">
-    <meta name="twitter:image" content="https://i.ibb.co/placeholder/relaytalk-twitter.png">
-    
+
     <!-- FAVICONS -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="manifest" href="manifest.json">
-    
-    <!-- BROWSER SPECIFIC -->
-    <meta name="format-detection" content="telephone=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- CHROME SPECIFIC -->
-    <meta name="chrome-webstore-item" content="">
-    <meta name="google" content="notranslate">
-    
-    <!-- MICROSOFT SPECIFIC -->
-    <meta name="msapplication-config" content="browserconfig.xml">
-    <meta name="msapplication-TileImage" content="mstile-144x144.png">
-    
+
     <title>RelayTalk Chat</title>
-    
+
     <!-- STYLES -->
     <link rel="stylesheet" href="style.css">
-    
-    <!-- FONTS (OPTIONAL - IF YOU WANT CUSTOM FONTS) -->
+
+    <!-- FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
         /* Login Overlay Styles */
         .login-overlay {
@@ -177,6 +171,16 @@
             .btn-primary, .btn-secondary {
                 width: 100%;
             }
+        }
+
+        /* CHROME MOBILE TOUCH FIXES */
+        button, input, textarea {
+            touch-action: manipulation;
+        }
+
+        /* PREVENT BLUE HIGHLIGHT */
+        * {
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
@@ -262,8 +266,8 @@
         </div>
     </div>
 
-    <!-- Color Picker Overlay (Will be added dynamically) -->
-    
+    <!-- Color Picker Overlay -->
+
     <!-- Image Picker Overlay -->
     <div class="image-picker-overlay" id="imagePickerOverlay" style="display: none;">
         <div class="image-picker-container">
@@ -290,7 +294,7 @@
 
     <!-- Hidden file inputs -->
     <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
-    <input type="file" id="galleryInput" accept="image/*" style="display: none;">
+    <input type="file" id="galleryInput" accept="image/*" multiple style="display: none;">
 
     <!-- User Info Modal -->
     <div class="modal-overlay" id="userInfoModal" style="display: none;">
@@ -335,9 +339,33 @@
         </div>
     </div>
 
-    <!-- Loading Overlay (Will be added dynamically) -->
-
     <!-- Import JavaScript Modules -->
     <script type="module" src="script.js"></script>
+    
+    <!-- MOBILE DETECTION SCRIPT -->
+    <script>
+        // Detect mobile Chrome
+        function isMobileChrome() {
+            const ua = navigator.userAgent;
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) && /Chrome/i.test(ua);
+        }
+        
+        // Apply mobile fixes
+        if (isMobileChrome()) {
+            document.documentElement.style.setProperty('--mobile-fix', '1');
+            
+            // Prevent double-tap zoom
+            document.addEventListener('touchstart', function(event) {
+                if (event.touches.length > 1) {
+                    event.preventDefault();
+                }
+            }, { passive: false });
+            
+            // Prevent pull-to-refresh
+            document.body.style.overscrollBehavior = 'none';
+            
+            console.log('Mobile Chrome detected - applying fixes');
+        }
+    </script>
 </body>
 </html>
