@@ -1,855 +1,500 @@
-/* friends/style.css - COMPLETE FIXED VERSION */
+/* friends/style.css - UPDATED WITH NEW THEME */
 
-/* Prevent text selection */
-* {
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-    user-select: none !important;
-}
-
-/* Allow selection only for inputs */
-input, textarea {
-    -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
-    user-select: text !important;
-}
-
-/* Remove focus outlines */
-button:focus,
-button:active,
-input:focus,
-input:active,
-a:focus,
-a:active {
-    outline: none !important;
-    box-shadow: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-}
-
-/* ==================== LAYOUT ==================== */
-body {
-    background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
-    color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    min-height: 100vh;
-    padding-bottom: 80px;
-    overflow-x: hidden;
-}
-
-/* ==================== FRIENDS HEADER ==================== */
+/* Friends Header */
 .friends-header {
+    padding: 25px 20px 20px;
     text-align: center;
-    margin: 20px 0 25px;
-    padding: 0 20px;
+    background: linear-gradient(135deg, #007acc 0%, #00b4d8 100%);
+    border-radius: 0 0 30px 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0, 122, 204, 0.15);
 }
 
 .friends-title {
-    font-size: 2rem;
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 10px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+    text-shadow: 0 2px 4px rgba(0, 90, 158, 0.3);
 }
 
 .friends-subtitle {
-    color: #a0a0c0;
-    font-size: 1rem;
-    max-width: 600px;
-    margin: 0 auto 20px;
-    line-height: 1.5;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 25px 0;
+    font-weight: 400;
 }
 
-.friends-stats {
+/* Total Friends Badge */
+.friends-stats-single {
     display: flex;
     justify-content: center;
-    gap: 25px;
-    margin-top: 25px;
-    flex-wrap: wrap;
+    margin-top: 10px;
 }
 
-.stat-card {
-    background: rgba(255, 255, 255, 0.05);
+.total-friends-badge {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 12px 24px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(0, 90, 158, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.friends-count {
+    font-size: 28px;
+    font-weight: 800;
+    color: #007acc;
+    line-height: 1;
+}
+
+.friends-label {
+    font-size: 15px;
+    color: #005a9e;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Friends Container */
+.friends-container {
+    padding: 0 20px;
+    margin-bottom: 100px;
+}
+
+/* Friend Item - Larger Size */
+.friend-item {
+    background: #ffffff;
     border-radius: 20px;
-    padding: 15px 25px;
-    text-align: center;
-    min-width: 180px;
-    transition: all 0.2s;
-    height: 100px;
+    padding: 20px;
+    margin-bottom: 15px;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 4px 15px rgba(0, 122, 204, 0.1);
+    border: 1px solid rgba(0, 122, 204, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.friend-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 122, 204, 0.15);
+    border-color: rgba(0, 122, 204, 0.2);
+}
+
+.friend-item:active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 122, 204, 0.1);
+}
+
+/* Large Avatar */
+.friend-avatar-large {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #007acc, #00b4d8);
+    display: flex;
+    align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.stat-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-5px);
-    border-color: rgba(102, 126, 234, 0.3);
-}
-
-.stat-number {
-    font-size: 2.2rem;
+    color: white;
+    font-size: 28px;
     font-weight: 700;
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid white;
+}
+
+.status-indicator.online {
+    background: #28a745;
+}
+
+.status-indicator.offline {
+    background: #888888;
+}
+
+/* Friend Info */
+.friend-info {
+    flex: 1;
+}
+
+.friend-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: #005a9e;
+    margin-bottom: 6px;
     line-height: 1.2;
 }
 
-.stat-label {
-    color: #a0a0c0;
-    font-size: 0.9rem;
-    margin-top: 5px;
-}
-
-/* ==================== SEARCH ==================== */
-.search-friends-container {
-    margin: 0 20px 20px;
-}
-
-.search-friends-wrapper {
-    position: relative;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-.search-friends-icon {
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #667eea;
-    font-size: 1.2rem;
-    z-index: 1;
-}
-
-.search-friends-input {
-    width: 100%;
-    padding: 16px 20px 16px 55px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    color: white;
-    font-size: 1rem;
-    transition: all 0.2s;
-    font-family: inherit;
-}
-
-.search-friends-input:focus {
-    outline: none;
-    border-color: rgba(102, 126, 234, 0.5);
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-/* ==================== FRIENDS CONTAINER ==================== */
-.friends-container {
-    padding: 0 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-/* ==================== FRIEND ITEM ==================== */
-.friend-item-clean {
+.friend-status {
+    font-size: 14px;
+    color: #666666;
     display: flex;
     align-items: center;
-    gap: 15px;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+    gap: 6px;
 }
 
-.friend-item-clean:active {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(0.98);
-}
-
-.friend-item-clean:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(102, 126, 234, 0.2);
-    transform: translateY(-2px);
-}
-
-.friend-avatar-clean {
-    width: 55px;
-    height: 55px;
-    background: #667eea;
-    border-radius: 50%;
+.online-text {
+    color: #28a745;
+    font-weight: 600;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: white;
-    position: relative;
-    flex-shrink: 0;
+    gap: 5px;
 }
 
-.status-indicator-clean {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 2px solid #1a1a2e;
-}
-
-.status-indicator-clean.online {
+.online-text::before {
+    content: '';
+    width: 8px;
+    height: 8px;
     background: #28a745;
-    box-shadow: 0 0 8px #28a745;
-}
-
-.status-indicator-clean.offline {
-    background: #6c757d;
-}
-
-.friend-info-clean {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-}
-
-.friend-name-status {
-    flex: 1;
-    min-width: 0;
-}
-
-.friend-name-clean {
-    font-size: 1.1rem;
-    font-weight: 500;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: white;
-}
-
-.friend-status-clean {
-    font-size: 0.85rem;
-    color: #a0a0c0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Unread Message Badge */
-.unread-badge-clean {
-    background: #667eea;
-    color: white;
-    font-size: 0.8rem;
-    font-weight: bold;
-    min-width: 22px;
-    height: 22px;
-    border-radius: 11px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 6px;
-    flex-shrink: 0;
-}
-
-/* ==================== LOADING SKELETON ==================== */
-.friend-skeleton {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    margin-bottom: 10px;
-    animation: skeleton-pulse 1.5s infinite;
-}
-
-@keyframes skeleton-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.skeleton-avatar {
-    width: 55px;
-    height: 55px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    flex-shrink: 0;
+    display: inline-block;
 }
 
-.skeleton-info {
-    flex: 1;
-    min-width: 0;
+.last-seen {
+    color: #888888;
 }
 
-.skeleton-name {
-    width: 60%;
-    height: 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    margin-bottom: 8px;
+/* Friend Action */
+.friend-action {
+    color: #007acc;
+    font-size: 18px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
 }
 
-.skeleton-status {
-    width: 40%;
-    height: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+.friend-item:hover .friend-action {
+    opacity: 1;
 }
 
-/* ==================== EMPTY STATES ==================== */
+/* Empty State */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #a0a0c0;
 }
 
 .empty-icon {
-    font-size: 4rem;
+    font-size: 64px;
     margin-bottom: 20px;
-    opacity: 0.3;
+    opacity: 0.5;
 }
 
 .empty-title {
-    font-size: 1.3rem;
-    margin-bottom: 10px;
-    color: white;
+    font-size: 22px;
+    color: #005a9e;
+    margin: 0 0 10px 0;
+    font-weight: 700;
 }
 
 .empty-desc {
-    font-size: 0.95rem;
+    font-size: 15px;
+    color: #666666;
+    line-height: 1.5;
     max-width: 300px;
     margin: 0 auto;
-    line-height: 1.5;
 }
 
-/* ==================== MODALS ==================== */
-.modal-overlay {
+/* Add Friends Fixed Button */
+.add-friends-fixed {
     position: fixed;
-    top: 0;
+    bottom: 90px;
     left: 0;
+    right: 0;
+    padding: 0 20px;
+    z-index: 100;
+}
+
+.add-friends-btn-fixed {
     width: 100%;
-    height: 100%;
-    background: rgba(10, 10, 26, 0.95);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    backdrop-filter: blur(10px);
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.modal-content {
-    background: rgba(26, 26, 46, 0.95);
-    border: 1px solid rgba(102, 126, 234, 0.2);
-    border-radius: 25px;
-    padding: 30px;
-    width: 90%;
-    max-width: 500px;
-    max-height: 80vh;
-    overflow-y: auto;
-    animation: slideUp 0.4s ease;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(50px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.modal-title {
-    font-size: 1.5rem;
+    background: linear-gradient(45deg, #007acc, #00b4d8);
     color: white;
+    border: none;
+    padding: 18px 24px;
+    border-radius: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0, 122, 204, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.add-friends-btn-fixed:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 122, 204, 0.4);
+}
+
+.add-friends-btn-fixed:active {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 122, 204, 0.3);
+}
+
+/* Search Modal Styling */
+.search-container {
+    background: #f8fbff;
+    border: 1px solid rgba(0, 122, 204, 0.2);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin: 20px;
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.modal-close {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: #a0a0c0;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s;
-}
-
-.modal-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-}
-
-/* Search in modal */
-.search-container {
-    position: relative;
-    margin-bottom: 25px;
-}
-
 .search-icon {
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #667eea;
-    font-size: 1.1rem;
+    color: #007acc;
+    font-size: 18px;
 }
 
 .search-input {
-    width: 100%;
-    padding: 16px 20px 16px 50px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    color: white;
-    font-size: 1rem;
-    transition: all 0.2s;
-}
-
-.search-input:focus {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    color: #005a9e;
     outline: none;
-    border-color: rgba(102, 126, 234, 0.5);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-/* Search results */
+.search-input::placeholder {
+    color: #888888;
+}
+
+/* Search Results */
 .search-result {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    padding: 18px;
-    margin-bottom: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0, 122, 204, 0.1);
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 15px;
-    transition: all 0.2s;
-    border: 1px solid transparent;
+    transition: background 0.3s ease;
 }
 
 .search-result:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(102, 126, 234, 0.2);
-    transform: translateX(5px);
+    background: rgba(0, 122, 204, 0.05);
 }
 
 .search-avatar {
-    width: 45px;
-    height: 45px;
-    background: #667eea;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
+    background: linear-gradient(45deg, #007acc, #00b4d8);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    font-size: 1.1rem;
     color: white;
+    font-size: 20px;
+    font-weight: 700;
     flex-shrink: 0;
 }
 
 .search-info {
     flex: 1;
-    min-width: 0;
 }
 
 .search-name {
+    font-size: 18px;
     font-weight: 600;
+    color: #005a9e;
     margin-bottom: 4px;
-    font-size: 1.05rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: white;
 }
 
 .search-username {
-    color: #a0a0c0;
-    font-size: 0.85rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 14px;
+    color: #666666;
 }
 
+/* Send Request Button */
 .send-request-btn {
-    background: rgba(102, 126, 234, 0.2);
-    color: #667eea;
-    border: 1px solid rgba(102, 126, 234, 0.3);
-    padding: 8px 16px;
+    background: #007acc;
+    color: white;
+    border: none;
+    padding: 10px 20px;
     border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.2s;
-    white-space: nowrap;
-    font-family: inherit;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
 .send-request-btn:hover {
-    background: rgba(102, 126, 234, 0.3);
+    background: #005a9e;
     transform: translateY(-2px);
 }
 
 .send-request-btn.sent {
     background: rgba(40, 167, 69, 0.2);
     color: #28a745;
-    border-color: rgba(40, 167, 69, 0.3);
     cursor: default;
 }
 
-/* Notifications */
+.send-request-btn.sent:hover {
+    transform: none;
+    background: rgba(40, 167, 69, 0.2);
+}
+
+/* Notification Item */
 .notification-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    padding: 18px;
-    margin-bottom: 12px;
-    border-left: 4px solid #667eea;
-    transition: all 0.2s;
-}
-
-.notification-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateX(5px);
-}
-
-.notification-content {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0, 122, 204, 0.1);
     display: flex;
     align-items: center;
     gap: 15px;
+    transition: background 0.3s ease;
+}
+
+.notification-item:hover {
+    background: rgba(0, 122, 204, 0.05);
 }
 
 .notification-avatar {
-    width: 40px;
-    height: 40px;
-    background: #667eea;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
+    background: linear-gradient(45deg, #007acc, #00b4d8);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    font-size: 1rem;
     color: white;
+    font-size: 20px;
+    font-weight: 700;
     flex-shrink: 0;
 }
 
-.notification-text {
+.notification-content {
     flex: 1;
-    min-width: 0;
 }
 
-.notification-title {
+.notification-content strong {
+    color: #005a9e;
     font-weight: 600;
-    margin-bottom: 5px;
-    color: white;
 }
 
-.notification-time {
-    color: #a0a0c0;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 5px;
+.notification-content small {
+    display: block;
+    color: #888888;
+    font-size: 13px;
+    margin-top: 4px;
 }
 
 .notification-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.accept-btn, .decline-btn {
-    padding: 8px 16px;
-    border-radius: 10px;
-    border: none;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 500;
-    font-family: inherit;
-}
-
-.accept-btn {
-    background: rgba(40, 167, 69, 0.2);
-    color: #28a745;
-    border: 1px solid rgba(40, 167, 69, 0.3);
-}
-
-.accept-btn:hover {
-    background: rgba(40, 167, 69, 0.3);
-    transform: translateY(-2px);
-}
-
-.decline-btn {
-    background: rgba(220, 53, 69, 0.2);
-    color: #dc3545;
-    border: 1px solid rgba(220, 53, 69, 0.3);
-}
-
-.decline-btn:hover {
-    background: rgba(220, 53, 69, 0.3);
-    transform: translateY(-2px);
-}
-
-/* ==================== TOAST NOTIFICATIONS ==================== */
-.toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 99999;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-width: 350px;
-}
-
-.toast {
-    background: rgba(26, 26, 46, 0.95);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(102, 126, 234, 0.3);
-    border-radius: 15px;
-    padding: 15px 20px;
-    color: white;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    animation: toastSlideIn 0.3s ease forwards;
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-    transform: translateX(100%);
-    opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    max-width: 100%;
-    word-wrap: break-word;
-    overflow: hidden;
-}
-
-.toast.show {
-    transform: translateX(0);
-    opacity: 1;
-}
-
-.toast.hide {
-    transform: translateX(100%);
-    opacity: 0;
-}
-
-@keyframes toastSlideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-.toast-icon {
-    font-size: 1.3rem;
+    gap: 8px;
     flex-shrink: 0;
-    margin-top: 2px;
 }
 
-.toast-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.toast-title {
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.toast-time {
-    color: #a0a0c0;
-    font-size: 0.8rem;
-    font-weight: normal;
-    margin-left: auto;
-}
-
-.toast-message {
-    font-size: 0.9rem;
-    color: #d0d0e0;
-    line-height: 1.4;
-}
-
-.toast-close {
-    background: none;
+.btn-small {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     border: none;
-    color: #a0a0c0;
-    font-size: 1.2rem;
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
-    padding: 0;
-    width: 24px;
-    height: 24px;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    flex-shrink: 0;
-    transition: all 0.2s;
 }
 
-.toast-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+.btn-success {
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
 }
 
-/* Toast types */
-.toast-success {
-    border-left: 4px solid #28a745;
-    border-color: rgba(40, 167, 69, 0.5);
+.btn-success:hover {
+    background: rgba(40, 167, 69, 0.3);
+    transform: scale(1.1);
 }
 
-.toast-error {
-    border-left: 4px solid #dc3545;
-    border-color: rgba(220, 53, 69, 0.5);
+.btn-danger {
+    background: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
 }
 
-.toast-warning {
-    border-left: 4px solid #ffc107;
-    border-color: rgba(255, 193, 7, 0.5);
+.btn-danger:hover {
+    background: rgba(220, 53, 69, 0.3);
+    transform: scale(1.1);
 }
 
-.toast-info {
-    border-left: 4px solid #667eea;
-    border-color: rgba(102, 126, 234, 0.5);
+/* Loading Indicator */
+.loading-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, #f8fbff, #e6f0ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
 }
 
-/* ==================== RESPONSIVE ==================== */
-@media (max-width: 768px) {
+.loading-text {
+    font-size: 20px;
+    color: #007acc;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
     .friends-title {
-        font-size: 1.6rem;
+        font-size: 24px;
     }
     
-    .friends-stats {
+    .friends-count {
+        font-size: 24px;
+    }
+    
+    .friend-avatar-large {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+    
+    .friend-name {
+        font-size: 20px;
+    }
+    
+    .add-friends-btn-fixed {
+        padding: 16px 20px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 360px) {
+    .friends-header {
+        padding: 20px 15px 15px;
+    }
+    
+    .friend-item {
+        padding: 16px;
         gap: 15px;
     }
     
-    .stat-card {
-        min-width: 140px;
-        padding: 12px 18px;
-        height: 90px;
+    .friend-avatar-large {
+        width: 55px;
+        height: 55px;
+        font-size: 22px;
     }
     
-    .stat-number {
-        font-size: 1.8rem;
-    }
-    
-    .friend-item-clean {
-        padding: 12px;
-    }
-    
-    .friend-avatar-clean {
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
-    }
-    
-    .friend-name-clean {
-        font-size: 1rem;
-    }
-    
-    .unread-badge-clean {
-        min-width: 20px;
-        height: 20px;
-        font-size: 0.75rem;
-    }
-    
-    .modal-content {
-        padding: 25px 20px;
-        width: 95%;
-    }
-    
-    .toast-container {
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
-    }
-}
-
-@media (max-width: 480px) {
-    .friends-title {
-        font-size: 1.4rem;
-    }
-    
-    .friends-subtitle {
-        font-size: 0.9rem;
-    }
-    
-    .stat-card {
-        min-width: 120px;
-        padding: 10px 15px;
-        height: 80px;
-    }
-    
-    .stat-number {
-        font-size: 1.6rem;
-    }
-    
-    .friend-avatar-clean {
-        width: 45px;
-        height: 45px;
-        font-size: 1.1rem;
-    }
-    
-    .friend-name-clean {
-        font-size: 0.95rem;
-    }
-    
-    .friend-status-clean {
-        font-size: 0.8rem;
-    }
-    
-    .search-friends-input {
-        padding: 14px 18px 14px 50px;
-        font-size: 0.95rem;
-    }
-    
-    .search-result {
-        padding: 15px;
-        flex-direction: column;
-        text-align: center;
-        gap: 10px;
-    }
-    
-    .search-info {
-        text-align: center;
-    }
-    
-    .send-request-btn {
-        width: 100%;
+    .friend-name {
+        font-size: 18px;
     }
 }
