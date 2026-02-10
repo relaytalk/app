@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ Relay - Friends</title>
+    <title>✨ RelayTalk - Friends</title>
 
     <!-- SEO -->
-    <meta name="description" content="Relay - Your Friends Circle">
-    <meta name="keywords" content="Relay, friends, messaging, chat">
+    <meta name="description" content="RelayTalk - Connect with your friends">
+    <meta name="keywords" content="RelayTalk, friends, messaging, chat">
 
     <!-- Styles -->
     <link rel="stylesheet" href="../style.css">
@@ -19,10 +19,9 @@
         // Load Supabase globally
         async function loadSupabase() {
             try {
-                // FIXED PATH: Use relative path from root
                 const modulePath = '/utils/supabase.js';
                 console.log('Loading Supabase from:', modulePath);
-                
+
                 await import(modulePath);
 
                 // Wait for initialization
@@ -40,7 +39,6 @@
                     if (!data.session) {
                         console.log('No session, redirecting to LOGIN page...');
                         setTimeout(() => {
-                            // Redirect to LOGIN page, not auth page
                             window.location.href = '../login/index.html';
                         }, 800);
                     }
@@ -58,9 +56,9 @@
                             <div class="loading-text">Connection Error</div>
                             <p style="font-size: 0.9rem; margin-top: 10px;">Cannot connect to server</p>
                             <button onclick="window.location.reload()" style="
-                                background: rgba(102, 126, 234, 0.2);
-                                color: #667eea;
-                                border: 1px solid rgba(102, 126, 234, 0.3);
+                                background: rgba(0, 122, 204, 0.2);
+                                color: #007acc;
+                                border: 1px solid rgba(0, 122, 204, 0.3);
                                 padding: 8px 16px;
                                 border-radius: 8px;
                                 margin-top: 15px;
@@ -75,24 +73,17 @@
         // Auto-load on page load
         document.addEventListener('DOMContentLoaded', loadSupabase);
     </script>
-    
+
     <style>
-        /* Fix Add Friends button position */
-        .add-friends-section {
-            margin: 30px 20px 0;
-            text-align: center;
-        }
-        
-        .add-friends-btn {
-            width: 100%;
-            max-width: 300px;
-            margin: 0 auto;
-            display: block;
-        }
-        
-        /* Make sure toast appears on top */
+        /* Custom styles for friends page */
         .toast-container {
             z-index: 10000;
+        }
+        
+        .main-content {
+            background: linear-gradient(to bottom, #f8fbff 0%, #e6f0ff 100%);
+            min-height: 100vh;
+            padding-bottom: 80px;
         }
     </style>
 </head>
@@ -110,38 +101,24 @@
         <button class="back-btn" onclick="goToHome()">
             <i class="fas fa-arrow-left"></i> Back
         </button>
-        <div class="logo-top">✨ Relay</div>
+        <div class="logo-top">✨ RelayTalk</div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
         <!-- Friends Header -->
         <section class="friends-header">
-            <h1 class="friends-title">Your Friends Circle</h1>
-            <p class="friends-subtitle">Connect, chat, and stay close with the people who matter most</p>
+            <h1 class="friends-title">RelayTalk Friends</h1>
+            <p class="friends-subtitle">Connect and chat with your circle</p>
 
-            <!-- Stats -->
-            <div class="friends-stats">
-                <div class="stat-card">
-                    <div class="stat-number" id="totalFriends">0</div>
-                    <div class="stat-label">Total Friends</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="onlineFriends">0</div>
-                    <div class="stat-label">Online Now</div>
+            <!-- Total Friends Only -->
+            <div class="friends-stats-single">
+                <div class="total-friends-badge">
+                    <span class="friends-count" id="totalFriends">0</span>
+                    <span class="friends-label">Friends</span>
                 </div>
             </div>
         </section>
-
-        <!-- Search Friends -->
-        <div class="search-friends-container">
-            <div class="search-friends-wrapper">
-                <i class="fas fa-search search-friends-icon"></i>
-                <input type="text" class="search-friends-input" 
-                       placeholder="Search your friends..." id="searchFriendsInput"
-                       oninput="searchFriends()">
-            </div>
-        </div>
 
         <!-- Friends Container -->
         <div class="friends-container" id="friendsContainer">
@@ -153,9 +130,9 @@
             </div>
         </div>
 
-        <!-- Add Friends Button - FIXED POSITION -->
-        <div class="add-friends-section">
-            <button class="search-btn add-friends-btn" onclick="openSearchModal()">
+        <!-- Add Friends Button - Fixed at bottom -->
+        <div class="add-friends-fixed">
+            <button class="add-friends-btn-fixed" onclick="openSearchModal()">
                 <i class="fas fa-user-plus"></i> Add New Friends
             </button>
         </div>
@@ -199,7 +176,7 @@
                 <div class="empty-state" style="padding: 30px 20px;">
                     <div class="empty-icon">🔍</div>
                     <h3 class="empty-title">Find New Friends</h3>
-                    <p class="empty-desc">Type a username to find people on Relay</p>
+                    <p class="empty-desc">Type a username to find people on RelayTalk</p>
                 </div>
             </div>
         </div>
@@ -241,41 +218,37 @@
         // Prevent text selection
         document.addEventListener('selectstart', (e) => e.preventDefault());
         document.addEventListener('contextmenu', (e) => e.preventDefault());
-        
+
         // Make goToHome available immediately
         window.goToHome = function() {
             console.log('Going to home...');
             window.location.href = '../../home/index.html';
         };
-        
+
         // Temporary functions until script loads
         window.openSearchModal = function() {
             console.log('Opening search modal...');
             const modal = document.getElementById('searchModal');
             if (modal) modal.style.display = 'flex';
         };
-        
+
         window.openNotifications = function() {
             console.log('Opening notifications...');
             const modal = document.getElementById('notificationsModal');
             if (modal) modal.style.display = 'flex';
         };
-        
+
         window.closeModal = function() {
             const searchModal = document.getElementById('searchModal');
             const notificationsModal = document.getElementById('notificationsModal');
             if (searchModal) searchModal.style.display = 'none';
             if (notificationsModal) notificationsModal.style.display = 'none';
         };
-        
-        window.searchFriends = function() {
-            console.log('Search friends function called');
-        };
-        
+
         window.goToFriends = function() {
             console.log('Already on friends page');
         };
-        
+
         window.filterSearchResults = function() {
             console.log('Filtering search results...');
         };
