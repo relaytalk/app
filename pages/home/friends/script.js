@@ -1,7 +1,11 @@
-// friends/script.js - UPDATED WITH NEW FEATURES
-console.log('✨ RelayTalk Friends Page Script Loaded');
+// friends/script.js - Complete with navigation and notifications
 
-// Toast Notification System (same as home page)
+console.log('Friends page loaded');
+
+// Global variables
+let currentUser = null;
+
+// Toast Notification System (Same as home page)
 class ToastNotification {
     constructor() {
         this.container = document.getElementById('toastContainer');
@@ -85,337 +89,152 @@ window.showError = toast.error.bind(toast);
 window.showWarning = toast.warning.bind(toast);
 window.showInfo = toast.info.bind(toast);
 
-let currentUser = null;
-let currentProfile = null;
+// Initialize page
+async function initPage() {
+    console.log('Initializing friends page...');
+    
+    try {
+        // Wait for Supabase
+        await waitForSupabase();
+        
+        // Check if user is logged in
+        const { data } = await window.supabase.auth.getUser();
+        if (!data.user) {
+            window.location.href = '../../login/index.html';
+            return;
+        }
+        
+        currentUser = data.user;
+        console.log('User:', currentUser.email);
+        
+        // Hide loading
+        document.getElementById('loadingIndicator').style.display = 'none';
+        
+        // Load friends
+        await loadFriends();
+        
+        // Load notifications badge
+        await updateNotificationsBadge();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showError('Failed to load page');
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+}
 
 // Wait for Supabase
 async function waitForSupabase() {
-    console.log('⏳ Waiting for Supabase...');
-
-    if (window.supabase) {
-        console.log('✅ Supabase already loaded');
-        return true;
-    }
-
-    // Wait for it to load from the HTML script
     let attempts = 0;
-    while (!window.supabase && attempts < 40) {
-        await new Promise(resolve => setTimeout(resolve, 250));
+    while (!window.supabase && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
     }
-
-    if (window.supabase) {
-        console.log('✅ Supabase loaded after', attempts, 'attempts');
-        return true;
-    }
-
-    console.error('❌ Supabase never loaded');
-    toast.error('Cannot connect to server');
-    return false;
-}
-
-// Check auth
-async function checkAuth() {
-    try {
-        if (!window.supabase?.auth) {
-            console.log('Auth not ready');
-            return { success: false, message: 'Auth not ready' };
-        }
-
-        const { data, error } = await window.supabase.auth.getUser();
-
-        if (error) {
-            console.log('Auth error:', error.message);
-            return { success: false, message: 'Authentication error' };
-        }
-
-        if (data.user) {
-            console.log('✅ User authenticated:', data.user.email);
-            return { success: true, user: data.user };
-        }
-
-        console.log('❌ No user found');
-        return { success: false, message: 'Not logged in' };
-
-    } catch (error) {
-        console.error('Auth check error:', error);
-        return { success: false, message: 'Auth check failed' };
+    if (!window.supabase) {
+        throw new Error('Supabase not loaded');
     }
 }
 
-// Initialize friends page
-async function initFriendsPage() {
-    console.log('👥 Initializing friends page...');
-
-    const loadingIndicator = document.getElementById('loadingIndicator');
-
+// Load friends
+async function loadFriends() {
+    if (!currentUser) return;
+    
     try {
-        // Step 1: Wait for Supabase
-        const supabaseReady = await waitForSupabase();
-        if (!supabaseReady) {
-            if (loadingIndicator) loadingIndicator.style.display = 'none';
-            return;
-        }
-
-        // Step 2: Check authentication
-        const authResult = await checkAuth();
-        if (!authResult.success) {
-            console.log('User not authenticated:', authResult.message);
-
-            toast.info('Please login to view friends');
-
-            setTimeout(() => {
-                window.location.href = '../../login/index.html';
-            }, 1500);
-
-            if (loadingIndicator) loadingIndicator.style.display = 'none';
-            return;
-        }
-
-        // Step 3: Set current user
-        currentUser = authResult.user;
-        console.log('✅ Current user:', currentUser.email);
-
-        // Step 4: Load current profile
-        await loadCurrentProfile();
-
-        // Hide loading
-        if (loadingIndicator) {
-            loadingIndicator.style.display = 'none';
-        }
-
-        // Step 5: Load friends and notifications
-        await Promise.all([
-            loadFriendsList(),
-            updateNotificationsBadge()
-        ]);
-
-        console.log('✅ Friends page ready');
-
-        setTimeout(() => {
-            toast.success('Friends loaded successfully!');
-        }, 500);
-
-    } catch (error) {
-        console.error('❌ Friends page init failed:', error);
-
-        if (loadingIndicator) {
-            loadingIndicator.style.display = 'none';
-        }
-
-        toast.error('Failed to load friends');
-
-        // Show error state
-        const container = document.getElementById('friendsContainer');
-        if (container) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">⚠️</div>
-                    <h3 class="empty-title">Connection Error</h3>
-                    <p class="empty-desc">Failed to load friends. Please try again.</p>
-                    <button class="search-btn" onclick="initFriendsPage()" style="margin-top: 20px;">
-                        <i class="fas fa-sync"></i> Retry
-                    </button>
-                </div>
-            `;
-        }
-    }
-}
-
-// Load current profile
-async function loadCurrentProfile() {
-    try {
-        if (!currentUser || !window.supabase) {
-            console.log('Cannot load profile: No user or Supabase');
-            currentProfile = {
-                username: currentUser?.user_metadata?.username || 'User',
-                full_name: currentUser?.user_metadata?.full_name || 'User'
-            };
-            return;
-        }
-
-        const { data: profile, error } = await window.supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentUser.id)
-            .maybeSingle();
-
-        if (error) {
-            console.error('Profile load error:', error.message);
-            throw error;
-        }
-
-        if (profile) {
-            currentProfile = profile;
-            console.log('✅ Profile loaded:', profile.username);
-        } else {
-            currentProfile = {
-                username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User',
-                full_name: currentUser.user_metadata?.full_name || 'User'
-            };
-            console.log('⚠️ No profile found, using default:', currentProfile.username);
-        }
-
-    } catch (error) {
-        console.error('❌ Error loading profile:', error);
-        currentProfile = {
-            username: currentUser?.user_metadata?.username || 'User',
-            full_name: currentUser?.user_metadata?.full_name || 'User'
-        };
-    }
-}
-
-// Load friends list
-async function loadFriendsList() {
-    if (!currentUser || !window.supabase) {
-        showErrorState('Not logged in');
-        return;
-    }
-
-    const container = document.getElementById('friendsContainer');
-    if (!container) return;
-
-    try {
-        // Show loading
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">⏳</div>
-                <h3 class="empty-title">Loading Friends...</h3>
-                <p class="empty-desc">Please wait</p>
-            </div>
-        `;
-
-        // Get friend IDs
+        const grid = document.getElementById('friendsGrid');
+        
+        // Get friends
         const { data: friends, error } = await window.supabase
             .from('friends')
             .select('friend_id')
             .eq('user_id', currentUser.id);
-
-        if (error) {
-            console.error('Friends load error:', error);
-            showEmptyFriends();
-            return;
-        }
-
+            
+        if (error) throw error;
+        
         if (!friends || friends.length === 0) {
             showEmptyFriends();
-            updateTotalFriends(0);
+            updateFriendsCount(0);
             return;
         }
-
-        // Get profiles for each friend
-        const friendIds = friends.map(f => f.friend_id);
-        const { data: profiles, error: profilesError } = await window.supabase
-            .from('profiles')
-            .select('id, username, status, last_seen, avatar_url')
-            .in('id', friendIds);
-
-        if (profilesError) {
-            console.error('Profiles load error:', profilesError);
-            showEmptyFriends();
-            return;
-        }
-
-        const filteredFriends = profiles || [];
         
-        // Update total friends count
-        updateTotalFriends(filteredFriends.length);
-
-        // Display friends
-        if (filteredFriends.length === 0) {
-            showEmptyFriends();
-            return;
-        }
-
-        displayFriends(filteredFriends);
-
+        // Get profiles
+        const friendIds = friends.map(f => f.friend_id);
+        const { data: profiles } = await window.supabase
+            .from('profiles')
+            .select('id, username, status, last_seen')
+            .in('id', friendIds);
+            
+        updateFriendsCount(friends.length);
+        displayFriends(profiles || []);
+        
     } catch (error) {
-        console.error('❌ Error loading friends:', error);
-        showErrorState(error.message);
+        console.error('Load friends error:', error);
+        showError('Failed to load friends');
+        showEmptyFriends();
     }
 }
 
-// Display friends with larger user size
+// Display friends in grid
 function displayFriends(friends) {
-    const container = document.getElementById('friendsContainer');
-    if (!container) return;
-
+    const grid = document.getElementById('friendsGrid');
+    if (!friends || friends.length === 0) {
+        showEmptyFriends();
+        return;
+    }
+    
     // Sort: online first, then by name
     friends.sort((a, b) => {
         if (a.status === 'online' && b.status !== 'online') return -1;
         if (a.status !== 'online' && b.status === 'online') return 1;
         return a.username.localeCompare(b.username);
     });
-
+    
     let html = '';
+    
     friends.forEach(friend => {
         const isOnline = friend.status === 'online';
         const lastSeen = friend.last_seen ? new Date(friend.last_seen) : new Date();
         const timeAgo = getTimeAgo(lastSeen);
-        const firstLetter = friend.username ? friend.username.charAt(0).toUpperCase() : '?';
-
+        const firstLetter = friend.username?.charAt(0).toUpperCase() || 'U';
+        const displayName = friend.username && friend.username.length > 10 ? 
+            friend.username.substring(0, 10) + '...' : friend.username || 'Unknown';
+        
         html += `
-            <div class="friend-item" onclick="openChat('${friend.id}', '${friend.username}')">
-                <div class="friend-avatar-large">
+            <div class="friend-card" onclick="openChat('${friend.id}', '${friend.username}')">
+                <div class="friend-avatar ${isOnline ? 'online' : ''}">
                     ${firstLetter}
-                    <span class="status-indicator ${isOnline ? 'online' : 'offline'}"></span>
                 </div>
-                <div class="friend-info">
-                    <div class="friend-name">${friend.username}</div>
-                    <div class="friend-status">
-                        ${isOnline ? 
-                            '<span class="online-text">Online</span>' : 
-                            `<span class="last-seen">Last seen ${timeAgo}</span>`
-                        }
-                    </div>
-                </div>
-                <div class="friend-action">
-                    <i class="fas fa-chevron-right"></i>
+                <div class="friend-name">${displayName}</div>
+                <div class="friend-status ${isOnline ? 'online' : 'offline'}">
+                    ${isOnline ? 'Online' : `Last seen ${timeAgo}`}
                 </div>
             </div>
         `;
     });
-
-    container.innerHTML = html;
-}
-
-// Update total friends count
-function updateTotalFriends(count) {
-    const totalFriends = document.getElementById('totalFriends');
-    if (totalFriends) {
-        totalFriends.textContent = count;
-    }
+    
+    grid.innerHTML = html;
 }
 
 // Show empty friends state
 function showEmptyFriends() {
-    const container = document.getElementById('friendsContainer');
-    if (!container) return;
-
-    container.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">👥</div>
-            <h3 class="empty-title">No Friends Yet</h3>
-            <p class="empty-desc">Add friends to start chatting on RelayTalk</p>
-            <button class="search-btn" onclick="openSearchModal()" style="margin-top: 20px;">
-                <i class="fas fa-user-plus"></i> Find Friends
+    const grid = document.getElementById('friendsGrid');
+    grid.innerHTML = `
+        <div class="no-friends">
+            <i class="fas fa-user-friends"></i>
+            <h3>No Friends Yet</h3>
+            <p>Add friends to start chatting</p>
+            <button onclick="openSearchModal()" class="add-friends-btn">
+                <i class="fas fa-user-plus"></i> Add Friends
             </button>
         </div>
     `;
 }
 
-// Show error state
-function showErrorState(message) {
-    const container = document.getElementById('friendsContainer');
-    if (!container) return;
-
-    container.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">⚠️</div>
-            <h3 class="empty-title">Connection Error</h3>
-            <p class="empty-desc">${message || 'Could not load friends'}</p>
-        </div>
-    `;
+// Update friends count
+function updateFriendsCount(count) {
+    const countElement = document.getElementById('friendsCount');
+    if (countElement) {
+        countElement.textContent = count;
+    }
 }
 
 // Get time ago
@@ -437,11 +256,9 @@ function getTimeAgo(date) {
 
 // Open chat
 async function openChat(friendId, friendUsername = 'Friend') {
-    console.log('Opening chat with:', friendId);
-
-    toast.info(`Opening chat with ${friendUsername}...`);
-
-    // Store friend info
+    showInfo('Opening chat...', `Connecting with ${friendUsername}`);
+    
+    // Store friend info in session storage
     sessionStorage.setItem('currentChatFriend', JSON.stringify({
         id: friendId,
         username: friendUsername
@@ -453,7 +270,9 @@ async function openChat(friendId, friendUsername = 'Friend') {
     }, 800);
 }
 
-// Update notifications badge (same as home page)
+// ==================== NOTIFICATIONS SYSTEM (SAME AS HOME PAGE) ====================
+
+// Update notifications badge
 async function updateNotificationsBadge() {
     try {
         if (!currentUser || !window.supabase) {
@@ -490,12 +309,12 @@ function updateBadgeDisplay(count) {
     if (badge) {
         if (count > 0) {
             badge.textContent = count > 9 ? '9+' : count;
-            badge.style.display = 'block';
+            badge.style.display = 'inline-block';
 
             // Show subtle notification toast for first notification
             if (count === 1) {
                 setTimeout(() => {
-                    toast.info("New Notification", "You have a new friend request");
+                    showInfo("New Notification", "You have a new friend request");
                 }, 1000);
             }
         } else {
@@ -511,209 +330,7 @@ function hideNotificationBadge() {
     }
 }
 
-// Search modal functions
-async function loadSearchResults() {
-    const container = document.getElementById('searchResults');
-    if (!container || !currentUser || !window.supabase) return;
-
-    try {
-        container.innerHTML = `
-            <div class="empty-state" style="padding: 30px 20px;">
-                <div class="empty-icon">⏳</div>
-                <p>Loading users...</p>
-            </div>
-        `;
-
-        // Get all users except current user
-        const { data: users, error } = await window.supabase
-            .from('profiles')
-            .select('id, username, full_name')
-            .neq('id', currentUser.id)
-            .limit(20);
-
-        if (error) {
-            console.error('Search error:', error);
-            container.innerHTML = `
-                <div class="empty-state" style="padding: 30px 20px;">
-                    <div class="empty-icon">⚠️</div>
-                    <p>Error loading users</p>
-                </div>
-            `;
-            return;
-        }
-
-        if (!users || users.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state" style="padding: 30px 20px;">
-                    <div class="empty-icon">👥</div>
-                    <p>No users found</p>
-                </div>
-            `;
-            return;
-        }
-
-        await displaySearchResults(users);
-
-    } catch (error) {
-        console.error('❌ Search error:', error);
-        container.innerHTML = `
-            <div class="empty-state" style="padding: 30px 20px;">
-                <div class="empty-icon">⚠️</div>
-                <p>Search failed</p>
-            </div>
-        `;
-    }
-}
-
-async function displaySearchResults(users) {
-    const container = document.getElementById('searchResults');
-    if (!container) return;
-
-    if (!users || users.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state" style="padding: 30px 20px;">
-                <div class="empty-icon">🔍</div>
-                <p>No users found</p>
-            </div>
-        `;
-        return;
-    }
-
-    try {
-        // Get current friends
-        const { data: friends } = await window.supabase
-            .from('friends')
-            .select('friend_id')
-            .eq('user_id', currentUser.id);
-
-        const friendIds = friends?.map(f => f.friend_id) || [];
-
-        // Get pending requests
-        const { data: pendingRequests } = await window.supabase
-            .from('friend_requests')
-            .select('receiver_id')
-            .eq('sender_id', currentUser.id)
-            .eq('status', 'pending');
-
-        const pendingIds = pendingRequests?.map(r => r.receiver_id) || [];
-
-        let html = '';
-        users.forEach(user => {
-            const isFriend = friendIds.includes(user.id);
-            const requestSent = pendingIds.includes(user.id);
-            const firstLetter = user.username.charAt(0).toUpperCase();
-
-            html += `
-                <div class="search-result">
-                    <div class="search-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8);">
-                        ${firstLetter}
-                    </div>
-                    <div class="search-info">
-                        <div class="search-name">${user.username}</div>
-                        <div class="search-username">${user.full_name || ''}</div>
-                    </div>
-                    ${isFriend ? `
-                        <button class="send-request-btn sent" disabled>
-                            ✓ Friend
-                        </button>
-                    ` : requestSent ? `
-                        <button class="send-request-btn sent" disabled>
-                            ✓ Sent
-                        </button>
-                    ` : `
-                        <button class="send-request-btn" onclick="sendFriendRequest('${user.id}', '${user.username}', this)">
-                            Add Friend
-                        </button>
-                    `}
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
-
-    } catch (error) {
-        console.error('Display results error:', error);
-    }
-}
-
-// Send friend request (same as home page)
-async function sendFriendRequest(toUserId, toUsername, button) {
-    if (!currentUser || !window.supabase) {
-        toast.error("Cannot send request");
-        return;
-    }
-
-    // Show loading state
-    if (button) {
-        const originalText = button.textContent;
-        button.textContent = 'Sending...';
-        button.disabled = true;
-    }
-
-    try {
-        // Check if request already exists
-        const { data: existingRequest } = await window.supabase
-            .from('friend_requests')
-            .select('id')
-            .eq('sender_id', currentUser.id)
-            .eq('receiver_id', toUserId)
-            .eq('status', 'pending')
-            .maybeSingle();
-
-        if (existingRequest) {
-            toast.info("Already Sent", `You've already sent a friend request to ${toUsername}`);
-            if (button) {
-                button.textContent = '✓ Sent';
-                setTimeout(() => {
-                    button.disabled = false;
-                }, 1000);
-            }
-            return;
-        }
-
-        // Create friend request
-        const { error } = await window.supabase
-            .from('friend_requests')
-            .insert({
-                sender_id: currentUser.id,
-                receiver_id: toUserId,
-                status: 'pending',
-                created_at: new Date().toISOString()
-            });
-
-        if (error) {
-            console.error("Error sending request:", error);
-            toast.error("Request Failed", "Could not send friend request");
-            if (button) {
-                button.textContent = 'Add Friend';
-                button.disabled = false;
-            }
-            return;
-        }
-
-        // Update notifications badge
-        updateNotificationsBadge();
-
-        toast.success("Request Sent", `Your request has been sent to ${toUsername}!`);
-
-        // Update button
-        if (button) {
-            button.textContent = '✓ Sent';
-            button.disabled = true;
-            button.classList.add('sent');
-        }
-
-    } catch (error) {
-        console.error("❌ Friend request error:", error);
-        toast.error("Request Failed", "Please check your connection");
-        if (button) {
-            button.textContent = 'Add Friend';
-            button.disabled = false;
-        }
-    }
-}
-
-// Load notifications (same as home page)
+// Load notifications modal
 async function loadNotifications() {
     const container = document.getElementById('notificationsList');
 
@@ -767,18 +384,16 @@ async function loadNotifications() {
 
             html += `
                 <div class="notification-item">
-                    <div class="notification-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8);">
-                        ${firstLetter}
-                    </div>
-                    <div class="notification-content">
+                    <div class="notif-avatar">${firstLetter}</div>
+                    <div class="notif-content">
                         <strong>${senderName}</strong> wants to be friends
                         <small>${timeAgo}</small>
                     </div>
-                    <div class="notification-actions">
-                        <button class="btn-small btn-success" onclick="acceptFriendRequest('${notification.id}', '${notification.sender_id}', '${senderName}', this)">
+                    <div class="notif-actions">
+                        <button class="accept-btn" onclick="acceptFriendRequest('${notification.id}', '${notification.sender_id}', '${senderName}', this)">
                             ✓
                         </button>
-                        <button class="btn-small btn-danger" onclick="declineFriendRequest('${notification.id}', this)">
+                        <button class="decline-btn" onclick="declineFriendRequest('${notification.id}', this)">
                             ✗
                         </button>
                     </div>
@@ -796,9 +411,10 @@ async function loadNotifications() {
 
 function showEmptyNotifications(container) {
     container.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">🔔</div>
-            <p>No notifications yet</p>
+        <div class="no-notifications">
+            <i class="fas fa-bell-slash"></i>
+            <h3>No Notifications</h3>
+            <p>You're all caught up!</p>
         </div>
     `;
 }
@@ -808,7 +424,7 @@ async function acceptFriendRequest(requestId, senderId, senderName = 'User', but
     console.log("Accepting request:", requestId, "from:", senderId);
 
     if (!currentUser || !window.supabase) {
-        toast.error("Cannot accept request");
+        showError("Error", "Cannot accept request");
         return;
     }
 
@@ -847,20 +463,21 @@ async function acceptFriendRequest(requestId, senderId, senderName = 'User', but
 
         // Update UI
         await loadNotifications();
-        await loadFriendsList();
+        await loadFriends();
         await updateNotificationsBadge();
 
-        toast.success("New Friend!", `You are now connected with ${senderName}! 🎉`);
+        showSuccess("New Friend!", `You are now connected with ${senderName}! 🎉`);
 
         // Update button
         if (button) {
-            button.textContent = '✓ Accepted';
+            button.textContent = '✓';
+            button.disabled = true;
             button.style.background = 'rgba(40, 167, 69, 0.3)';
         }
 
     } catch (error) {
         console.error("❌ Error accepting friend request:", error);
-        toast.error("Connection Failed", "Could not accept friend request");
+        showError("Connection Failed", "Could not accept friend request");
 
         // Reset button
         if (button) {
@@ -873,7 +490,7 @@ async function acceptFriendRequest(requestId, senderId, senderName = 'User', but
 // Decline friend request (same as home page)
 async function declineFriendRequest(requestId, button = null) {
     if (!currentUser || !window.supabase) {
-        toast.error("Cannot decline request");
+        showError("Error", "Cannot decline request");
         return;
     }
 
@@ -895,17 +512,18 @@ async function declineFriendRequest(requestId, button = null) {
         await loadNotifications();
         await updateNotificationsBadge();
 
-        toast.info("Request Declined", "Friend request has been declined");
+        showInfo("Request Declined", "Friend request has been declined");
 
         // Update button
         if (button) {
-            button.textContent = '✗ Declined';
+            button.textContent = '✗';
+            button.disabled = true;
             button.style.background = 'rgba(220, 53, 69, 0.3)';
         }
 
     } catch (error) {
         console.error("❌ Error declining friend request:", error);
-        toast.error("Action Failed", "Could not decline friend request");
+        showError("Action Failed", "Could not decline friend request");
 
         // Reset button
         if (button) {
@@ -915,62 +533,237 @@ async function declineFriendRequest(requestId, button = null) {
     }
 }
 
-// Filter search results
-function filterSearchResults() {
-    const searchInput = document.getElementById('searchInput');
-    const searchResults = document.getElementById('searchResults');
+// ==================== SEARCH FUNCTIONALITY ====================
 
-    if (!searchInput || !searchResults) return;
 
-    const searchTerm = searchInput.value.toLowerCase();
-    const results = searchResults.querySelectorAll('.search-result');
+// Load search results
+async function loadSearchResults() {
+    const container = document.getElementById('searchResults');
+    if (!container || !currentUser || !window.supabase) return;
 
-    results.forEach(result => {
-        const name = result.querySelector('.search-name').textContent.toLowerCase();
-        if (name.includes(searchTerm) || searchTerm === '') {
-            result.style.display = 'flex';
-        } else {
-            result.style.display = 'none';
+    try {
+        container.innerHTML = '<div class="loading">Loading users...</div>';
+
+        // Get all users except current user
+        const { data: users, error } = await window.supabase
+            .from('profiles')
+            .select('id, username, full_name')
+            .neq('id', currentUser.id)
+            .limit(50);
+
+        if (error) {
+            console.error('Search error:', error);
+            container.innerHTML = '<div class="error">Error loading users</div>';
+            return;
         }
-    });
+
+        if (!users || users.length === 0) {
+            container.innerHTML = '<div class="no-results">No users found</div>';
+            return;
+        }
+
+        await displaySearchResults(users);
+
+    } catch (error) {
+        console.error('❌ Search error:', error);
+        container.innerHTML = '<div class="error">Search failed</div>';
+    }
 }
 
-// Global functions
-window.openSearchModal = function() {
-    const modal = document.getElementById('searchModal');
-    if (modal) {
-        modal.style.display = 'flex';
+async function displaySearchResults(users) {
+    const container = document.getElementById('searchResults');
+    if (!container) return;
+
+    if (!users || users.length === 0) {
+        container.innerHTML = '<div class="no-results">No users found</div>';
+        return;
+    }
+
+    try {
+        // Get current friends
+        const { data: friends } = await window.supabase
+            .from('friends')
+            .select('friend_id')
+            .eq('user_id', currentUser.id);
+
+        const friendIds = friends?.map(f => f.friend_id) || [];
+
+        // Get pending requests
+        const { data: pendingRequests } = await window.supabase
+            .from('friend_requests')
+            .select('receiver_id')
+            .eq('sender_id', currentUser.id)
+            .eq('status', 'pending');
+
+        const pendingIds = pendingRequests?.map(r => r.receiver_id) || [];
+
+        let html = '';
+        users.forEach(user => {
+            const isFriend = friendIds.includes(user.id);
+            const requestSent = pendingIds.includes(user.id);
+            const firstLetter = user.username.charAt(0).toUpperCase();
+            const displayName = user.username.length > 15 ? 
+                user.username.substring(0, 15) + '...' : user.username;
+
+            html += `
+                <div class="search-result">
+                    <div class="result-avatar">${firstLetter}</div>
+                    <div class="result-name">${displayName}</div>
+                    ${isFriend ? `
+                        <button class="add-btn" disabled style="background: rgba(40, 167, 69, 0.2); color: #28a745;">
+                            ✓ Friend
+                        </button>
+                    ` : requestSent ? `
+                        <button class="add-btn" disabled style="background: rgba(0, 122, 204, 0.2); color: #007acc;">
+                            ✓ Sent
+                        </button>
+                    ` : `
+                        <button class="add-btn" onclick="sendFriendRequest('${user.id}', '${user.username}', this)">
+                            Add
+                        </button>
+                    `}
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error('Display results error:', error);
+        container.innerHTML = '<div class="error">Failed to load results</div>';
+    }
+}
+
+// Send friend request
+async function sendFriendRequest(toUserId, toUsername, button) {
+    if (!currentUser || !window.supabase) {
+        showError("Error", "Cannot send request");
+        return;
+    }
+
+    // Show loading state
+    if (button) {
+        const originalText = button.textContent;
+        button.textContent = 'Sending...';
+        button.disabled = true;
+    }
+
+    try {
+        // Check if request already exists
+        const { data: existingRequest } = await window.supabase
+            .from('friend_requests')
+            .select('id')
+            .eq('sender_id', currentUser.id)
+            .eq('receiver_id', toUserId)
+            .eq('status', 'pending')
+            .maybeSingle();
+
+        if (existingRequest) {
+            showInfo("Already Sent", `You've already sent a friend request to ${toUsername}`);
+            if (button) {
+                button.textContent = '✓ Sent';
+                button.style.background = 'rgba(0, 122, 204, 0.2)';
+                button.style.color = '#007acc';
+                setTimeout(() => {
+                    button.disabled = false;
+                }, 1000);
+            }
+            return;
+        }
+
+        // Create friend request
+        const { error } = await window.supabase
+            .from('friend_requests')
+            .insert({
+                sender_id: currentUser.id,
+                receiver_id: toUserId,
+                status: 'pending',
+                created_at: new Date().toISOString()
+            });
+
+        if (error) {
+            console.error("Error sending request:", error);
+            showError("Request Failed", "Could not send friend request");
+            if (button) {
+                button.textContent = 'Add';
+                button.disabled = false;
+            }
+            return;
+        }
+
+        // Update notifications badge
+        await updateNotificationsBadge();
+
+        showSuccess("Request Sent", `Your request has been sent to ${toUsername}!`);
+
+        // Update button
+        if (button) {
+            button.textContent = '✓ Sent';
+            button.disabled = true;
+            button.style.background = 'rgba(0, 122, 204, 0.2)';
+            button.style.color = '#007acc';
+        }
+
+        // Refresh search results to update UI
         loadSearchResults();
+
+    } catch (error) {
+        console.error("❌ Friend request error:", error);
+        showError("Request Failed", "Please check your connection");
+        if (button) {
+            button.textContent = 'Add';
+            button.disabled = false;
+        }
     }
-};
+}
 
-window.openNotifications = function() {
-    const modal = document.getElementById('notificationsModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        loadNotifications();
+// Filter search results
+function filterSearchResultsInternal() {
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (!searchInput || !searchResults) return;
+
+    const term = searchInput.value.toLowerCase();
+    const users = searchResults.querySelectorAll('.search-result');
+    
+    if (term === '') {
+        // If search is empty, show all results
+        users.forEach(user => {
+            user.style.display = 'flex';
+        });
+        return;
     }
-};
+    
+    let hasResults = false;
+    users.forEach(user => {
+        const name = user.querySelector('.result-name').textContent.toLowerCase();
+        if (name.includes(term)) {
+            user.style.display = 'flex';
+            hasResults = true;
+        } else {
+            user.style.display = 'none';
+        }
+    });
+    
+    // Show no results message if no matches
+    if (!hasResults) {
+        const container = searchResults;
+        container.innerHTML = '<div class="no-results">No users found matching "' + term + '"</div>';
+    }
+}
 
-window.closeModal = function() {
-    const searchModal = document.getElementById('searchModal');
-    const notificationsModal = document.getElementById('notificationsModal');
-
-    if (searchModal) searchModal.style.display = 'none';
-    if (notificationsModal) notificationsModal.style.display = 'none';
-};
-
-window.openChat = openChat;
-window.sendFriendRequest = sendFriendRequest;
+// Make functions globally available
+window.loadSearchResults = loadSearchResults;
+window.loadNotifications = loadNotifications;
 window.acceptFriendRequest = acceptFriendRequest;
 window.declineFriendRequest = declineFriendRequest;
-window.goToHome = function() {
-    window.location.href = '../../home/index.html';
-};
-window.goToFriends = function() {
-    console.log('Already on friends page');
-};
-window.filterSearchResults = filterSearchResults;
+window.sendFriendRequest = sendFriendRequest;
+window.filterSearchResultsInternal = filterSearchResultsInternal;
+window.initPage = initPage;
+window.openChat = openChat;
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', initFriendsPage);
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initPage, 500);
+});
