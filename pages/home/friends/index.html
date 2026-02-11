@@ -7,13 +7,50 @@
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Simple loading styles */
+        #loadingIndicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f8fbff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 122, 204, 0.2);
+            border-top-color: #007acc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        .loading-text {
+            color: #007acc;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
+    <div id="toastContainer" class="toast-container"></div>
 
     <!-- Loading Indicator -->
-    <div class="loading-indicator" id="loadingIndicator">
+    <div id="loadingIndicator">
         <div class="loading-spinner"></div>
         <div class="loading-text">Loading Friends...</div>
     </div>
@@ -32,8 +69,8 @@
 
     <!-- Main Content -->
     <main class="friends-main">
-        <!-- Friends Grid -->
-        <div class="friends-grid" id="friendsGrid">
+        <!-- Friends Grid - Fixed ID to match script -->
+        <div id="friendsContainer" class="friends-grid">
             <!-- Friends will load here -->
         </div>
 
@@ -75,20 +112,20 @@
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search username..." oninput="filterSearchResults()">
             </div>
-            <div class="search-results" id="searchResults">
+            <div id="searchResults" class="search-results">
                 <!-- Results will load here -->
             </div>
         </div>
     </div>
 
-    <!-- Notifications Modal (Same as home page) -->
+    <!-- Notifications Modal -->
     <div class="modal-overlay" id="notificationsModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2><i class="fas fa-bell"></i> Notifications</h2>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
-            <div class="notifications-list" id="notificationsList">
+            <div id="notificationsList" class="notifications-list">
                 <!-- Notifications will load here -->
             </div>
         </div>
@@ -97,61 +134,65 @@
     <!-- Scripts -->
     <script src="script.js"></script>
     <script>
-        // Global functions for navigation and modals
+        // Simple global functions for navigation
         window.goToHome = function() {
             window.location.href = '../../home/index.html';
         };
 
         window.openSearchModal = function() {
-            document.getElementById('searchModal').style.display = 'flex';
-            // Load search results when modal opens
-            setTimeout(() => {
-                if (typeof loadSearchResults === 'function') {
-                    loadSearchResults();
-                }
-            }, 100);
+            const modal = document.getElementById('searchModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                // Load search results
+                setTimeout(() => {
+                    if (typeof window.loadSearchResults === 'function') {
+                        window.loadSearchResults();
+                    }
+                }, 100);
+            }
         };
 
         window.openNotificationsModal = function() {
             const modal = document.getElementById('notificationsModal');
-            modal.style.display = 'flex';
-            // Load notifications when modal opens
-            setTimeout(() => {
-                if (typeof loadNotifications === 'function') {
-                    loadNotifications();
-                }
-            }, 100);
+            if (modal) {
+                modal.style.display = 'flex';
+                // Load notifications
+                setTimeout(() => {
+                    if (typeof window.loadNotifications === 'function') {
+                        window.loadNotifications();
+                    }
+                }, 100);
+            }
         };
 
         window.closeModal = function() {
-            document.getElementById('searchModal').style.display = 'none';
-            document.getElementById('notificationsModal').style.display = 'none';
+            const modals = ['searchModal', 'notificationsModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) modal.style.display = 'none';
+            });
         };
 
         window.filterSearchResults = function() {
-            if (typeof filterSearchResultsInternal === 'function') {
-                filterSearchResultsInternal();
+            if (typeof window.filterSearchResultsInternal === 'function') {
+                window.filterSearchResultsInternal();
             }
         };
 
         // Close modal when clicking outside
         document.addEventListener('click', function(event) {
-            const searchModal = document.getElementById('searchModal');
-            const notificationsModal = document.getElementById('notificationsModal');
-            
-            if (event.target === searchModal) {
-                closeModal();
-            }
-            if (event.target === notificationsModal) {
-                closeModal();
+            if (event.target.classList.contains('modal-overlay')) {
+                window.closeModal();
             }
         });
 
-        // Initialize when page loads
+        // Prevent text selection on buttons
         document.addEventListener('DOMContentLoaded', function() {
-            if (typeof initPage === 'function') {
-                setTimeout(initPage, 500);
-            }
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.style.userSelect = 'none';
+                btn.style.webkitUserSelect = 'none';
+            });
         });
     </script>
 </body>
