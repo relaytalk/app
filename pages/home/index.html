@@ -3,144 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ RelayTalk - Friends</title>
-
-    <!-- SEO -->
-    <meta name="description" content="RelayTalk - Connect with your friends">
-    <meta name="keywords" content="RelayTalk, friends, messaging, chat">
-
-    <!-- Styles -->
-    <link rel="stylesheet" href="../style.css">
+    <title>✨ Relay - Home</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Load Supabase First -->
-    <script type="module">
-        // Load Supabase globally
-        async function loadSupabase() {
-            try {
-                const modulePath = '/utils/supabase.js';
-                console.log('Loading Supabase from:', modulePath);
-
-                await import(modulePath);
-
-                // Wait for initialization
-                let attempts = 0;
-                while (!window.supabase && attempts < 30) {
-                    await new Promise(resolve => setTimeout(resolve, 150));
-                    attempts++;
-                }
-
-                if (window.supabase) {
-                    console.log('✅ Supabase loaded for friends page');
-
-                    // Check auth immediately
-                    const { data } = await window.supabase.auth.getSession();
-                    if (!data.session) {
-                        console.log('No session, redirecting to LOGIN page...');
-                        setTimeout(() => {
-                            window.location.href = '../login/index.html';
-                        }, 800);
-                    }
-                } else {
-                    console.error('❌ Supabase not loaded after waiting');
-                }
-            } catch (error) {
-                console.error('❌ Failed to load Supabase:', error);
-                // Show error to user
-                const loadingIndicator = document.getElementById('loadingIndicator');
-                if (loadingIndicator) {
-                    loadingIndicator.innerHTML = `
-                        <div style="text-align: center; color: #ff6b8b;">
-                            <div style="font-size: 2rem;">⚠️</div>
-                            <div class="loading-text">Connection Error</div>
-                            <p style="font-size: 0.9rem; margin-top: 10px;">Cannot connect to server</p>
-                            <button onclick="window.location.reload()" style="
-                                background: rgba(0, 122, 204, 0.2);
-                                color: #007acc;
-                                border: 1px solid rgba(0, 122, 204, 0.3);
-                                padding: 8px 16px;
-                                border-radius: 8px;
-                                margin-top: 15px;
-                                cursor: pointer;
-                            ">Retry</button>
-                        </div>
-                    `;
-                }
-            }
-        }
-
-        // Auto-load on page load
-        document.addEventListener('DOMContentLoaded', loadSupabase);
-    </script>
-
-    <style>
-        /* Custom styles for friends page */
-        .toast-container {
-            z-index: 10000;
-        }
-        
-        .main-content {
-            background: linear-gradient(to bottom, #f8fbff 0%, #e6f0ff 100%);
-            min-height: 100vh;
-            padding-bottom: 80px;
-        }
-    </style>
 </head>
 <body>
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
-
+<!-- Toast Notifications Container -->
+<div class="toast-container" id="toastContainer"></div>
     <!-- Loading Indicator -->
     <div class="loading-indicator" id="loadingIndicator">
-        <div class="loading-text">✨ Loading Friends...</div>
+        <div class="loading-text">✨ Loading Relay...</div>
     </div>
 
     <!-- Top Header -->
     <header class="top-header">
-        <button class="back-btn" onclick="goToHome()">
-            <i class="fas fa-arrow-left"></i> Back
+        <!-- Search Button - Top Left -->
+        <button class="search-btn" onclick="openSearch()">
+            <i class="fas fa-search"></i> Search Friends
         </button>
-        <div class="logo-top">✨ RelayTalk</div>
+
+        <!-- Logo - Top Right -->
+        <div class="logo-top">✨ Relay</div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Friends Header -->
-        <section class="friends-header">
-            <h1 class="friends-title">RelayTalk Friends</h1>
-            <p class="friends-subtitle">Connect and chat with your circle</p>
-
-            <!-- Total Friends Only -->
-            <div class="friends-stats-single">
-                <div class="total-friends-badge">
-                    <span class="friends-count" id="totalFriends">0</span>
-                    <span class="friends-label">Friends</span>
-                </div>
+        <!-- Welcome Section -->
+        <section class="welcome-section">
+            <div class="welcome-icon">👋</div>
+            <h1 class="welcome-title" id="welcomeTitle">Welcome to Relay!</h1>
+            <p class="welcome-subtitle">Connect, chat, and stay close with your friends</p>
+            <div style="margin-top: 20px;">
+                <button class="search-btn" onclick="openSearch()" style="margin: 0 auto;">
+                    <i class="fas fa-user-plus"></i> Add New Friends
+                </button>
             </div>
         </section>
 
-        <!-- Friends Container -->
-        <div class="friends-container" id="friendsContainer">
-            <!-- Friends will load here -->
-            <div class="empty-state">
-                <div class="empty-icon">👥</div>
-                <h3 class="empty-title">Loading Friends...</h3>
-                <p class="empty-desc">Please wait while we load your friends list</p>
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="action-card" onclick="openSearch()">
+                <div class="action-icon">🔍</div>
+                <h3 class="action-title">Find Friends</h3>
+                <p class="action-desc">Search by username or name</p>
+            </div>
+
+            <div class="action-card" onclick="viewFriendsPage()">
+                <div class="action-icon">👥</div>
+                <h3 class="action-title">All Friends</h3>
+                <p class="action-desc">View and manage your friends</p>
+            </div>
+
+            <div class="action-card" onclick="openNotifications()">
+                <div class="action-icon">🔔</div>
+                <h3 class="action-title">Notifications</h3>
+                <p class="action-desc">Check your latest updates</p>
             </div>
         </div>
 
-        <!-- Add Friends Button - Fixed at bottom -->
-        <div class="add-friends-fixed">
-            <button class="add-friends-btn-fixed" onclick="openSearchModal()">
-                <i class="fas fa-user-plus"></i> Add New Friends
-            </button>
-        </div>
+        <!-- Friends Section -->
+        <section class="friends-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon"><i class="fas fa-user-friends"></i></span>
+                    Your Friends
+                    <span class="online-counter" id="onlineCounter">0 Online</span>
+                </h2>
+                <button class="view-all-btn" onclick="viewFriendsPage()">
+                    View All <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <div class="friends-grid" id="friendsList">
+                <!-- Friends will be loaded here -->
+                <div class="empty-state">
+                    <div class="empty-icon">👥</div>
+                    <h3 class="empty-title">No Friends Yet</h3>
+                    <p class="empty-desc">Start by searching for friends to connect with</p>
+                    <button class="search-btn" onclick="openSearch()" style="margin-top: 20px;">
+                        <i class="fas fa-search"></i> Find Friends
+                    </button>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav">
-        <button class="nav-btn" onclick="goToHome()">
+        <button class="nav-btn active" onclick="goToHome()">
             <span class="nav-icon"><i class="fas fa-home"></i></span>
             Home
         </button>
@@ -151,7 +101,7 @@
             <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
         </button>
 
-        <button class="nav-btn active" onclick="goToFriends()">
+        <button class="nav-btn" onclick="viewFriendsPage()">
             <span class="nav-icon"><i class="fas fa-users"></i></span>
             Friends
         </button>
@@ -161,22 +111,21 @@
     <div class="modal-overlay" id="searchModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title"><i class="fas fa-user-plus"></i> Add New Friends</h2>
+                <h2 class="modal-title"><i class="fas fa-search"></i> Search Users</h2>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
 
             <div class="search-container">
                 <i class="fas fa-search search-icon"></i>
                 <input type="text" id="searchInput" class="search-input" 
-                       placeholder="Search by username..." autocomplete="off"
-                       oninput="filterSearchResults()">
+                       placeholder="Search by username or name..." autocomplete="off">
             </div>
 
             <div id="searchResults">
                 <div class="empty-state" style="padding: 30px 20px;">
                     <div class="empty-icon">🔍</div>
-                    <h3 class="empty-title">Find New Friends</h3>
-                    <p class="empty-desc">Type a username to find people on RelayTalk</p>
+                    <h3 class="empty-title">Search for Friends</h3>
+                    <p class="empty-desc">Type a username or name to find people on Relay</p>
                 </div>
             </div>
         </div>
@@ -200,58 +149,30 @@
         </div>
     </div>
 
-    <!-- Friends Script -->
+
+
+<a href="/offline/online.html"
+   style="
+     position: fixed;
+     top: 45px;
+     right: 25px;
+     z-index: 9999;
+     opacity: 0.1;
+     background: rgba(0, 0, 0, 0.6);
+     color: white;
+     padding: 5px 12px;
+     border-radius: 15px;
+     font-size: 11px;
+     text-decoration: none;
+     transition: all 0.3s;
+     border: 1px solid rgba(255, 255, 255, 0.1);
+   "
+   onmouseover="this.style.background='rgba(0, 0, 0, 0.8)';"
+   onmouseout="this.style.background='rgba(0, 0, 0, 0.6)';">
+
+</a>
     <script type="module" src="script.js"></script>
-
-    <script>
-        // Simple network detection
-        window.isOnline = navigator.onLine;
-        window.addEventListener('online', () => {
-            window.isOnline = true;
-            console.log('🌐 Online');
-        });
-        window.addEventListener('offline', () => {
-            window.isOnline = false;
-            console.log('📴 Offline');
-        });
-
-        // Prevent text selection
-        document.addEventListener('selectstart', (e) => e.preventDefault());
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-        // Make goToHome available immediately
-        window.goToHome = function() {
-            console.log('Going to home...');
-            window.location.href = '../../home/index.html';
-        };
-
-        // Temporary functions until script loads
-        window.openSearchModal = function() {
-            console.log('Opening search modal...');
-            const modal = document.getElementById('searchModal');
-            if (modal) modal.style.display = 'flex';
-        };
-
-        window.openNotifications = function() {
-            console.log('Opening notifications...');
-            const modal = document.getElementById('notificationsModal');
-            if (modal) modal.style.display = 'flex';
-        };
-
-        window.closeModal = function() {
-            const searchModal = document.getElementById('searchModal');
-            const notificationsModal = document.getElementById('notificationsModal');
-            if (searchModal) searchModal.style.display = 'none';
-            if (notificationsModal) notificationsModal.style.display = 'none';
-        };
-
-        window.goToFriends = function() {
-            console.log('Already on friends page');
-        };
-
-        window.filterSearchResults = function() {
-            console.log('Filtering search results...');
-        };
-    </script>
+<!-- Add this to home/index.html, chats/index.html, etc. -->
+<script src="/utils/sw-manager.js"></script>
 </body>
 </html>
