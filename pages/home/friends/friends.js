@@ -1,4 +1,4 @@
-// friends.js - WITH PROPER WAIT FOR SUPABASE
+// friends.js - WITH CORRECT CHAT PATH
 
 import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
 
@@ -189,13 +189,13 @@ function showError(message) {
     `;
 }
 
-// Open chat
+// 🔥 FIXED: Open chat with correct path (REMOVED /home/)
 window.openChat = function(friendId, friendName) {
     sessionStorage.setItem('currentChatFriend', JSON.stringify({
         id: friendId,
         username: friendName
     }));
-    window.location.href = `../chats/index.html?friendId=${friendId}`;
+    window.location.href = `../../chats/index.html?friendId=${friendId}`;
 };
 
 // Search users
