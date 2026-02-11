@@ -4,92 +4,170 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RelayTalk - Friends</title>
+
+    <!-- Use same styles as home page -->
     <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
-        /* Simple loading styles */
-        #loadingIndicator {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #f8fbff;
+        /* Simple override for friends page */
+        .friends-container {
+            padding: 20px;
+        }
+
+        .friends-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .friend-card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 10px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 122, 204, 0.1);
+            border: 1px solid rgba(0, 122, 204, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .friend-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 122, 204, 0.15);
+        }
+
+        .friend-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #007acc, #00b4d8);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0 auto 10px;
+            position: relative;
         }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(0, 122, 204, 0.2);
-            border-top-color: #007acc;
+
+        .friend-avatar.online::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 12px;
+            height: 12px;
+            background: #28a745;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
+            border: 2px solid white;
         }
-        
-        .loading-text {
-            color: #007acc;
-            font-size: 16px;
+
+        .friend-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #005a9e;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .friend-status {
+            font-size: 12px;
             font-weight: 500;
+            color: #666;
         }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+
+        .friend-status.online {
+            color: #28a745;
+        }
+
+        .friend-status.offline {
+            color: #888;
+        }
+
+        .no-friends {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .no-friends i {
+            font-size: 48px;
+            color: #007acc;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .no-friends h3 {
+            font-size: 18px;
+            color: #005a9e;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .no-friends p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .friends-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .friends-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container"></div>
-
     <!-- Loading Indicator -->
-    <div id="loadingIndicator">
-        <div class="loading-spinner"></div>
+    <div class="loading-indicator" id="loadingIndicator">
         <div class="loading-text">Loading Friends...</div>
     </div>
 
-    <!-- Top Header -->
-    <header class="friends-header">
+    <!-- Top Header - Same as home page -->
+    <header class="top-header">
         <button class="back-btn" onclick="goToHome()">
-            <i class="fas fa-arrow-left"></i>
+            <i class="fas fa-arrow-left"></i> Back
         </button>
-        <div class="header-title">
-            <h1>RelayTalk</h1>
-            <p class="header-subtitle">Friends</p>
+        <div class="logo-top">✨ RelayTalk</div>
+        <div class="friends-count" id="friendsCount" style="background: rgba(0, 122, 204, 0.1); color: #007acc; padding: 5px 12px; border-radius: 15px; font-size: 14px;">
+            0 friends
         </div>
-        <div class="friends-count" id="friendsCount">0</div>
     </header>
 
     <!-- Main Content -->
-    <main class="friends-main">
-        <!-- Friends Grid - Fixed ID to match script -->
-        <div id="friendsContainer" class="friends-grid">
-            <!-- Friends will load here -->
+    <main class="main-content">
+        <!-- Friends Header -->
+        <div class="welcome-section">
+            <h1 class="welcome-title" id="welcomeTitle">Your Friends</h1>
+            <p class="welcome-subtitle">Connect and chat with your circle</p>
         </div>
 
-        <!-- Add Friends Button -->
-        <div class="add-friends-section">
-            <button class="add-friends-btn" onclick="openSearchModal()">
-                <i class="fas fa-user-plus"></i> Add New Friends
-            </button>
+        <!-- Friends Container -->
+        <div class="friends-container">
+            <div id="friendsList" class="friends-grid">
+                <!-- Friends will load here -->
+            </div>
         </div>
     </main>
 
-    <!-- Bottom Navigation -->
+    <!-- Bottom Navigation - Same as home page -->
     <nav class="bottom-nav">
         <button class="nav-btn" onclick="goToHome()">
             <span class="nav-icon"><i class="fas fa-home"></i></span>
             Home
         </button>
 
-        <button class="nav-btn" onclick="openNotificationsModal()">
+        <button class="nav-btn" onclick="openNotifications()">
             <span class="nav-icon"><i class="fas fa-bell"></i></span>
             Notifications
             <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
@@ -101,99 +179,270 @@
         </button>
     </nav>
 
-    <!-- Search Modal -->
+    <!-- Search Modal - Same as home page -->
     <div class="modal-overlay" id="searchModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2><i class="fas fa-user-plus"></i> Add Friends</h2>
+                <h2 class="modal-title"><i class="fas fa-search"></i> Find Friends</h2>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search username..." oninput="filterSearchResults()">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="search-input" 
+                       placeholder="Search by username..." autocomplete="off"
+                       oninput="filterSearchResults()">
             </div>
-            <div id="searchResults" class="search-results">
-                <!-- Results will load here -->
+            <div id="searchResults">
+                <div class="empty-state" style="padding: 30px 20px;">
+                    <div class="empty-icon">🔍</div>
+                    <h3 class="empty-title">Find New Friends</h3>
+                    <p class="empty-desc">Type a username to find people</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Notifications Modal -->
+    <!-- Notifications Modal - Same as home page -->
     <div class="modal-overlay" id="notificationsModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2><i class="fas fa-bell"></i> Notifications</h2>
+                <h2 class="modal-title"><i class="fas fa-bell"></i> Notifications</h2>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
-            <div id="notificationsList" class="notifications-list">
-                <!-- Notifications will load here -->
+            <div id="notificationsList">
+                <div class="empty-state" style="padding: 40px 20px;">
+                    <div class="empty-icon">🔔</div>
+                    <h3 class="empty-title">No Notifications</h3>
+                    <p class="empty-desc">You're all caught up!</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="script.js"></script>
+    <!-- Script - Simple version using home page patterns -->
     <script>
-        // Simple global functions for navigation
-        window.goToHome = function() {
-            window.location.href = '../../home/index.html';
-        };
+        // Simple friends page script using same patterns as home page
 
-        window.openSearchModal = function() {
-            const modal = document.getElementById('searchModal');
-            if (modal) {
-                modal.style.display = 'flex';
-                // Load search results
-                setTimeout(() => {
-                    if (typeof window.loadSearchResults === 'function') {
-                        window.loadSearchResults();
-                    }
-                }, 100);
+        let currentUser = null;
+
+        // Simple toast function
+        function showToast(message, type = 'info') {
+            // Create toast container if it doesn't exist
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.prepend(container);
             }
-        };
 
-        window.openNotificationsModal = function() {
-            const modal = document.getElementById('notificationsModal');
-            if (modal) {
-                modal.style.display = 'flex';
-                // Load notifications
-                setTimeout(() => {
-                    if (typeof window.loadNotifications === 'function') {
-                        window.loadNotifications();
-                    }
-                }, 100);
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-message">${message}</div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Wait for Supabase
+        async function waitForSupabase() {
+            let attempts = 0;
+            while (!window.supabase && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
             }
-        };
+            return !!window.supabase;
+        }
 
-        window.closeModal = function() {
-            const modals = ['searchModal', 'notificationsModal'];
-            modals.forEach(modalId => {
-                const modal = document.getElementById(modalId);
-                if (modal) modal.style.display = 'none';
+        // Initialize page
+        async function initFriendsPage() {
+            console.log('Initializing friends page...');
+
+            try {
+                // Wait for Supabase
+                const supabaseReady = await waitForSupabase();
+                if (!supabaseReady) {
+                    throw new Error('Supabase not loaded');
+                }
+
+                // Check authentication
+                const { data } = await window.supabase.auth.getUser();
+                if (!data.user) {
+                    window.location.href = '../../login/index.html';
+                    return;
+                }
+
+                currentUser = data.user;
+                console.log('User:', currentUser.email);
+
+                // Hide loading
+                document.getElementById('loadingIndicator').style.display = 'none';
+
+                // Load friends
+                await loadFriends();
+
+                // Load notifications badge
+                await updateNotificationsBadge();
+
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Failed to load page', 'error');
+                document.getElementById('loadingIndicator').style.display = 'none';
+
+                // Show error state
+                const container = document.getElementById('friendsList');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="no-friends">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>Connection Error</h3>
+                            <p>Failed to load friends</p>
+                            <button onclick="initFriendsPage()" style="
+                                background: #007acc;
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 20px;
+                                cursor: pointer;
+                                margin-top: 15px;
+                            ">Retry</button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Load friends
+        async function loadFriends() {
+            if (!currentUser || !window.supabase) {
+                showEmptyFriends('Not logged in');
+                return;
+            }
+
+            const container = document.getElementById('friendsList');
+            if (!container) {
+                console.error('Friends list container not found!');
+                return;
+            }
+
+            try {
+                // Show loading
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px;">
+                        <div style="width: 40px; height: 40px; border: 3px solid rgba(0,122,204,0.2); border-top-color: #007acc; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
+                        <p style="color: #666;">Loading friends...</p>
+                    </div>
+                `;
+
+                // Get friends
+                const { data: friends } = await window.supabase
+                    .from('friends')
+                    .select('friend_id')
+                    .eq('user_id', currentUser.id);
+
+                if (!friends || friends.length === 0) {
+                    showEmptyFriends('No friends yet');
+                    updateFriendsCount(0);
+                    return;
+                }
+
+                // Get friend profiles
+                const friendIds = friends.map(f => f.friend_id);
+                const { data: profiles } = await window.supabase
+                    .from('profiles')
+                    .select('id, username, status, last_seen')
+                    .in('id', friendIds);
+
+                updateFriendsCount(friends.length);
+                displayFriends(profiles || []);
+
+            } catch (error) {
+                console.error('Load friends error:', error);
+                showEmptyFriends('Error loading friends');
+            }
+        }
+
+        // Display friends
+        function displayFriends(friends) {
+            const container = document.getElementById('friendsList');
+            if (!container) return;
+
+            if (!friends || friends.length === 0) {
+                showEmptyFriends('No friends found');
+                return;
+            }
+
+            // Sort: online first
+            friends.sort((a, b) => {
+                if (a.status === 'online' && b.status !== 'online') return -1;
+                if (a.status !== 'online' && b.status === 'online') return 1;
+                return (a.username || '').localeCompare(b.username || '');
             });
-        };
 
-        window.filterSearchResults = function() {
-            if (typeof window.filterSearchResultsInternal === 'function') {
-                window.filterSearchResultsInternal();
-            }
-        };
+            let html = '';
 
-        // Close modal when clicking outside
-        document.addEventListener('click', function(event) {
-            if (event.target.classList.contains('modal-overlay')) {
-                window.closeModal();
-            }
-        });
+            friends.forEach(friend => {
+                const isOnline = friend.status === 'online';
+                const firstLetter = (friend.username || 'U').charAt(0).toUpperCase();
+                const displayName = friend.username || 'Unknown';
+                const shortName = displayName.length > 10 ? 
+                    displayName.substring(0, 10) + '...' : displayName;
 
-        // Prevent text selection on buttons
-        document.addEventListener('DOMContentLoaded', function() {
-            const buttons = document.querySelectorAll('button');
-            buttons.forEach(btn => {
-                btn.style.userSelect = 'none';
-                btn.style.webkitUserSelect = 'none';
+                html += `
+                    <div class="friend-card" onclick="openChat('${friend.id}', '${friend.username}')">
+                        <div class="friend-avatar ${isOnline ? 'online' : ''}">
+                            ${firstLetter}
+                        </div>
+                        <div class="friend-name">${shortName}</div>
+                        <div class="friend-status ${isOnline ? 'online' : 'offline'}">
+                            ${isOnline ? 'Online' : 'Offline'}
+                        </div>
+                    </div>
+                `;
             });
-        });
-    </script>
-</body>
-</html>
+
+            container.innerHTML = html;
+        }
+
+        // Show empty state
+        function showEmptyFriends(message = 'No friends yet') {
+            const container = document.getElementById('friendsList');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="no-friends" style="grid-column: 1 / -1;">
+                    <i class="fas fa-user-friends"></i>
+                    <h3>${message}</h3>
+                    <p>Start by adding friends to connect</p>
+                    <button onclick="openSearch()" style="
+                        background: linear-gradient(45deg, #007acc, #00b4d8);
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 25px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        margin-top: 15px;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                    ">
+                        <i class="fas fa-user-plus"></i> Find Friends
+                    </button>
+                </div>
+            `;
+        }
+
+        // Update friends count
+        function updateFriendsCount(count) {
+            const countElement = document.getElementById('friendsCount');
+            if (countElement) {
+                countElement.textContent = `${count} friends`;
+            }
