@@ -2,58 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ RelayTalk - Friends</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RelayTalk · Friends</title>
+
+    <!-- Supabase CDN - required for supabase.js to work -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Styles -->
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="friends.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Supabase Script -->
-    <script type="module" src="../../utils/supabase.js"></script>
-    <script type="module" src="../../utils/auth.js"></script>
-
-    <style>
-        .loading-indicator {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #f0f2f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .loading-indicator.hidden {
-            display: none;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e0e0e0;
-            border-top: 3px solid #00a884;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
 </head>
 <body>
     <!-- Loading Screen -->
     <div class="loading-indicator" id="loadingIndicator">
         <div class="loading-spinner"></div>
-        <div style="color: #666; font-size: 0.9rem;">Loading your friends...</div>
+        <div style="color: #64748b; font-size: 0.95rem;">Loading friends...</div>
     </div>
 
     <!-- Header -->
@@ -69,9 +33,6 @@
                 <button class="header-btn" onclick="openSearch()">
                     <i class="fas fa-user-plus"></i>
                 </button>
-                <button class="header-btn" onclick="openSettings()">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
             </div>
         </div>
     </header>
@@ -84,6 +45,7 @@
                    id="searchInput" 
                    class="search-input" 
                    placeholder="Search friends..." 
+                   autocomplete="off"
                    oninput="searchFriends()">
             <button class="clear-search" id="clearSearch" onclick="clearSearch()" style="display: none;">
                 <i class="fas fa-times"></i>
@@ -93,7 +55,6 @@
 
     <!-- Friends List -->
     <main class="friends-list" id="friendsList">
-        <!-- Friends will load here -->
         <div class="empty-state">
             <div class="empty-icon">👥</div>
             <h3>No friends yet</h3>
@@ -124,11 +85,11 @@
         </a>
     </nav>
 
-    <!-- Search Modal -->
+    <!-- Add Friends Modal -->
     <div class="modal-overlay" id="searchModal">
-        <div class="modal-content search-modal">
+        <div class="modal-content">
             <div class="modal-header">
-                <h2><i class="fas fa-user-plus"></i> Add Friends</h2>
+                <h2><i class="fas fa-user-plus" style="color: #007acc;"></i> Add Friends</h2>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
             <div class="modal-body">
@@ -137,6 +98,7 @@
                     <input type="text" 
                            id="userSearchInput" 
                            placeholder="Search by username..." 
+                           autocomplete="off"
                            oninput="searchUsers()">
                 </div>
                 <div id="searchResults" class="search-results">
@@ -149,75 +111,57 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div class="modal-overlay" id="settingsModal">
-        <div class="modal-content settings-modal">
-            <div class="modal-header">
-                <h2><i class="fas fa-cog"></i> Settings</h2>
-                <button class="modal-close" onclick="closeModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <button class="settings-item" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-                <button class="settings-item" onclick="closeModal()">
-                    <i class="fas fa-times"></i>
-                    <span>Close</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Scripts -->
+    <!-- Your existing Supabase config -->
+    <script type="module" src="../../utils/supabase.js"></script>
+    
+    <!-- Friends script -->
     <script src="friends.js"></script>
+
+    <!-- Navigation Functions -->
     <script>
-        // Basic navigation functions
-        function goToHome() {
+        window.goToHome = function() {
             window.location.href = '../../home/index.html';
-        }
+        };
 
-        function openSearch() {
+        window.openSearch = function() {
             document.getElementById('searchModal').style.display = 'flex';
-            document.getElementById('userSearchInput').focus();
-        }
+            setTimeout(() => {
+                document.getElementById('userSearchInput')?.focus();
+            }, 100);
+        };
 
-        function openSettings() {
-            document.getElementById('settingsModal').style.display = 'flex';
-        }
-
-        function closeModal() {
+        window.closeModal = function() {
             document.getElementById('searchModal').style.display = 'none';
-            document.getElementById('settingsModal').style.display = 'none';
-        }
+        };
 
-        function logout() {
+        window.logout = async function() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                await supabase.auth.signOut();
+            }
             localStorage.clear();
             sessionStorage.clear();
             window.location.href = '../../index.html';
-        }
+        };
 
-        // Close modals when clicking outside
-        document.addEventListener('click', (e) => {
-            const searchModal = document.getElementById('searchModal');
-            const settingsModal = document.getElementById('settingsModal');
-            
-            if (searchModal && searchModal.style.display === 'flex' && 
-                !searchModal.querySelector('.modal-content').contains(e.target) &&
-                !e.target.closest('.header-btn')) {
-                closeModal();
-            }
-            
-            if (settingsModal && settingsModal.style.display === 'flex' && 
-                !settingsModal.querySelector('.modal-content').contains(e.target) &&
-                !e.target.closest('.header-btn')) {
-                closeModal();
+        // Close modal on outside click
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('searchModal');
+            if (modal && modal.style.display === 'flex') {
+                if (!modal.querySelector('.modal-content')?.contains(e.target) && 
+                    !e.target.closest('.header-btn')) {
+                    window.closeModal();
+                }
             }
         });
+
+        // Debug - remove after testing
+        setTimeout(() => {
+            console.log('Supabase:', window.supabase ? '✅' : '❌');
+        }, 1000);
     </script>
 </body>
 </html>
