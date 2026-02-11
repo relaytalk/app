@@ -1,4 +1,6 @@
-// friends.js - ULTRA SIMPLE
+// friends.js - WITH IMPORT SYNTAX
+
+import { supabase } from '../../../utils/supabase.js';
 
 let currentUser = null;
 let allFriends = [];
@@ -9,9 +11,11 @@ async function initFriendsPage() {
     console.log('Loading friends...');
     
     try {
-        await waitForSupabase();
+        // Check authentication
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        const { data: { session } } = await supabase.auth.getSession();
+        if (error) throw error;
+        
         if (!session) {
             window.location.href = '../../index.html';
             return;
@@ -20,23 +24,13 @@ async function initFriendsPage() {
         currentUser = session.user;
         await loadFriends();
         
-        document.getElementById('loadingIndicator')?.classList.add('hidden');
+        const loader = document.getElementById('loadingIndicator');
+        if (loader) loader.classList.add('hidden');
         
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Init error:', error);
         showError('Failed to load friends');
     }
-}
-
-// Wait for Supabase
-function waitForSupabase() {
-    return new Promise((resolve) => {
-        const check = () => {
-            if (window.supabase) resolve();
-            else setTimeout(check, 100);
-        };
-        check();
-    });
 }
 
 // Load friends
@@ -72,7 +66,7 @@ async function loadFriends() {
         renderFriendsList();
         
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Load error:', error);
         showEmptyState();
     }
 }
@@ -126,9 +120,11 @@ function formatLastSeen(timestamp) {
 }
 
 // Search friends
-function searchFriends() {
+window.searchFriends = function() {
     const input = document.getElementById('searchInput');
     const clearBtn = document.getElementById('clearSearch');
+    if (!input) return;
+    
     const term = input.value.toLowerCase().trim();
     
     if (clearBtn) clearBtn.style.display = term ? 'flex' : 'none';
@@ -138,16 +134,16 @@ function searchFriends() {
         : [...allFriends];
     
     renderFriendsList();
-}
+};
 
 // Clear search
-function clearSearch() {
+window.clearSearch = function() {
     const input = document.getElementById('searchInput');
     if (input) {
         input.value = '';
-        searchFriends();
+        window.searchFriends();
     }
-}
+};
 
 // Show empty state
 function showEmptyState() {
@@ -184,22 +180,24 @@ function showError(message) {
 }
 
 // Open chat
-function openChat(friendId, friendName) {
+window.openChat = function(friendId, friendName) {
     sessionStorage.setItem('currentChatFriend', JSON.stringify({
         id: friendId,
         username: friendName
     }));
     window.location.href = `../chats/index.html?friendId=${friendId}`;
-}
+};
 
 // Search users
-async function searchUsers() {
+window.searchUsers = async function() {
     const input = document.getElementById('userSearchInput');
     const container = document.getElementById('searchResults');
+    if (!input || !container) return;
+    
     const term = input.value.toLowerCase().trim();
     
     if (!term) {
-        container.innerHTML = `<div class="empty-search" style="text-align:center;padding:30px;"><p>Search for friends to add</p></div>`;
+        container.innerHTML = `<div class="empty-search" style="text-align:center;padding:30px;"><i class="fas fa-search" style="font-size:2rem;color:#cbd5e1;margin-bottom:10px;"></i><p>Search for friends to add</p></div>`;
         return;
     }
     
@@ -212,6 +210,15 @@ async function searchUsers() {
             
         const friendIds = friends?.map(f => f.friend_id) || [];
         
+        // Get pending requests
+        const { data: pending } = await supabase
+            .from('friend_requests')
+            .select('receiver_id')
+            .eq('sender_id', currentUser.id)
+            .eq('status', 'pending');
+            
+        const pendingIds = pending?.map(r => r.receiver_id) || [];
+        
         // Search users
         const { data: users, error } = await supabase
             .from('profiles')
@@ -223,13 +230,14 @@ async function searchUsers() {
         if (error) throw error;
         
         if (!users || users.length === 0) {
-            container.innerHTML = `<div class="empty-search" style="text-align:center;padding:30px;"><p>No users found</p></div>`;
+            container.innerHTML = `<div class="empty-search" style="text-align:center;padding:30px;"><i class="fas fa-user-slash" style="font-size:2rem;color:#cbd5e1;margin-bottom:10px;"></i><p>No users found</p></div>`;
             return;
         }
         
         let html = '';
         users.forEach(user => {
             const isFriend = friendIds.includes(user.id);
+            const isPending = pendingIds.includes(user.id);
             const initial = user.username?.charAt(0).toUpperCase() || '?';
             
             html += `
@@ -241,7 +249,9 @@ async function searchUsers() {
                     </div>
                     ${isFriend 
                         ? '<button class="add-friend-btn added" disabled>✓ Friends</button>'
-                        : `<button class="add-friend-btn" onclick="sendRequest('${user.id}', '${user.username}', this)">+ Add</button>`
+                        : isPending
+                        ? '<button class="add-friend-btn added" disabled>⏳ Sent</button>'
+                        : `<button class="add-friend-btn" onclick="sendFriendRequest('${user.id}', '${user.username}', this)">+ Add</button>`
                     }
                 </div>
             `;
@@ -251,14 +261,15 @@ async function searchUsers() {
         
     } catch (error) {
         console.error('Search error:', error);
+        container.innerHTML = `<div class="empty-search" style="text-align:center;padding:30px;"><i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i><p>Error searching users</p></div>`;
     }
-}
+};
 
 // Send friend request
-async function sendRequest(userId, username, btn) {
+window.sendFriendRequest = async function(userId, username, btn) {
     try {
         btn.disabled = true;
-        btn.textContent = '...';
+        btn.textContent = 'Sending...';
         
         const { error } = await supabase
             .from('friend_requests')
@@ -273,7 +284,7 @@ async function sendRequest(userId, username, btn) {
         
         btn.textContent = '✓ Sent';
         btn.classList.add('added');
-        showToast('success', `Request sent to ${username}`);
+        showToast('success', `Friend request sent to ${username}`);
         
     } catch (error) {
         console.error('Request error:', error);
@@ -281,50 +292,46 @@ async function sendRequest(userId, username, btn) {
         btn.textContent = '+ Add';
         showToast('error', 'Failed to send request');
     }
-}
+};
 
-// Simple toast
+// Toast
 function showToast(type, message) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
     
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
+    
+    let icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+    let color = type === 'success' ? '#22c55e' : '#ef4444';
+    
     toast.innerHTML = `
-        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}" style="color:${type === 'success' ? '#22c55e' : '#ef4444'}"></i>
+        <i class="fas fa-${icon}" style="color:${color};"></i>
         <span>${message}</span>
     `;
     
     container.appendChild(toast);
     
     setTimeout(() => {
-        toast.remove();
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
-// Navigation functions
-window.goToHome = function() {
-    window.location.href = '../../home/index.html';
-};
-
-window.openSearch = function() {
+// Navigation
+window.goToHome = () => window.location.href = '../../home/index.html';
+window.openSearch = () => {
     const modal = document.getElementById('searchModal');
     if (modal) {
         modal.style.display = 'flex';
         setTimeout(() => document.getElementById('userSearchInput')?.focus(), 100);
     }
 };
-
-window.openSettings = function() {
-    document.getElementById('settingsModal').style.display = 'flex';
-};
-
-window.closeModal = function() {
+window.closeModal = () => {
     document.getElementById('searchModal').style.display = 'none';
-    document.getElementById('settingsModal').style.display = 'none';
 };
-
-window.logout = function() {
+window.logout = async () => {
+    await supabase.auth.signOut();
     localStorage.clear();
     sessionStorage.clear();
     window.location.href = '../../index.html';
