@@ -446,3 +446,248 @@
             if (countElement) {
                 countElement.textContent = `${count} friends`;
             }
+        }
+
+        // Open chat
+        function openChat(friendId, friendUsername = 'Friend') {
+            showToast(`Opening chat with ${friendUsername}...`);
+
+            // Store friend info
+            sessionStorage.setItem('currentChatFriend', JSON.stringify({
+                id: friendId,
+                username: friendUsername
+            }));
+
+            // Redirect to chat page
+            setTimeout(() => {
+                window.location.href = `../../chats/index.html?friendId=${friendId}`;
+            }, 800);
+        }
+
+        // ==================== NOTIFICATIONS ====================
+
+        // Update notifications badge
+        async function updateNotificationsBadge() {
+            try {
+                if (!currentUser || !window.supabase) return;
+
+                const { data: notifications } = await window.supabase
+                    .from('friend_requests')
+                    .select('id')
+                    .eq('receiver_id', currentUser.id)
+                    .eq('status', 'pending');
+
+                const badge = document.getElementById('notificationBadge');
+                if (badge) {
+                    const count = notifications?.length || 0;
+                    if (count > 0) {
+                        badge.textContent = count > 9 ? '9+' : count;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating badge:', error);
+            }
+        }
+
+        // Load notifications
+        async function loadNotifications() {
+            const container = document.getElementById('notificationsList');
+            if (!container) return;
+
+            try {
+                if (!currentUser || !window.supabase) {
+                    container.innerHTML = '<div class="empty-state">Not logged in</div>';
+                    return;
+                }
+
+                // Get notifications
+                const { data: notifications } = await window.supabase
+                    .from('friend_requests')
+                    .select('id, sender_id, created_at')
+                    .eq('receiver_id', currentUser.id)
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false });
+
+                if (!notifications || notifications.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">🔔</div>
+                            <h3 class="empty-title">No Notifications</h3>
+                            <p class="empty-desc">You're all caught up!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Get sender usernames
+                const senderIds = notifications.map(n => n.sender_id);
+                const { data: profiles } = await window.supabase
+                    .from('profiles')
+                    .select('id, username')
+                    .in('id', senderIds);
+
+                const profileMap = {};
+                if (profiles) profiles.forEach(p => profileMap[p.id] = p.username);
+
+                let html = '';
+                notifications.forEach(notif => {
+                    const senderName = profileMap[notif.sender_id] || 'Unknown';
+                    const time = new Date(notif.created_at).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+
+                    html += `
+                        <div class="notification-item">
+                            <div class="notification-content">
+                                <strong>${senderName}</strong> sent you a friend request
+                                <small>${time}</small>
+                            </div>
+                            <div class="notification-actions">
+                                <button class="btn-small btn-success" onclick="acceptRequest('${notif.id}', '${notif.sender_id}', this)">
+                                    ✓
+                                </button>
+                                <button class="btn-small btn-danger" onclick="declineRequest('${notif.id}', this)">
+                                    ✗
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                container.innerHTML = '<div class="empty-state">Error loading</div>';
+            }
+        }
+
+        // Accept request
+        async function acceptRequest(requestId, senderId, button) {
+            if (!currentUser || !window.supabase) return;
+
+            if (button) {
+                button.textContent = '...';
+                button.disabled = true;
+            }
+
+            try {
+                // Update request
+                await window.supabase
+                    .from('friend_requests')
+                    .update({ status: 'accepted' })
+                    .eq('id', requestId);
+
+                // Add to friends (both directions)
+                await window.supabase
+                    .from('friends')
+                    .insert([
+                        { user_id: currentUser.id, friend_id: senderId },
+                        { user_id: senderId, friend_id: currentUser.id }
+                    ]);
+
+                showToast('Friend request accepted!');
+
+                // Update UI
+                await loadNotifications();
+                await loadFriends();
+                await updateNotificationsBadge();
+
+                if (button) {
+                    button.textContent = '✓';
+                    button.style.background = 'rgba(40, 167, 69, 0.3)';
+                }
+
+            } catch (error) {
+                console.error('Accept error:', error);
+                showToast('Failed to accept', 'error');
+
+                if (button) {
+                    button.textContent = '✓';
+                    button.disabled = false;
+                }
+            }
+        }
+
+        // Decline request
+        async function declineRequest(requestId, button) {
+            if (!currentUser || !window.supabase) return;
+
+            if (button) {
+                button.textContent = '...';
+                button.disabled = true;
+            }
+
+            try {
+                await window.supabase
+                    .from('friend_requests')
+                    .update({ status: 'rejected' })
+                    .eq('id', requestId);
+
+                showToast('Friend request declined');
+
+                await loadNotifications();
+                await updateNotificationsBadge();
+
+                if (button) {
+                    button.textContent = '✗';
+                    button.style.background = 'rgba(220, 53, 69, 0.3)';
+                }
+
+            } catch (error) {
+                console.error('Decline error:', error);
+                showToast('Failed to decline', 'error');
+
+                if (button) {
+                    button.textContent = '✗';
+                    button.disabled = false;
+                }
+            }
+        }
+
+        // ==================== NAVIGATION FUNCTIONS ====================
+
+        window.goToHome = function() {
+            window.location.href = '../../home/index.html';
+        };
+
+        window.openNotifications = function() {
+            const modal = document.getElementById('notificationsModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                loadNotifications();
+            }
+        };
+
+        window.openSearch = function() {
+            const modal = document.getElementById('searchModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                // You can implement search loading here if needed
+            }
+        };
+
+        window.closeModal = function() {
+            document.getElementById('searchModal').style.display = 'none';
+            document.getElementById('notificationsModal').style.display = 'none';
+        };
+
+        window.filterSearchResults = function() {
+            console.log('Search filtering...');
+        };
+
+        window.openChat = openChat;
+        window.acceptRequest = acceptRequest;
+        window.declineRequest = declineRequest;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initFriendsPage, 500);
+        });
+    </script>
+</body>
+</html>
