@@ -9,18 +9,35 @@ console.log("✨ Relay Home Page Loaded");
 // ============================================
 (function() {
     try {
-        const hasSession = localStorage.getItem('supabase.auth.token') || 
-                          sessionStorage.getItem('supabase.auth.token');
+        // Check for Supabase session token
+        let hasSession = false;
         
-        // ONLY redirect if NO session (not logged in)
+        const localToken = localStorage.getItem('supabase.auth.token');
+        const sessionToken = sessionStorage.getItem('supabase.auth.token');
+        
+        hasSession = !!(localToken || sessionToken);
+        
+        // Additional check: if we have persisted session in localStorage
+        if (!hasSession) {
+            try {
+                const persistedSession = localStorage.getItem('supabase.auth.token');
+                if (persistedSession && persistedSession.includes('access_token')) {
+                    hasSession = true;
+                }
+            } catch (e) {}
+        }
+
+        // ✅ ONLY redirect if NO session (not logged in)
         if (!hasSession) {
             console.log('🚫 No session - redirecting to root');
             window.location.replace('/');
-            return;
+            return; // Stop execution
         }
-        // NEVER redirect if logged in - stay on home page
+        // ✅ NEVER redirect if logged in - stay on home page
     } catch (e) {
         console.log('Session check error:', e);
+        // If we can't check, assume not logged in and redirect
+        window.location.replace('/');
     }
 })();
 
@@ -156,24 +173,57 @@ async function waitForSupabase() {
 async function initHomePage() {
     console.log('🏠 Initializing home page...');
 
-    // Check authentication - redirect if NOT logged in
+    // Double-check authentication - but DON'T redirect if it fails
+    // The inline script already redirected if no session
     try {
         const { success, user } = await auth.getCurrentUser();
         
-        // ONLY redirect if NOT authenticated
         if (!success || !user) {
-            console.log('❌ No authenticated user - redirecting to root');
+            console.log('⚠️ Auth check failed, but session exists - continuing anyway');
+            // Try to get user from localStorage
+            try {
+                const sessionStr = localStorage.getItem('supabase.auth.token');
+                if (sessionStr) {
+                    const session = JSON.parse(sessionStr);
+                    currentUser = { 
+                        id: session?.user?.id,
+                        email: session?.user?.email,
+                        user_metadata: session?.user?.user_metadata || {}
+                    };
+                    console.log('✅ Recovered user from localStorage');
+                }
+            } catch (e) {}
+            
+            if (!currentUser) {
+                console.log('❌ No user data available - redirecting');
+                window.location.replace('/');
+                return;
+            }
+        } else {
+            currentUser = user;
+            console.log('✅ User authenticated:', currentUser.email);
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        // Don't redirect immediately - try to recover from localStorage
+        try {
+            const sessionStr = localStorage.getItem('supabase.auth.token');
+            if (sessionStr) {
+                const session = JSON.parse(sessionStr);
+                currentUser = { 
+                    id: session?.user?.id,
+                    email: session?.user?.email,
+                    user_metadata: session?.user?.user_metadata || {}
+                };
+                console.log('✅ Recovered user from localStorage after error');
+            } else {
+                window.location.replace('/');
+                return;
+            }
+        } catch (e) {
             window.location.replace('/');
             return;
         }
-        
-        currentUser = user;
-        console.log('✅ User authenticated:', currentUser.email);
-        
-    } catch (error) {
-        console.error('Auth check failed:', error);
-        window.location.replace('/');
-        return;
     }
 
     const loadingIndicator = document.getElementById('loadingIndicator');
@@ -207,7 +257,8 @@ async function initHomePage() {
         console.error('❌ Home page initialization failed:', error);
 
         if (loadingIndicator) loadingIndicator.style.display = 'none';
-
+        
+        // Don't redirect on initialization error - just show error
         toast.error("Initialization Error", "Failed to load page. Please refresh.");
     }
 }
@@ -219,7 +270,8 @@ async function loadUserProfile() {
     try {
         if (!currentUser || !window.supabase) {
             currentProfile = {
-                username: currentUser?.user_metadata?.username || 'User',
+                username: currentUser?.user_metadata?.username || 
+                         currentUser?.email?.split('@')[0] || 'User',
                 full_name: currentUser?.user_metadata?.full_name || 'User'
             };
             return;
@@ -243,7 +295,8 @@ async function loadUserProfile() {
             console.log('✅ Profile loaded:', profile.username);
         } else {
             currentProfile = {
-                username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User',
+                username: currentUser.user_metadata?.username || 
+                         currentUser.email?.split('@')[0] || 'User',
                 full_name: currentUser.user_metadata?.full_name || 'User'
             };
             console.log('⚠️ No profile found, using default:', currentProfile.username);
@@ -252,7 +305,8 @@ async function loadUserProfile() {
     } catch (error) {
         console.error('❌ Error loading profile:', error);
         currentProfile = {
-            username: currentUser?.user_metadata?.username || 'User',
+            username: currentUser?.user_metadata?.username || 
+                     currentUser?.email?.split('@')[0] || 'User',
             full_name: currentUser?.user_metadata?.full_name || 'User'
         };
     }
@@ -328,7 +382,7 @@ async function loadFriends() {
             profiles.forEach(profile => {
                 const isOnline = profile.status === 'online';
                 if (isOnline) onlineCount++;
-                
+
                 const lastSeen = profile.last_seen ? new Date(profile.last_seen) : new Date();
                 const timeAgo = getTimeAgo(lastSeen);
                 const firstLetter = profile.username ? profile.username.charAt(0).toUpperCase() : '?';
@@ -358,13 +412,13 @@ async function loadFriends() {
         }
 
         container.innerHTML = html;
-        
+
         // Update online counter
         const onlineCounter = document.getElementById('onlineCounter');
         if (onlineCounter) {
             onlineCounter.textContent = `${onlineCount} Online`;
         }
-        
+
         console.log('✅ Friends list updated');
 
     } catch (error) {
@@ -390,7 +444,7 @@ function showEmptyFriends() {
             </button>
         </div>
     `;
-    
+
     const onlineCounter = document.getElementById('onlineCounter');
     if (onlineCounter) onlineCounter.textContent = '0 Online';
 }
@@ -501,6 +555,7 @@ async function loadSearchResults() {
 // ============================================
 // DISPLAY SEARCH RESULTS WITH AVATARS
 // ============================================
+
 async function displaySearchResults(users) {
     const container = document.getElementById('searchResults');
     if (!container) return;
@@ -912,10 +967,10 @@ function setupEventListeners() {
                 await auth.signOut();
                 localStorage.clear();
                 sessionStorage.clear();
-                
+
                 if (loadingToast && loadingToast.parentNode) loadingToast.remove();
                 toast.success("Logged Out", "See you soon! 👋");
-                
+
                 setTimeout(() => window.location.href = '/', 1000);
             } catch (error) {
                 console.error("Error logging out:", error);
@@ -933,25 +988,25 @@ function setupEventListeners() {
 window.logout = async function() {
     try {
         const loadingToast = toast.info("Logging Out", "Please wait...");
-        
+
         if (window.supabase) {
             await window.supabase.auth.signOut();
         }
-        
+
         localStorage.clear();
         sessionStorage.clear();
-        
+
         document.cookie.split(";").forEach(function(c) {
             document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
-        
+
         if (loadingToast && loadingToast.parentNode) loadingToast.remove();
         toast.success("Logged Out", "See you soon! 👋");
-        
+
         setTimeout(() => {
             window.location.href = '/';
         }, 1000);
-        
+
     } catch (error) {
         console.error("Error logging out:", error);
         toast.error("Logout Failed", "Please try again");
