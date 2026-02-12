@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Enhanced SEO Title  -->
+    <!-- Enhanced SEO Title -->
     <title>RelayTalk | Login</title>
 
     <!-- Enhanced Meta Descriptions -->
@@ -46,7 +46,7 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://relaytalk.vercel.app/pages/login/">
 
-    <!-- Enhanced Structured Data -->
+    <!-- Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -54,66 +54,10 @@
       "name": "RelayTalk Login - Secure Messaging Platform",
       "description": "Login page for RelayTalk secure messaging application",
       "url": "https://relaytalk.vercel.app/pages/login/",
-      "breadcrumb": {
-        "@type": "BreadcrumbList",
-        "itemListElement": [{
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://relaytalk.vercel.app/"
-        },{
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Login",
-          "item": "https://relaytalk.vercel.app/pages/login/"
-        }]
-      },
       "publisher": {
         "@type": "Organization",
         "name": "RelayTalk",
-        "url": "https://relaytalk.vercel.app/",
-        "logo": "https://relaytalk.vercel.app/relay-logo.png",
-        "sameAs": [
-          "https://twitter.com/relaytalk",
-          "https://github.com/relaytalk"
-        ]
-      },
-      "mainEntity": {
-        "@type": "SoftwareApplication",
-        "name": "RelayTalk",
-        "applicationCategory": "CommunicationApplication",
-        "operatingSystem": "Web, iOS, Android",
-        "description": "Secure messaging platform with end-to-end encryption",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        }
-      }
-    }
-    </script>
-
-    <!-- Additional Schema for Login Action -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "EntryPoint",
-      "urlTemplate": "https://relaytalk.vercel.app/pages/login/",
-      "actionApplication": {
-        "@type": "SoftwareApplication",
-        "name": "RelayTalk",
-        "description": "Secure messaging application"
-      },
-      "potentialAction": {
-        "@type": "AuthenticateAction",
-        "name": "Login to RelayTalk",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://relaytalk.vercel.app/api/auth",
-          "actionPlatform": [
-            "http://schema.org/WebPlatform"
-          ]
-        }
+        "logo": "https://relaytalk.vercel.app/relay-logo.png"
       }
     }
     </script>
@@ -129,23 +73,10 @@
     <link rel="stylesheet" href="../../style.css">
     <link rel="stylesheet" href="style.css">
     
-    <!-- Additional SEO Meta Tags -->
-    <meta name="application-name" content="RelayTalk">
-    <meta name="apple-mobile-web-app-title" content="RelayTalk">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- Language and region -->
-    <meta http-equiv="content-language" content="en">
-    <meta name="geo.region" content="US">
-    <meta name="geo.placename" content="United States">
-    
-    <!-- Viewport enhanced -->
+    <!-- Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     
-    <!-- ✅ ONLY ADDITION: IMMEDIATE REDIRECT CHECK -->
+    <!-- ✅ IMMEDIATE REDIRECT CHECK -->
     <script>
         (function() {
             try {
@@ -161,8 +92,34 @@
             }
         })();
     </script>
-    <!-- ✅ END OF ADDITION - EVERYTHING ELSE IS YOUR ORIGINAL CODE -->
     
+    <!-- ✅ CRITICAL FIX: Load Supabase UMD FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    
+    <!-- ✅ Verify Supabase is loaded -->
+    <script>
+        window.supabaseReady = new Promise((resolve) => {
+            if (typeof supabase !== 'undefined') {
+                console.log('✅ Supabase UMD loaded immediately');
+                resolve();
+            } else {
+                console.log('⏳ Waiting for Supabase UMD...');
+                let attempts = 0;
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof supabase !== 'undefined') {
+                        clearInterval(checkInterval);
+                        console.log('✅ Supabase UMD loaded after', attempts, 'attempts');
+                        resolve();
+                    } else if (attempts > 50) {
+                        clearInterval(checkInterval);
+                        console.error('❌ Supabase UMD failed to load');
+                        resolve(); // Still resolve to not block
+                    }
+                }, 100);
+            }
+        });
+    </script>
 </head>
 <body itemscope itemtype="https://schema.org/WebPage">
     <!-- Simple Header with Schema -->
@@ -180,7 +137,7 @@
             <p class="login-subtitle" itemprop="description">Sign in to your secure messaging account</p>
         </div>
 
-        <form class="login-form" id="loginForm" method="post" action="#" itemprop="potentialAction" itemscope itemtype="https://schema.org/AuthenticateAction">
+        <form class="login-form" id="loginForm">
             <!-- Username -->
             <div class="form-group">
                 <label class="form-label" for="loginUsername">
@@ -189,8 +146,7 @@
                 </label>
                 <input type="text" id="loginUsername" class="form-input" 
                        placeholder="Enter your username" required
-                       minlength="3" maxlength="20"
-                       itemprop="user" name="username">
+                       minlength="3" maxlength="20">
                 <div class="error-message" id="usernameError"></div>
             </div>
 
@@ -203,8 +159,7 @@
                 <div class="password-input">
                     <input type="password" id="loginPassword" class="form-input" 
                            placeholder="Enter your password" required
-                           minlength="6"
-                           itemprop="password" name="password">
+                           minlength="6">
                     <button type="button" class="password-toggle" id="passwordToggle" aria-label="Show password">
                         👁️
                     </button>
@@ -221,15 +176,13 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" class="login-btn" id="loginBtn" itemprop="action">
+            <button type="submit" class="login-btn" id="loginBtn">
                 Sign In to RelayTalk
             </button>
         </form>
 
         <!-- Success Message -->
-        <div class="success-message" id="successMessage">
-            <!-- Content added by JS -->
-        </div>
+        <div class="success-message" id="successMessage"></div>
 
         <!-- Divider -->
         <div class="divider">or</div>
@@ -237,10 +190,10 @@
         <!-- Sign up link -->
         <div class="signup-link">
             Don't have a RelayTalk account?
-            <a href="../auth/index.html" itemprop="url">Create Free Account</a>
+            <a href="../auth/index.html">Create Free Account</a>
         </div>
         
-        <!-- Security Badges (Hidden on mobile) -->
+        <!-- Security Badges -->
         <div class="security-badges">
             <div class="badge">🔒 End-to-End Encryption</div>
             <div class="badge">🛡️ Privacy First</div>
@@ -254,26 +207,19 @@
         <p class="loading-text">Signing you in to RelayTalk...</p>
     </div>
 
-    <!-- Hidden content for SEO -->
-    <div style="display: none;" aria-hidden="true">
-        <h1>RelayTalk Login - Secure Messaging Platform</h1>
-        <h2>Secure Private Messaging App Login Page</h2>
-        <p>RelayTalk is a secure messaging platform offering end-to-end encrypted chats, video calls, and instant messaging. Login to access your private conversations and connect with friends, family, and colleagues securely.</p>
-        <p>Features include: Secure messaging, Private chats, Video calls, Group messaging, File sharing, Voice messages, Read receipts, and Custom themes.</p>
-        <ul>
-            <li>RelayTalk messaging app login</li>
-            <li>Secure chat application sign in</li>
-            <li>Private messaging platform access</li>
-            <li>Encrypted communication login</li>
-            <li>Instant messaging software</li>
-        </ul>
-    </div>
-
-    <!-- ✅ YOUR ORIGINAL SCRIPT LOADING - UNCHANGED -->
-    <script type="module" src="script.js"></script>
+    <!-- ✅ FIXED: Wait for Supabase then load your script -->
+    <script type="module">
+        // Wait for Supabase UMD to be ready
+        window.supabaseReady.then(() => {
+            console.log('🚀 Loading login script...');
+            import('./script.js')
+                .then(() => console.log('✅ Login script loaded'))
+                .catch(err => console.error('❌ Failed to load login script:', err));
+        });
+    </script>
+    
     <script src="/utils/sw-manager.js"></script>
     
-    <!-- Additional inline CSS for SEO elements -->
     <style>
         .security-badges {
             display: flex;
