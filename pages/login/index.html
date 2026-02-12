@@ -37,9 +37,7 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#007ACC">
     
-    <!-- Preload critical JS -->
-    <link rel="preload" href="script.js" as="script">
-    <link rel="preload" href="/utils/auth.js" as="script">
+    <!-- ✅ REMOVED PRELOAD - CAUSING WARNINGS -->
     
     <!-- Styles -->
     <link rel="stylesheet" href="../../style.css">
@@ -58,27 +56,10 @@
                     window.location.replace('/pages/home/index.html');
                     return;
                 }
-                // NEVER redirect if not logged in - stay on login page
             } catch (e) {
                 console.log('Session check error:', e);
             }
         })();
-    </script>
-    
-    <!-- Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "RelayTalk Login",
-      "description": "Login page for RelayTalk secure messaging application",
-      "url": "https://relaytalk.vercel.app/pages/login/",
-      "publisher": {
-        "@type": "Organization",
-        "name": "RelayTalk",
-        "logo": "https://relaytalk.vercel.app/relay.png"
-      }
-    }
     </script>
 </head>
 <body>
@@ -102,11 +83,11 @@
             <div class="form-group">
                 <label class="form-label" for="loginUsername">
                     <span class="form-label-icon">👤</span>
-                    Username or Email
+                    Username
                 </label>
                 <input type="text" id="loginUsername" class="form-input" 
-                       placeholder="Enter your username or email" required
-                       minlength="3" maxlength="50" autocomplete="username">
+                       placeholder="Enter your username" required
+                       minlength="3" maxlength="20">
                 <div class="error-message" id="usernameError"></div>
             </div>
 
@@ -119,7 +100,7 @@
                 <div class="password-input">
                     <input type="password" id="loginPassword" class="form-input" 
                            placeholder="Enter your password" required
-                           minlength="6" autocomplete="current-password">
+                           minlength="6">
                     <button type="button" class="password-toggle" id="passwordToggle" aria-label="Show password">👁️</button>
                 </div>
                 <div class="error-message" id="passwordError"></div>
@@ -139,8 +120,8 @@
             </button>
         </form>
 
-        <!-- Success Message (hidden by default) -->
-        <div class="success-message" id="successMessage" style="display: none;"></div>
+        <!-- Success Message -->
+        <div class="success-message" id="successMessage"></div>
 
         <!-- Divider -->
         <div class="divider">or</div>
@@ -158,28 +139,8 @@
         <p class="loading-text">Signing you in...</p>
     </div>
 
-    <!-- Scripts -->
+    <!-- Scripts - ORDER MATTERS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
-    <script type="module" src="script.js"></script>
-    
-    <!-- ✅ FALLBACK: Double-check auth after load -->
-    <script type="module">
-        import { auth } from '/utils/auth.js';
-        
-        async function checkAuth() {
-            try {
-                const { success } = await auth.getCurrentUser();
-                if (success) {
-                    console.log('✅ Already logged in - redirecting to home');
-                    window.location.replace('/pages/home/index.html');
-                }
-            } catch (e) {
-                console.log('Auth check error:', e);
-            }
-        }
-        
-        // Run after 300ms as fallback
-        setTimeout(checkAuth, 300);
-    </script>
+    <script src="script.js" type="module"></script>
 </body>
 </html>
