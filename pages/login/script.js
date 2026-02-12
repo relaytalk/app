@@ -1,9 +1,9 @@
-// login/script.js - FIXED FOR GITHUB PAGES
-console.log('✨ Login Page Loaded - GitHub Pages Version');
+// login/script.js - COMPLETE VERSION
+console.log('✨ Login Page Loaded');
 
-// Initialize Supabase directly (no import needed)
+// Wait for Supabase
 async function ensureSupabase() {
-    console.log('⏳ Checking Supabase...');
+    console.log('⏳ Ensuring Supabase is loaded...');
 
     if (window.supabase) {
         console.log('✅ Supabase already loaded');
@@ -11,26 +11,27 @@ async function ensureSupabase() {
     }
 
     try {
-        // Direct Supabase initialization for GitHub Pages
-        const SUPABASE_URL = 'https://blxtldgnssvasuinpyit.supabase.co'; // REPLACE WITH YOUR URL
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJseHRsZGduc3N2YXN1aW5weWl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwODIxODIsImV4cCI6MjA4MjY1ODE4Mn0.Dv04IOAY76o2ccu5dzwK3fJjzo93BIoK6C2H3uWrlMw'; // REPLACE WITH YOUR KEY
+        // Load Supabase module
+        const modulePath = '../../utils/supabase.js';
+        await import(modulePath);
 
-        // Create Supabase client
-        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        console.log('✅ Supabase initialized successfully');
-        return true;
-
-    } catch (error) {
-        console.error('❌ Supabase initialization error:', error);
-
-        // Show user-friendly error
-        const passwordError = document.getElementById('passwordError');
-        if (passwordError) {
-            passwordError.textContent = 'Service temporarily unavailable';
-            passwordError.style.display = 'block';
+        // Wait for initialization
+        let attempts = 0;
+        while (!window.supabase && attempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 150));
+            attempts++;
         }
 
+        if (window.supabase) {
+            console.log('✅ Supabase loaded successfully');
+            return true;
+        } else {
+            console.error('❌ Supabase failed to load');
+            return false;
+        }
+
+    } catch (error) {
+        console.error('❌ Error loading Supabase:', error);
         return false;
     }
 }
@@ -42,9 +43,7 @@ async function loginUser(username, password) {
             throw new Error('Authentication service not ready');
         }
 
-        // Use username directly (assuming it's email)
-        const email = username.includes('@') ? username : `${username}@relaytalk.app`;
-
+        const email = `${username}@luster.test`;
         console.log('Logging in with:', email);
 
         const { data, error } = await window.supabase.auth.signInWithPassword({
@@ -63,16 +62,11 @@ async function loginUser(username, password) {
         }
 
         console.log('✅ Login successful!');
-        
-        // Manually set localStorage token for redirect detection
-        try {
-            if (data.session) {
-                localStorage.setItem('supabase.auth.token', JSON.stringify(data.session));
-            }
-        } catch (e) {
-            console.log('Error saving session to localStorage:', e);
-        }
-        
+        console.log('User:', data.user.email);
+
+        // Verify session is saved
+        await window.supabase.auth.getSession();
+
         return {
             success: true,
             user: data.user
@@ -93,7 +87,11 @@ async function checkExistingLogin() {
         if (!window.supabase?.auth) return false;
 
         const { data } = await window.supabase.auth.getSession();
-        return !!data?.session;
+        const isLoggedIn = !!data?.session;
+
+        console.log('Existing login check:', isLoggedIn ? 'Logged in' : 'Not logged in');
+
+        return isLoggedIn;
 
     } catch (error) {
         console.error('Login check error:', error);
@@ -128,6 +126,8 @@ function showError(element, message) {
     if (!element) return;
     element.textContent = message;
     element.style.display = 'block';
+
+    // Add shake animation
     element.parentElement.classList.add('shake');
     setTimeout(() => {
         element.parentElement.classList.remove('shake');
@@ -144,6 +144,7 @@ function hideError(element) {
 function validateForm() {
     let isValid = true;
 
+    // Username validation
     if (!loginUsername.value.trim()) {
         showError(usernameError, 'Please enter username');
         isValid = false;
@@ -154,6 +155,7 @@ function validateForm() {
         hideError(usernameError);
     }
 
+    // Password validation
     if (!loginPassword.value) {
         showError(passwordError, 'Please enter password');
         isValid = false;
@@ -175,8 +177,9 @@ async function handleLogin(event) {
 
     const username = loginUsername.value.trim();
     const password = loginPassword.value;
-    const loginBtn = document.getElementById('loginBtn');
 
+    // Get login button
+    const loginBtn = document.getElementById('loginBtn');
     if (!loginBtn) return;
 
     // Show loading
@@ -189,7 +192,7 @@ async function handleLogin(event) {
     }
 
     try {
-        // Initialize Supabase
+        // Ensure Supabase is ready
         const supabaseReady = await ensureSupabase();
         if (!supabaseReady) {
             showError(passwordError, 'Cannot connect to server');
@@ -202,7 +205,7 @@ async function handleLogin(event) {
         const result = await loginUser(username, password);
 
         if (result.success) {
-            console.log('✅ Login successful, redirecting...');
+            console.log('✅ Login successful, redirecting to home...');
 
             // Show success message
             const successMessage = document.getElementById('successMessage');
@@ -220,9 +223,9 @@ async function handleLogin(event) {
                 `;
             }
 
-            // Redirect to home
+            // Redirect after delay
             setTimeout(() => {
-                window.location.href = '/pages/home/index.html';
+                window.location.href = '../home/index.html';
             }, 1500);
 
         } else {
@@ -249,13 +252,13 @@ function resetButton(button, originalText) {
 async function initLoginPage() {
     console.log('Initializing login page...');
 
-    // Initialize Supabase
+    // Ensure Supabase is loaded
     await ensureSupabase();
 
     // Check if already logged in
     const isLoggedIn = await checkExistingLogin();
     if (isLoggedIn) {
-        console.log('✅ User already logged in, redirecting...');
+        console.log('✅ User already logged in, redirecting to home...');
 
         // Show redirect message
         const successMessage = document.getElementById('successMessage');
@@ -272,7 +275,7 @@ async function initLoginPage() {
 
         // Redirect
         setTimeout(() => {
-            window.location.href = '/pages/home/index.html';
+            window.location.href = '../home/index.html';
         }, 1000);
         return;
     }
@@ -307,6 +310,24 @@ async function initLoginPage() {
         loadingOverlay.style.display = 'none';
     }
 }
+
+// Global functions
+window.togglePassword = function() {
+    const passwordInput = document.getElementById('loginPassword');
+    const toggleBtn = document.querySelector('#passwordToggle');
+
+    if (passwordInput && toggleBtn) {
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleBtn.textContent = '🙈';
+        } else {
+            passwordInput.type = 'password';
+            toggleBtn.textContent = '👁️';
+        }
+    }
+};
+
+window.handleLogin = handleLogin;
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', initLoginPage);
