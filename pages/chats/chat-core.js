@@ -68,7 +68,7 @@ if (window.chatModules) {
 
 // ====================
 // INITIALIZATION
-// ====================
+//===================
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log('🔧 Initializing chat core...');
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // 🔥 UPDATED: Load friend data WITH avatar_url
+        // 🔥 Load friend data WITH avatar_url
         const { data: friend, error: friendError } = await supabase
             .from('profiles')
             .select('*')
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         chatFriend = friend;
         window.chatFriend = friend;
 
-        // 🔥 UPDATED: Update chat header WITH avatar
+        // 🔥 Update chat header WITH avatar (ONLY HERE - NOT IN MESSAGES)
         const chatUserAvatar = document.getElementById('chatUserAvatar');
         const friendInitial = friend.username ? friend.username.charAt(0).toUpperCase() : '?';
         
@@ -333,7 +333,7 @@ async function loadOldMessages(friendId) {
     }
 }
 
-// 🔥 UPDATED: Show messages WITH sender avatars
+// 🔥 RESTORED: Original showMessages WITHOUT message avatars
 function showMessages(messages) {
     const container = document.getElementById('messagesContainer');
     if (!container) return;
@@ -370,49 +370,23 @@ function showMessages(messages) {
         const color = msg.color || null;
         const colorAttr = color ? `data-color="${color}"` : '';
 
-        // 🔥 ADDED: Get sender profile for avatar
-        const senderId = msg.sender_id;
-        const senderIsFriend = senderId === chatFriend.id;
-        const senderInitial = senderIsFriend 
-            ? (chatFriend.username?.charAt(0).toUpperCase() || 'F')
-            : (currentUser?.email?.charAt(0).toUpperCase() || 'U');
-        const senderAvatar = senderIsFriend ? chatFriend.avatar_url : null;
-
+        // 🔥 ORIGINAL: No avatars in messages
         if (msg.image_url) {
             if (typeof window.createImageMessageHTML === 'function') {
                 html += window.createImageMessageHTML(msg, isSent, colorAttr, time);
             } else {
                 html += `
                     <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}" ${colorAttr}>
-                        <div class="message-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8); width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; overflow: hidden; flex-shrink: 0;">
-                            ${senderAvatar 
-                                ? `<img src="${senderAvatar}" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">`
-                                : `<span style="color:white; font-weight:600;">${senderInitial}</span>`
-                            }
-                        </div>
-                        <div style="flex:1;">
-                            <div class="message-content">📸 Image shared</div>
-                            <div class="message-time">${time}</div>
-                        </div>
+                        <div class="message-content">📸 Image shared</div>
+                        <div class="message-time">${time}</div>
                     </div>
                 `;
             }
         } else {
-            // 🔥 UPDATED: Text message WITH avatar
             html += `
-                <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}" ${colorAttr} style="display: flex; align-items: flex-start; ${isSent ? 'flex-direction: row-reverse;' : ''}">
-                    <div class="message-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8); width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-${isSent ? 'left' : 'right'}: 10px; overflow: hidden; flex-shrink: 0;">
-                        ${senderAvatar 
-                            ? `<img src="${senderAvatar}" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">`
-                            : `<span style="color:white; font-weight:600;">${senderInitial}</span>`
-                        }
-                    </div>
-                    <div style="flex:1; ${isSent ? 'text-align: right;' : ''}">
-                        <div class="message-content" style="background: ${isSent ? 'linear-gradient(135deg, #007acc, #00b4d8)' : 'rgba(255,255,255,0.9)'}; color: ${isSent ? 'white' : '#333'}; padding: 10px 15px; border-radius: 18px; ${isSent ? 'border-bottom-right-radius: 5px' : 'border-bottom-left-radius: 5px'}; display: inline-block; max-width: 70%; word-wrap: break-word;">
-                            ${msg.content || ''}
-                        </div>
-                        <div class="message-time" style="font-size: 0.7rem; color: #666; margin-top: 4px; ${isSent ? 'text-align: right;' : ''}">${time}</div>
-                    </div>
+                <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}" ${colorAttr}>
+                    <div class="message-content">${msg.content || ''}</div>
+                    <div class="message-time">${time}</div>
                 </div>
             `;
         }
@@ -426,7 +400,7 @@ function showMessages(messages) {
     }, 50);
 }
 
-// 🔥 UPDATED: Add message to UI WITH avatar
+// 🔥 RESTORED: Original addMessageToUI WITHOUT message avatars
 function addMessageToUI(message, isFromRealtime = false) {
     const container = document.getElementById('messagesContainer');
     if (!container || !message) return;
@@ -444,14 +418,6 @@ function addMessageToUI(message, isFromRealtime = false) {
     const color = message.color || null;
     const colorAttr = color ? `data-color="${color}"` : '';
 
-    // 🔥 ADDED: Get sender profile for avatar
-    const senderId = message.sender_id;
-    const senderIsFriend = senderId === chatFriend.id;
-    const senderInitial = senderIsFriend 
-        ? (chatFriend.username?.charAt(0).toUpperCase() || 'F')
-        : (currentUser?.email?.charAt(0).toUpperCase() || 'U');
-    const senderAvatar = senderIsFriend ? chatFriend.avatar_url : null;
-
     let messageHTML;
 
     if (message.image_url) {
@@ -459,35 +425,17 @@ function addMessageToUI(message, isFromRealtime = false) {
             messageHTML = window.createImageMessageHTML(message, isSent, colorAttr, time);
         } else {
             messageHTML = `
-                <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr} style="display: flex; align-items: flex-start; ${isSent ? 'flex-direction: row-reverse;' : ''}">
-                    <div class="message-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8); width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-${isSent ? 'left' : 'right'}: 10px; overflow: hidden; flex-shrink: 0;">
-                        ${senderAvatar 
-                            ? `<img src="${senderAvatar}" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">`
-                            : `<span style="color:white; font-weight:600;">${senderInitial}</span>`
-                        }
-                    </div>
-                    <div style="flex:1;">
-                        <div class="message-content">📸 Image shared</div>
-                        <div class="message-time">${time}</div>
-                    </div>
+                <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr}>
+                    <div class="message-content">📸 Image shared</div>
+                    <div class="message-time">${time}</div>
                 </div>
             `;
         }
     } else {
         messageHTML = `
-            <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr} style="display: flex; align-items: flex-start; ${isSent ? 'flex-direction: row-reverse;' : ''}">
-                <div class="message-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8); width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-${isSent ? 'left' : 'right'}: 10px; overflow: hidden; flex-shrink: 0;">
-                    ${senderAvatar 
-                        ? `<img src="${senderAvatar}" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">`
-                        : `<span style="color:white; font-weight:600;">${senderInitial}</span>`
-                    }
-                </div>
-                <div style="flex:1; ${isSent ? 'text-align: right;' : ''}">
-                    <div class="message-content" style="background: ${isSent ? 'linear-gradient(135deg, #007acc, #00b4d8)' : 'rgba(255,255,255,0.9)'}; color: ${isSent ? 'white' : '#333'}; padding: 10px 15px; border-radius: 18px; ${isSent ? 'border-bottom-right-radius: 5px' : 'border-bottom-left-radius: 5px'}; display: inline-block; max-width: 70%; word-wrap: break-word;">
-                        ${message.content || ''}
-                    </div>
-                    <div class="message-time" style="font-size: 0.7rem; color: #666; margin-top: 4px; ${isSent ? 'text-align: right;' : ''}">${time}</div>
-                </div>
+            <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}" ${colorAttr}>
+                <div class="message-content">${message.content || ''}</div>
+                <div class="message-time">${time}</div>
             </div>
         `;
     }
@@ -581,19 +529,16 @@ function setupRealtime(friendId) {
                 window.chatFriend = chatFriend;
                 updateFriendStatus(payload.new.status);
 
-                // 🔥 UPDATED: Also update avatar if it changed
+                // 🔥 Update avatar if it changed (header only)
                 if (payload.new.avatar_url && payload.new.avatar_url !== chatFriend.avatar_url) {
                     chatFriend.avatar_url = payload.new.avatar_url;
                     window.chatFriend = chatFriend;
                     
-                    // Update header avatar
+                    // Update header avatar only
                     const chatUserAvatar = document.getElementById('chatUserAvatar');
                     if (chatUserAvatar) {
                         chatUserAvatar.innerHTML = `<img src="${payload.new.avatar_url}" alt="${chatFriend.username}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
                     }
-                    
-                    // Refresh messages to update avatars
-                    refreshChat();
                 }
 
                 if (payload.new.status === 'online') {
@@ -909,7 +854,7 @@ function goBack() {
 // USER INFO MODAL
 // ====================
 
-// 🔥 UPDATED: Show user info WITH avatar
+// 🔥 User info modal WITH avatar
 function showUserInfo() {
     if (!chatFriend) {
         showToast('User information not available', '⚠️', 1500);
