@@ -13,10 +13,10 @@
     <meta name="description" content="RelayTalk - Connect with friends instantly. Secure, private messaging platform.">
     <meta name="keywords" content="RelayTalk, messaging, chat, friends, secure messaging">
     <meta name="robots" content="index, follow">
-    
+
     <!-- Canonical - ROOT PAGE -->
     <link rel="canonical" href="https://relaytalk.vercel.app/">
-    
+
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="RelayTalk">
@@ -24,30 +24,46 @@
     <meta property="og:description" content="RelayTalk - Connect with friends instantly. Secure, private messaging.">
     <meta property="og:url" content="https://relaytalk.vercel.app/">
     <meta property="og:image" content="https://relaytalk.vercel.app/relayad.png">
-    
+
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@RelayTalk">
     <meta name="twitter:title" content="RelayTalk - Connect with Friends Instantly">
     <meta name="twitter:description" content="RelayTalk - Connect with friends instantly. Secure, private messaging.">
     <meta name="twitter:image" content="https://relaytalk.vercel.app/relayad.png">
-    
+
     <!-- Favicon / Icons -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="icon" href="/relay.png" type="image/png" sizes="192x192">
     <link rel="apple-touch-icon" href="/relay.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#007ACC">
-    
-    <!-- ✅ FIX: ONLY redirect if LOGGED IN - NEVER redirect if not logged in -->
+
+    <!-- ✅ FIXED: ONLY redirect if LOGGED IN - using more reliable check -->
     <script>
         (function() {
             try {
-                // Only redirect if user HAS a session (logged in)
-                const hasSession = localStorage.getItem('supabase.auth.token') || 
-                                  sessionStorage.getItem('supabase.auth.token');
+                // Check for Supabase session token
+                let hasSession = false;
                 
-                // ✅ IMPORTANT: Only redirect if LOGGED IN
+                // Check localStorage
+                const localToken = localStorage.getItem('supabase.auth.token');
+                // Check sessionStorage
+                const sessionToken = sessionStorage.getItem('supabase.auth.token');
+                
+                hasSession = !!(localToken || sessionToken);
+                
+                // Additional check: if we have persisted session in localStorage
+                if (!hasSession) {
+                    try {
+                        const persistedSession = localStorage.getItem('supabase.auth.token');
+                        if (persistedSession && persistedSession.includes('access_token')) {
+                            hasSession = true;
+                        }
+                    } catch (e) {}
+                }
+
+                // ✅ ONLY redirect if LOGGED IN
                 if (hasSession) {
                     console.log('✅ User has session - redirecting to home');
                     window.location.replace('/pages/home/index.html?v=' + Date.now());
@@ -58,7 +74,7 @@
             }
         })();
     </script>
-    
+
     <!-- Stylesheets -->
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/opening.css">
@@ -110,35 +126,56 @@
             window.location.href = '/pages/auth/index.html';
         };
 
-        // ✅ FIX: Only redirect if LOGGED IN - never if not logged in
+        // ✅ FIXED: Only redirect if LOGGED IN - and wait for opening animation
         document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                const module = await import('/utils/auth.js');
-                const { success } = await module.auth.getCurrentUser();
-                
-                // ✅ ONLY redirect if actually logged in
-                if (success) {
-                    console.log('✅ User authenticated - redirecting to home');
-                    window.location.replace('/pages/home/index.html');
-                }
-                // ❌ NEVER redirect if not logged in - stay on root page
-            } catch (e) {
-                console.log('Auth import error:', e);
-            }
-            
-            // Always show content if not redirected
+            // Always show content first
             const openingScreen = document.getElementById('openingScreen');
             const mainContent = document.getElementById('mainContent');
-            
+
             if (openingScreen) {
                 openingScreen.style.opacity = '0';
                 setTimeout(() => {
                     openingScreen.style.display = 'none';
                 }, 400);
             }
-            
+
             if (mainContent) {
                 mainContent.style.opacity = '1';
+            }
+
+            // THEN check auth, but only redirect if logged in
+            try {
+                // Check if we have a session first to avoid unnecessary imports
+                let hasSession = false;
+                const localToken = localStorage.getItem('supabase.auth.token');
+                const sessionToken = sessionStorage.getItem('supabase.auth.token');
+                hasSession = !!(localToken || sessionToken);
+                
+                if (!hasSession) {
+                    console.log('No session detected - staying on main page');
+                    return; // ✅ CRITICAL: DON'T redirect if no session
+                }
+                
+                // Only try to import if we have a session
+                try {
+                    const module = await import('/utils/auth.js');
+                    const { success } = await module.auth.getCurrentUser();
+
+                    // ✅ ONLY redirect if actually logged in
+                    if (success) {
+                        console.log('✅ User authenticated - redirecting to home');
+                        window.location.replace('/pages/home/index.html');
+                    }
+                    // ❌ NEVER redirect if not logged in - stay on root page
+                } catch (e) {
+                    console.log('Auth import error:', e);
+                    // Even if import fails, if we have session, try to redirect anyway
+                    if (hasSession) {
+                        window.location.replace('/pages/home/index.html');
+                    }
+                }
+            } catch (e) {
+                console.log('Auth check error:', e);
             }
         });
     </script>
