@@ -1,17 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- === PRIMARY META === -->
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ Relay - Home</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- === TITLE - PRIORITIZED === -->
+    <title>RelayTalk - Connect with Friends Instantly | Official Home</title>
+    <meta name="title" content="RelayTalk - Connect with Friends Instantly | Official Home">
+    <meta name="description" content="RelayTalk is the best place to connect with friends. Real-time messaging, instant notifications, and a beautiful interface. Join thousands of happy users today!">
+    <meta name="keywords" content="RelayTalk, messaging app, chat with friends, real-time messaging, instant chat, social platform, connect with friends">
+    <meta name="author" content="RelayTalk Team">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow">
+    <meta name="bingbot" content="index, follow">
+    <meta name="revisit-after" content="1 day">
+    <meta name="language" content="English">
+    <meta name="distribution" content="global">
+    <meta name="rating" content="general">
+    
+    <!-- === CANONICAL - FORCES GOOGLE TO PRIORITIZE THIS PAGE === -->
+    <link rel="canonical" href="https://relaytalk.vercel.app/pages/home/">
+    <meta property="og:url" content="https://relaytalk.vercel.app/pages/home/">
+    <meta name="twitter:url" content="https://relaytalk.vercel.app/pages/home/">
+
+    <!-- === OPEN GRAPH - SOCIAL SHARING (relayad.png) === -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="RelayTalk">
+    <meta property="og:title" content="RelayTalk - Connect with Friends Instantly">
+    <meta property="og:description" content="Join RelayTalk today! Real-time messaging, instant notifications, and a beautiful interface. Connect with friends now!">
+    <meta property="og:image" content="https://relaytalk.vercel.app/relayad.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="RelayTalk - Connect with friends instantly">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- === TWITTER CARDS (relayad.png) === -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@RelayTalk">
+    <meta name="twitter:creator" content="@RelayTalk">
+    <meta name="twitter:title" content="RelayTalk - Connect with Friends Instantly">
+    <meta name="twitter:description" content="Join RelayTalk today! Real-time messaging, instant notifications, and a beautiful interface. Connect with friends now!">
+    <meta name="twitter:image" content="https://relaytalk.vercel.app/relayad.png">
+    <meta name="twitter:image:alt" content="RelayTalk - Connect with friends instantly">
+
+    <!-- === PWA / MANIFEST (relay.png) === -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#007ACC">
+    <meta name="msapplication-TileColor" content="#007ACC">
+    <meta name="msapplication-TileImage" content="/relay.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RelayTalk">
+    <meta name="application-name" content="RelayTalk">
+    
+    <!-- === FAVICON / APP ICONS (relay.png) === -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/relay.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/relay.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/relay.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/relay.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/relay.png">
+    <link rel="apple-touch-icon" sizes="57x57" href="/relay.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/relay.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/relay.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/relay.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/relay.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/relay.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/relay.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/relay.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/relay.png">
+    <link rel="mask-icon" href="/relay.png" color="#007ACC">
+    
+    <!-- === STRUCTURED DATA - RICH RESULTS === -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "RelayTalk",
+      "url": "https://relaytalk.vercel.app/pages/home/",
+      "description": "RelayTalk - Connect with friends instantly. Real-time messaging, instant notifications, and beautiful interface.",
+      "image": "https://relaytalk.vercel.app/relayad.png",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://relaytalk.vercel.app/pages/home/?search={search_term_string}",
+        "query-input": "required name=search_term_string"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "RelayTalk",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://relaytalk.vercel.app/relay.png"
+        }
+      }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MobileApplication",
+      "name": "RelayTalk",
+      "operatingSystem": "iOS, Android, Web",
+      "applicationCategory": "SocialNetworking",
+      "description": "Connect with friends instantly through real-time messaging.",
+      "image": "https://relaytalk.vercel.app/relayad.png",
+      "url": "https://relaytalk.vercel.app/pages/home/"
+    }
+    </script>
+
+    <!-- === GOOGLE SITE VERIFICATION (FROM ROOT) === -->
+    <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE" />
+    <meta name="msvalidate.01" content="YOUR_BING_VERIFICATION_CODE" />
+    <meta name="yandex-verification" content="YOUR_YANDEX_CODE" />
+
+    <!-- === STYLES === -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- === PWA INSTALL PROMPT === -->
+    <style>
+        .install-prompt {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 10px 40px rgba(0,122,204,0.2);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            border: 1px solid rgba(0,122,204,0.2);
+            animation: slideUp 0.3s ease;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .install-prompt img {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+        }
+        .install-text {
+            flex: 1;
+        }
+        .install-title {
+            font-weight: 700;
+            color: #005a9e;
+            margin-bottom: 4px;
+        }
+        .install-desc {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .install-btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        @media (display-mode: standalone) {
+            .install-prompt { display: none !important; }
+        }
+    </style>
 </head>
 <body>
-<!-- Toast Notifications Container -->
-<div class="toast-container" id="toastContainer"></div>
+    <!-- === PWA INSTALL PROMPT (relay.png) === -->
+    <div class="install-prompt" id="installPrompt">
+        <img src="/relay.png" alt="RelayTalk">
+        <div class="install-text">
+            <div class="install-title">Install RelayTalk</div>
+            <div class="install-desc">Add to home screen for quick access</div>
+        </div>
+        <button class="install-btn" id="installBtn">Install</button>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
     <!-- Loading Indicator -->
     <div class="loading-indicator" id="loadingIndicator">
+        <div class="loading-spinner"></div>
         <div class="loading-text">✨ Loading Relay...</div>
     </div>
 
@@ -31,8 +211,8 @@
         <!-- Welcome Section -->
         <section class="welcome-section">
             <div class="welcome-icon">👋</div>
-            <h1 class="welcome-title" id="welcomeTitle">Welcome to Relay!</h1>
-            <p class="welcome-subtitle">Connect, chat, and stay close with your friends</p>
+            <h1 class="welcome-title" id="welcomeTitle">Welcome to RelayTalk!</h1>
+            <p class="welcome-subtitle">Connect, chat, and stay close with your friends in real-time</p>
             <div style="margin-top: 20px;">
                 <button class="search-btn" onclick="openSearch()" style="margin: 0 auto;">
                     <i class="fas fa-user-plus"></i> Add New Friends
@@ -148,8 +328,119 @@
             </div>
         </div>
     </div>
+
+    <!-- === SCRIPTS === -->
     <script type="module" src="script.js"></script>
-<!-- Add this to home/index.html, chats/index.html, etc. -->
-<script src="/utils/sw-manager.js"></script>
+    <script src="/utils/sw-manager.js"></script>
+    
+    <!-- === PWA INSTALL HANDLER === -->
+    <script>
+        // PWA Install Prompt
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install prompt after 3 seconds
+            setTimeout(() => {
+                document.getElementById('installPrompt').style.display = 'flex';
+            }, 3000);
+        });
+        
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User ${outcome} installation`);
+            
+            deferredPrompt = null;
+            document.getElementById('installPrompt').style.display = 'none';
+        });
+        
+        // Hide install prompt if already installed
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('installPrompt').style.display = 'none';
+            console.log('✅ RelayTalk installed successfully');
+        });
+        
+        // Check authentication and redirect to root home if not logged in
+        import('/utils/auth.js').then(({ auth }) => {
+            auth.getCurrentUser().then(({ success }) => {
+                if (!success) {
+                    // User not signed in - redirect to root home (landing page)
+                    window.location.href = '/?redirect=' + encodeURIComponent(window.location.pathname);
+                }
+            });
+        }).catch(() => {
+            // If auth fails, still redirect to be safe
+            window.location.href = '/';
+        });
+    </script>
+    
+    <!-- === SERVICE WORKER FORCE REGISTRATION === -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations()
+                .then(registrations => {
+                    // Unregister old service workers
+                    return Promise.all(registrations.map(r => r.unregister()));
+                })
+                .then(() => {
+                    // Register new service worker
+                    return navigator.serviceWorker.register('/service-worker.js', {
+                        scope: '/',
+                        updateViaCache: 'none'
+                    });
+                })
+                .then(registration => {
+                    console.log('✅ Service Worker registered:', registration.scope);
+                    
+                    // Auto-update
+                    registration.update();
+                    
+                    // Check for updates every hour
+                    setInterval(() => {
+                        if (navigator.onLine) {
+                            registration.update();
+                        }
+                    }, 60 * 60 * 1000);
+                })
+                .catch(error => {
+                    console.error('❌ Service Worker registration failed:', error);
+                });
+                
+            // Handle offline mode
+            window.addEventListener('online', () => {
+                document.body.classList.remove('offline');
+                console.log('📡 Back online');
+            });
+            
+            window.addEventListener('offline', () => {
+                document.body.classList.add('offline');
+                console.log('📴 Offline mode');
+            });
+        }
+    </script>
+    
+    <!-- === SEO ENHANCEMENT - INTERNAL LINKS === -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [{
+            "@type": "ListItem",
+            "position": 1,
+            "name": "RelayTalk Home",
+            "item": "https://relaytalk.vercel.app/"
+        },{
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Dashboard",
+            "item": "https://relaytalk.vercel.app/pages/home/"
+        }]
+    }
+    </script>
 </body>
 </html>
