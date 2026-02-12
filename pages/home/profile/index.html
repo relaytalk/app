@@ -41,17 +41,18 @@
                 <div class="profile-avatar" id="profileAvatar">
                     <img id="avatarImage" src="" alt="Profile" style="display: none;">
                     <div id="avatarInitial" class="avatar-initial">?</div>
+                    <span class="status-indicator"></span>
                 </div>
                 <button class="change-photo-btn" onclick="openImagePicker()">
                     <i class="fas fa-camera"></i>
                 </button>
             </div>
             
-            <!-- User Info -->
+            <!-- User Info - NO BIO SECTION -->
             <div class="user-info">
                 <h2 class="user-name" id="displayName">User</h2>
                 <div class="user-username" id="displayUsername">@username</div>
-                <p class="user-bio" id="displayBio">No bio yet</p>
+                <!-- BIO REMOVED -->
             </div>
             
             <!-- Stats -->
@@ -92,21 +93,18 @@
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
             <div class="modal-body">
-                <!-- Camera input -->
                 <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelect(event)">
                 <div class="image-picker-option" onclick="uploadFromCamera()">
                     <i class="fas fa-camera"></i>
                     <span>Take Photo</span>
                 </div>
                 
-                <!-- Gallery input -->
                 <input type="file" id="galleryInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
                 <div class="image-picker-option" onclick="uploadFromGallery()">
                     <i class="fas fa-image"></i>
                     <span>Choose from Gallery</span>
                 </div>
                 
-                <!-- Remove photo -->
                 <div class="image-picker-option" onclick="removeAvatar()" style="border-color: rgba(220,53,69,0.2);">
                     <i class="fas fa-trash" style="color: #dc3545;"></i>
                     <span style="color: #dc3545;">Remove Current Photo</span>
@@ -134,7 +132,7 @@
         </a>
     </nav>
     
-    <!-- Scripts - FIXED PATHS -->
+    <!-- Scripts -->
     <script type="module" src="../../../utils/supabase.js"></script>
     <script type="module" src="profile.js"></script>
 </body>
