@@ -6,18 +6,18 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    
+
     <!-- TITLE - PRIORITIZE THIS PAGE -->
     <title>RelayTalk - Dashboard | Connect with Friends</title>
     <meta name="title" content="RelayTalk - Dashboard | Connect with Friends">
     <meta name="description" content="Your RelayTalk dashboard - Chat with friends, manage notifications, and stay connected in real-time.">
     <meta name="robots" content="index, follow">
-    
-    <!-- CANONICAL - HOME PAGE (PRIORITIZED) -->
+
+    <!-- CANONICAL - HOME PAGE -->
     <link rel="canonical" href="https://relaytalk.vercel.app/pages/home/">
     <meta property="og:url" content="https://relaytalk.vercel.app/pages/home/">
     <meta name="twitter:url" content="https://relaytalk.vercel.app/pages/home/">
-    
+
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="RelayTalk">
@@ -26,32 +26,57 @@
     <meta property="og:image" content="https://relaytalk.vercel.app/relayad.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    
+
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@RelayTalk">
     <meta name="twitter:title" content="RelayTalk - Dashboard | Connect with Friends">
     <meta name="twitter:description" content="Your RelayTalk dashboard - Chat with friends, manage notifications.">
     <meta name="twitter:image" content="https://relaytalk.vercel.app/relayad.png">
-    
+
     <!-- Icons / PWA -->
     <link rel="icon" href="/favicon.ico">
     <link rel="icon" href="/relay.png" type="image/png" sizes="192x192">
     <link rel="apple-touch-icon" href="/relay.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#007ACC">
-    
+
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- CRITICAL: REDIRECT IF NOT LOGGED IN - FAST -->
+
+    <!-- ✅ CRITICAL FIX: ONLY redirect if NOT logged in - SINGLE CHECK, NO FALLBACK -->
     <script>
         (function() {
-            const hasSession = localStorage.getItem('supabase.auth.token') || sessionStorage.getItem('supabase.auth.token');
-            if (!hasSession) {
-                console.log('🚫 No session - redirecting to root');
-                window.location.replace('/');
+            try {
+                // Check for Supabase session token
+                let hasSession = false;
+                
+                // Check localStorage
+                const localToken = localStorage.getItem('supabase.auth.token');
+                // Check sessionStorage
+                const sessionToken = sessionStorage.getItem('supabase.auth.token');
+                
+                hasSession = !!(localToken || sessionToken);
+                
+                // Additional check: if we have persisted session in localStorage
+                if (!hasSession) {
+                    try {
+                        const persistedSession = localStorage.getItem('supabase.auth.token');
+                        if (persistedSession && persistedSession.includes('access_token')) {
+                            hasSession = true;
+                        }
+                    } catch (e) {}
+                }
+
+                // ✅ ONLY redirect if NO session (not logged in)
+                if (!hasSession) {
+                    console.log('🚫 No session - redirecting to root');
+                    window.location.replace('/');
+                }
+                // ✅ NEVER redirect if logged in - stay on home page
+            } catch (e) {
+                console.log('Session check error:', e);
             }
         })();
     </script>
@@ -59,7 +84,7 @@
 <body>
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
-    
+
     <!-- Loading Indicator -->
     <div class="loading-indicator" id="loadingIndicator">
         <div class="loading-spinner"></div>
@@ -172,23 +197,7 @@
     <script type="module" src="script.js"></script>
     <script src="/utils/sw-manager.js"></script>
     
-    <!-- FALLBACK: Double-check auth after load -->
-    <script type="module">
-        import { auth } from '/utils/auth.js';
-        
-        async function checkAuth() {
-            try {
-                const { success } = await auth.getCurrentUser();
-                if (!success) {
-                    window.location.replace('/');
-                }
-            } catch (e) {
-                window.location.replace('/');
-            }
-        }
-        
-        // Run after 500ms as fallback
-        setTimeout(checkAuth, 500);
-    </script>
+    <!-- ✅ REMOVED: The fallback auth check that was causing the redirect loop -->
+    <!-- The inline script above handles auth redirect. script.js handles page functionality -->
 </body>
 </html>
