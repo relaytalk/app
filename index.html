@@ -39,20 +39,20 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#007ACC">
     
-    <!-- CRITICAL FIX: IMMEDIATE REDIRECT CHECK -->
+    <!-- ✅ FIX: ONLY redirect if LOGGED IN - NEVER redirect if not logged in -->
     <script>
-        // Run IMMEDIATELY - before anything else
         (function() {
             try {
-                // Check localStorage AND sessionStorage
+                // Only redirect if user HAS a session (logged in)
                 const hasSession = localStorage.getItem('supabase.auth.token') || 
                                   sessionStorage.getItem('supabase.auth.token');
                 
+                // ✅ IMPORTANT: Only redirect if LOGGED IN
                 if (hasSession) {
                     console.log('✅ User has session - redirecting to home');
                     window.location.replace('/pages/home/index.html?v=' + Date.now());
-                    return;
                 }
+                // ❌ NEVER redirect if not logged in - stay on root page
             } catch (e) {
                 console.log('Session check error:', e);
             }
@@ -101,7 +101,6 @@
         </div>
     </div>
 
-    <!-- FAST NAVIGATION FUNCTIONS -->
     <script>
         window.goToLogin = function() { 
             window.location.href = '/pages/login/index.html';
@@ -111,23 +110,23 @@
             window.location.href = '/pages/auth/index.html';
         };
 
-        // FALLBACK: Check auth properly after load
+        // ✅ FIX: Only redirect if LOGGED IN - never if not logged in
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                // Try to import auth and check properly
                 const module = await import('/utils/auth.js');
                 const { success } = await module.auth.getCurrentUser();
                 
+                // ✅ ONLY redirect if actually logged in
                 if (success) {
                     console.log('✅ User authenticated - redirecting to home');
                     window.location.replace('/pages/home/index.html');
-                    return;
                 }
+                // ❌ NEVER redirect if not logged in - stay on root page
             } catch (e) {
                 console.log('Auth import error:', e);
             }
             
-            // Show content if not redirected
+            // Always show content if not redirected
             const openingScreen = document.getElementById('openingScreen');
             const mainContent = document.getElementById('mainContent');
             
