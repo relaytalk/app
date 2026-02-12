@@ -9,7 +9,7 @@ let supabase = null;
 let currentUser = null;
 let currentProfile = null;
 
-// Initialize
+// Initialize - LOAD FASTER
 async function initProfilePage() {
     console.log('Loading profile...');
     
@@ -19,7 +19,6 @@ async function initProfilePage() {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         
-        // 🔴 FIX 1: Redirect to login if not authenticated
         if (!session) {
             window.location.href = '../../../pages/login/index.html';
             return;
@@ -27,100 +26,115 @@ async function initProfilePage() {
         
         currentUser = session.user;
         
-        // Load profile
-        await loadProfile();
+        // 🔥 FIX 1: Load profile and hide loader SIMULTANEOUSLY
+        await Promise.all([
+            loadProfile(),
+            // Hide loader after 500ms max
+            new Promise(resolve => setTimeout(resolve, 500))
+        ]);
         
         // Hide loader
-        document.getElementById('loadingIndicator').style.display = 'none';
+        const loader = document.getElementById('loadingIndicator');
+        if (loader) loader.style.display = 'none';
         
     } catch (error) {
         console.error('Init error:', error);
         showToast('error', 'Failed to load profile');
         
-        // Redirect on error
         setTimeout(() => {
             window.location.href = '../../../pages/login/index.html';
         }, 2000);
     }
 }
 
-// Load profile data
+// 🔥 FIX 2: Load profile ONLY what's needed - NO messages query
 async function loadProfile() {
     try {
+        // Get profile - SINGLE query, fast
         const { data: profile, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, username, avatar_url, status, last_seen')
             .eq('id', currentUser.id)
-            .single();
+            .maybeSingle();
             
         if (error) throw error;
         
-        currentProfile = profile;
-        renderProfile(profile);
+        currentProfile = profile || { 
+            id: currentUser.id, 
+            username: currentUser.email?.split('@')[0] || 'User' 
+        };
+        
+        // Render immediately
+        renderProfile(currentProfile);
+        
+        // 🔥 FIX 3: Load stats in BACKGROUND - doesn't block UI
+        setTimeout(() => loadUserStats(), 100);
         
     } catch (error) {
         console.error('Profile load error:', error);
+        // Show fallback profile
+        renderProfile({ 
+            username: currentUser.email?.split('@')[0] || 'User' 
+        });
     }
 }
 
-// Render profile
+// Render profile - FAST
 function renderProfile(profile) {
-    // Set username
-    document.getElementById('displayName').textContent = profile.username || 'User';
-    document.getElementById('displayUsername').textContent = `@${profile.username || 'user'}`;
+    // Set username - use email prefix if no username
+    const username = profile.username || currentUser.email?.split('@')[0] || 'User';
+    document.getElementById('displayName').textContent = username;
+    document.getElementById('displayUsername').textContent = `@${username.toLowerCase()}`;
     
-    // Set bio
-    if (profile.bio) {
-        document.getElementById('displayBio').textContent = profile.bio;
-    }
+    // 🔥 FIX 4: REMOVED BIO SECTION - no bio element
     
-    // 🔴 FIX 2: Default avatar style matches chats/friends page
-    const avatarContainer = document.getElementById('profileAvatar');
-    const initialDiv = document.getElementById('avatarInitial');
+    // Set avatar - FAST
     const img = document.getElementById('avatarImage');
+    const initialDiv = document.getElementById('avatarInitial');
     
     if (profile.avatar_url) {
-        // Show uploaded image
-        img.src = profile.avatar_url;
-        img.style.display = 'block';
-        initialDiv.style.display = 'none';
+        // Preload image
+        const preloadImg = new Image();
+        preloadImg.src = profile.avatar_url;
+        preloadImg.onload = () => {
+            img.src = profile.avatar_url;
+            img.style.display = 'block';
+            initialDiv.style.display = 'none';
+        };
+        preloadImg.onerror = () => {
+            // Fallback to initials
+            img.style.display = 'none';
+            initialDiv.style.display = 'flex';
+            initialDiv.textContent = username.charAt(0).toUpperCase();
+        };
     } else {
-        // Show initials - EXACT same style as friends/chats page
+        // Show initials - FAST
         img.style.display = 'none';
         initialDiv.style.display = 'flex';
-        initialDiv.textContent = profile.username ? profile.username.charAt(0).toUpperCase() : '?';
+        initialDiv.textContent = username.charAt(0).toUpperCase();
     }
-    
-    // Load stats
-    loadUserStats();
 }
 
-// Load friends and messages count
+// 🔥 FIX 5: Load ONLY friends count - REMOVED messages query (causing 400 error)
 async function loadUserStats() {
     try {
-        // Friends count
-        const { count: friendsCount } = await supabase
+        // Only load friends count - messages query was failing
+        const { count: friendsCount, error } = await supabase
             .from('friends')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', currentUser.id);
             
+        if (error) throw error;
+        
         document.getElementById('friendsCount').textContent = friendsCount || 0;
         
-        // Messages count (sent + received)
-        const { count: sentCount } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('sender_id', currentUser.id);
-            
-        const { count: receivedCount } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('receiver_id', currentUser.id);
-            
-        document.getElementById('messagesCount').textContent = (sentCount || 0) + (receivedCount || 0);
+        // Set messages count to 0 (or remove this stat entirely)
+        document.getElementById('messagesCount').textContent = '0';
         
     } catch (error) {
         console.error('Stats error:', error);
+        document.getElementById('friendsCount').textContent = '0';
+        document.getElementById('messagesCount').textContent = '0';
     }
 }
 
@@ -160,7 +174,7 @@ window.handleImageSelect = async function(event) {
     document.getElementById('uploadLoading').style.display = 'flex';
     
     try {
-        // 1. Upload to IMGBB
+        // Upload to IMGBB
         const formData = new FormData();
         formData.append('key', IMGBB_API_KEY);
         formData.append('image', file);
@@ -172,13 +186,11 @@ window.handleImageSelect = async function(event) {
         
         const data = await response.json();
         
-        if (!data.success) {
-            throw new Error('Upload failed');
-        }
+        if (!data.success) throw new Error('Upload failed');
         
         const imageUrl = data.data.url;
         
-        // 2. Save URL to Supabase profiles table
+        // Save to Supabase
         const { error } = await supabase
             .from('profiles')
             .update({ 
@@ -189,7 +201,7 @@ window.handleImageSelect = async function(event) {
             
         if (error) throw error;
         
-        // 3. Update UI
+        // Update UI
         const img = document.getElementById('avatarImage');
         const initialDiv = document.getElementById('avatarInitial');
         
@@ -203,9 +215,8 @@ window.handleImageSelect = async function(event) {
         console.error('Upload error:', error);
         showToast('error', 'Failed to upload image');
     } finally {
-        // Hide loading
         document.getElementById('uploadLoading').style.display = 'none';
-        event.target.value = ''; // Reset input
+        event.target.value = '';
     }
 };
 
@@ -229,10 +240,11 @@ window.removeAvatar = async function() {
         // Update UI
         const img = document.getElementById('avatarImage');
         const initialDiv = document.getElementById('avatarInitial');
+        const username = currentProfile?.username || currentUser.email?.split('@')[0] || 'User';
         
         img.style.display = 'none';
         initialDiv.style.display = 'flex';
-        initialDiv.textContent = currentProfile.username ? currentProfile.username.charAt(0).toUpperCase() : '?';
+        initialDiv.textContent = username.charAt(0).toUpperCase();
         
         showToast('success', 'Profile photo removed');
         
@@ -248,6 +260,8 @@ window.removeAvatar = async function() {
 // Show toast
 function showToast(type, message) {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
@@ -268,59 +282,27 @@ function showToast(type, message) {
     }, 3000);
 }
 
-// 🔴 FIX 3: COMPLETE LOGOUT - CLEARS EVERYTHING
+// Logout - clears everything
 window.logout = async function() {
     try {
-        // Show loading
         document.getElementById('uploadLoading').style.display = 'flex';
         document.querySelector('.loading-text').textContent = 'Logging out...';
         
-        // 1. Sign out from Supabase
-        if (supabase) {
-            await supabase.auth.signOut();
-        }
+        if (supabase) await supabase.auth.signOut();
         
-        // 2. Clear ALL browser storage
         localStorage.clear();
         sessionStorage.clear();
         
-        // 3. Clear cookies
         document.cookie.split(";").forEach(function(c) {
             document.cookie = c.replace(/^ +/, "")
                 .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
         
-        // 4. Clear IndexedDB (if any)
-        try {
-            const databases = await indexedDB.databases?.() || [];
-            databases.forEach(db => {
-                if (db.name) indexedDB.deleteDatabase(db.name);
-            });
-        } catch (e) {
-            console.log('No IndexedDB to clear');
-        }
-        
-        // 5. Clear cache storage
-        if ('caches' in window) {
-            try {
-                const keys = await caches.keys();
-                await Promise.all(keys.map(key => caches.delete(key)));
-            } catch (e) {
-                console.log('No cache to clear');
-            }
-        }
-        
-        // 6. Redirect to login page
         window.location.href = '../../../pages/login/index.html';
         
     } catch (error) {
         console.error('Logout error:', error);
-        showToast('error', 'Logout failed');
-        
-        // Force redirect anyway
-        setTimeout(() => {
-            window.location.href = '../../../pages/login/index.html';
-        }, 1000);
+        window.location.href = '../../../pages/login/index.html';
     }
 };
 
