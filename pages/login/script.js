@@ -1,4 +1,4 @@
-// login/script.js - ONLY ADDED IMMEDIATE REDIRECT, EVERYTHING ELSE YOUR ORIGINAL CODE
+// login/script.js - ONLY ADDED IMMEDIATE REDIRECT, EVERYTHING ELSE YOUR ORIGINAL CODE 
 
 console.log('✨ Login Page Loaded - GitHub Pages Version');
 
