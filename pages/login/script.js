@@ -1,32 +1,21 @@
-// login/script.js - COMPLETE VERSION - FIXED FOR UMD
-
+// login/script.js - COMPLETE VERSION
 console.log('✨ Login Page Loaded');
 
-// Wait for Supabase - now using global supabase from UMD
+// Wait for Supabase
 async function ensureSupabase() {
     console.log('⏳ Ensuring Supabase is loaded...');
-    
-    // Check if supabase is available globally from UMD
-    if (typeof supabase !== 'undefined' && !window.supabase) {
-        // Initialize Supabase client
-        const SUPABASE_URL = 'https://blxtldgnssvasuinpyit.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJseHRsZGduc3N2YXN1aW5weWl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwODIxODIsImV4cCI6MjA4MjY1ODE4Mn0.Dv04IOAY76o2ccu5dzwK3fJjzo93BIoK6C2H3uWrlMw';
-        
-        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log('✅ Supabase client created from UMD');
-    }
     
     if (window.supabase) {
         console.log('✅ Supabase already loaded');
         return true;
     }
     
-    // Fallback to module import if UMD failed
     try {
-        console.log('⚠️ UMD not ready, trying module import...');
+        // Load Supabase module
         const modulePath = '../../utils/supabase.js';
         await import(modulePath);
         
+        // Wait for initialization
         let attempts = 0;
         while (!window.supabase && attempts < 20) {
             await new Promise(resolve => setTimeout(resolve, 150));
@@ -34,14 +23,17 @@ async function ensureSupabase() {
         }
         
         if (window.supabase) {
-            console.log('✅ Supabase loaded via module');
+            console.log('✅ Supabase loaded successfully');
             return true;
+        } else {
+            console.error('❌ Supabase failed to load');
+            return false;
         }
+        
     } catch (error) {
         console.error('❌ Error loading Supabase:', error);
+        return false;
     }
-    
-    return false;
 }
 
 // Simple login function
@@ -98,6 +90,7 @@ async function checkExistingLogin() {
         const isLoggedIn = !!data?.session;
         
         console.log('Existing login check:', isLoggedIn ? 'Logged in' : 'Not logged in');
+        
         return isLoggedIn;
         
     } catch (error) {
@@ -134,6 +127,7 @@ function showError(element, message) {
     element.textContent = message;
     element.style.display = 'block';
     
+    // Add shake animation
     element.parentElement.classList.add('shake');
     setTimeout(() => {
         element.parentElement.classList.remove('shake');
@@ -150,6 +144,7 @@ function hideError(element) {
 function validateForm() {
     let isValid = true;
     
+    // Username validation
     if (!loginUsername.value.trim()) {
         showError(usernameError, 'Please enter username');
         isValid = false;
@@ -160,6 +155,7 @@ function validateForm() {
         hideError(usernameError);
     }
     
+    // Password validation
     if (!loginPassword.value) {
         showError(passwordError, 'Please enter password');
         isValid = false;
@@ -182,9 +178,11 @@ async function handleLogin(event) {
     const username = loginUsername.value.trim();
     const password = loginPassword.value;
     
+    // Get login button
     const loginBtn = document.getElementById('loginBtn');
     if (!loginBtn) return;
     
+    // Show loading
     const originalText = loginBtn.textContent;
     loginBtn.textContent = 'Logging in...';
     loginBtn.disabled = true;
@@ -194,6 +192,7 @@ async function handleLogin(event) {
     }
     
     try {
+        // Ensure Supabase is ready
         const supabaseReady = await ensureSupabase();
         if (!supabaseReady) {
             showError(passwordError, 'Cannot connect to server');
@@ -202,11 +201,13 @@ async function handleLogin(event) {
             return;
         }
         
+        // Attempt login
         const result = await loginUser(username, password);
         
         if (result.success) {
             console.log('✅ Login successful, redirecting to home...');
             
+            // Show success message
             const successMessage = document.getElementById('successMessage');
             if (successMessage) {
                 successMessage.style.display = 'block';
@@ -215,10 +216,14 @@ async function handleLogin(event) {
                         <div style="font-size: 2rem; margin-bottom: 10px;">🎉</div>
                         <h3 style="color: #28a745; margin-bottom: 10px;">Login Successful!</h3>
                         <p style="color: #c0c0e0;">Redirecting to home page...</p>
+                        <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 15px; overflow: hidden;">
+                            <div style="width: 0%; height: 100%; background: #667eea; animation: progress 2s linear forwards;"></div>
+                        </div>
                     </div>
                 `;
             }
             
+            // Redirect after delay
             setTimeout(() => {
                 window.location.href = '../home/index.html';
             }, 1500);
@@ -237,6 +242,7 @@ async function handleLogin(event) {
     }
 }
 
+// Reset button state
 function resetButton(button, originalText) {
     button.textContent = originalText;
     button.disabled = false;
@@ -246,12 +252,15 @@ function resetButton(button, originalText) {
 async function initLoginPage() {
     console.log('Initializing login page...');
     
+    // Ensure Supabase is loaded
     await ensureSupabase();
     
+    // Check if already logged in
     const isLoggedIn = await checkExistingLogin();
     if (isLoggedIn) {
         console.log('✅ User already logged in, redirecting to home...');
         
+        // Show redirect message
         const successMessage = document.getElementById('successMessage');
         if (successMessage) {
             successMessage.style.display = 'block';
@@ -264,6 +273,7 @@ async function initLoginPage() {
             `;
         }
         
+        // Redirect
         setTimeout(() => {
             window.location.href = '../home/index.html';
         }, 1000);
@@ -272,10 +282,12 @@ async function initLoginPage() {
     
     console.log('User not logged in, showing login form');
     
+    // Setup event listeners
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
     
+    // Clear errors on input
     if (loginUsername) {
         loginUsername.addEventListener('input', function() {
             if (this.value.trim()) hideError(usernameError);
@@ -288,10 +300,12 @@ async function initLoginPage() {
         });
     }
     
+    // Auto-focus username field
     if (loginUsername) {
         setTimeout(() => loginUsername.focus(), 300);
     }
     
+    // Hide loading overlay if shown
     if (loadingOverlay) {
         loadingOverlay.style.display = 'none';
     }
