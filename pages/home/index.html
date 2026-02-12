@@ -51,14 +51,14 @@
             try {
                 // Check for Supabase session token
                 let hasSession = false;
-                
+
                 // Check localStorage
                 const localToken = localStorage.getItem('supabase.auth.token');
                 // Check sessionStorage
                 const sessionToken = sessionStorage.getItem('supabase.auth.token');
-                
+
                 hasSession = !!(localToken || sessionToken);
-                
+
                 // Additional check: if we have persisted session in localStorage
                 if (!hasSession) {
                     try {
@@ -196,7 +196,7 @@
     <!-- Scripts -->
     <script type="module" src="script.js"></script>
     <script src="/utils/sw-manager.js"></script>
-    
+
     <!-- ✅ REMOVED: The fallback auth check that was causing the redirect loop -->
     <!-- The inline script above handles auth redirect. script.js handles page functionality -->
 </body>
