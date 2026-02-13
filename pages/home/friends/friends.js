@@ -79,7 +79,7 @@ async function loadFriends() {
     }
 }
 
-// 🔥 UPDATED: Render friends list WITH SHORT GREEN CALL BUTTON (no gradient)
+// Render friends list WITH SHORT GREEN CALL BUTTON
 function renderFriendsList() {
     const container = document.getElementById('friendsList');
     if (!container) return;
@@ -116,7 +116,7 @@ function renderFriendsList() {
                     </div>
                 </div>
                 
-                <!-- ✅ SHORT GREEN CALL BUTTON (NO GRADIENT) -->
+                <!-- SHORT GREEN CALL BUTTON -->
                 <button class="call-friend-btn" onclick="startCall('${friend.id}', '${friend.username}')" style="background: #22c55e; border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(34, 197, 94, 0.3);">
                     <i class="fas fa-phone"></i>
                 </button>
@@ -127,11 +127,25 @@ function renderFriendsList() {
     container.innerHTML = html;
 }
 
-// ✅ FIXED: Start a call with error handling
+// ✅ FIXED: Start a call (WITH SUPABASE VARIABLE CHECK)
 window.startCall = async function(friendId, friendName) {
     try {
         console.log('📞 Calling:', friendName);
         
+        // Check if supabase is available
+        if (!supabase) {
+            console.error('Supabase not initialized');
+            showToast('error', 'Service not ready. Please refresh.');
+            return;
+        }
+        
+        // Check if currentUser is available
+        if (!currentUser) {
+            console.error('User not logged in');
+            showToast('error', 'Please login first');
+            return;
+        }
+
         // Show loading toast
         showToast('info', `Calling ${friendName}...`);
 
@@ -145,26 +159,24 @@ window.startCall = async function(friendId, friendName) {
 
         console.log('✅ Room created:', roomResult.url);
 
-        // 2. Check if calls table exists
-        try {
-            const { error } = await supabase
-                .from('calls')
-                .insert({
-                    caller_id: currentUser.id,
-                    receiver_id: friendId,
-                    room_url: roomResult.url,
-                    status: 'ringing',
-                    created_at: new Date().toISOString()
-                });
+        // 2. Save to Supabase calls table
+        const { error } = await supabase
+            .from('calls')
+            .insert({
+                caller_id: currentUser.id,
+                receiver_id: friendId,
+                room_url: roomResult.url,
+                status: 'ringing',
+                created_at: new Date().toISOString()
+            });
 
-            if (error) {
-                console.error('Database error:', error);
-                showToast('error', 'Call table not ready. Create it first!');
-                return;
+        if (error) {
+            console.error('Database error:', error);
+            if (error.code === '42P01') {
+                showToast('error', 'Calls table not created in Supabase');
+            } else {
+                showToast('error', 'Failed to save call');
             }
-        } catch (dbError) {
-            console.error('Database error:', dbError);
-            showToast('error', 'Database error. Create calls table first!');
             return;
         }
 
