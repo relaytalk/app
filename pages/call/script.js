@@ -1,5 +1,5 @@
 import { createCallRoom } from '/utils/daily.js';
-import { auth } from '/utils/auth.js';
+import { initializeSupabase } from '/utils/supabase.js';
 
 // Get URL parameters
 const urlParams = new URLSearchParams(window.location.search);
@@ -8,66 +8,41 @@ const friendName = urlParams.get('friend') || 'Friend';
 
 let callFrame = null;
 let currentRoom = null;
-let preloadComplete = false;
+let supabaseInstance = null;
 
-// Initialize call page with pre-loading
+// Initialize call page
 async function initCallPage() {
-    console.log('📞 Initializing call page with pre-loading...');
+    console.log('📞 Initializing call page...');
 
     // Show loading immediately
     document.getElementById('callLoading').style.display = 'flex';
     document.getElementById('callContainer').style.display = 'none';
     document.getElementById('callError').style.display = 'none';
 
-    // Start pre-loading immediately
-    await preloadCallService();
-}
-
-// Pre-load all necessary services
-async function preloadCallService() {
+    // Initialize Supabase first (this will set window.supabase)
     try {
-        console.log('🔄 Pre-loading call services...');
-
-        // 1. Load Daily.co script in parallel
-        const scriptPromise = loadDailyScript();
-        
-        // 2. Check auth but DON'T redirect
-        const authPromise = checkAuthWithoutRedirect();
-        
-        // 3. Wait for both to complete
-        const [scriptLoaded, authResult] = await Promise.all([scriptPromise, authPromise]);
-        
-        console.log('✅ Pre-load complete:', { scriptLoaded, authResult });
-        
-        // 4. Now join the call
-        if (roomUrl) {
-            console.log('📞 Joining pre-loaded call:', roomUrl);
-            await joinCall(roomUrl);
-        } else {
-            console.log('📞 Starting new call with pre-load');
-            await startNewCall();
-        }
-        
+        supabaseInstance = await initializeSupabase();
+        console.log('✅ Supabase initialized');
     } catch (error) {
-        console.error('❌ Pre-load error:', error);
-        showError('Failed to load call: ' + error.message);
+        console.log('⚠️ Supabase init warning:', error);
+        // Continue anyway - call might still work
     }
-}
 
-// Check auth without redirecting
-async function checkAuthWithoutRedirect() {
-    try {
-        const user = await auth.getCurrentUser();
-        if (user?.success) {
-            console.log('✅ Auth check passed');
-            return true;
-        } else {
-            console.log('⚠️ Auth check failed - continuing anyway');
-            return false;
-        }
-    } catch (error) {
-        console.log('⚠️ Auth error - continuing anyway:', error);
-        return false;
+    // Load Daily.co script
+    const scriptLoaded = await loadDailyScript();
+
+    if (!scriptLoaded) {
+        showError('Failed to load call service');
+        return;
+    }
+
+    // Check if we have a room URL
+    if (roomUrl) {
+        console.log('📞 Joining existing call:', roomUrl);
+        await joinCall(roomUrl);
+    } else {
+        console.log('📞 Starting new call');
+        await startNewCall();
     }
 }
 
@@ -75,18 +50,15 @@ async function checkAuthWithoutRedirect() {
 function loadDailyScript() {
     return new Promise((resolve) => {
         if (window.DailyIframe) {
-            console.log('✅ Daily.co already loaded');
             resolve(true);
             return;
         }
 
-        console.log('📥 Loading Daily.co script...');
         const script = document.createElement('script');
         script.src = 'https://unpkg.com/@daily-co/daily-js@0.24.0/dist/daily.js';
         script.async = true;
 
         script.onload = () => {
-            console.log('✅ Daily.co script loaded');
             // Wait for DailyIframe
             let attempts = 0;
             const checkDaily = setInterval(() => {
@@ -96,14 +68,13 @@ function loadDailyScript() {
                 }
                 if (attempts++ > 20) {
                     clearInterval(checkDaily);
-                    console.error('❌ DailyIframe not available');
                     resolve(false);
                 }
             }, 100);
         };
 
-        script.onerror = (error) => {
-            console.error('❌ Failed to load Daily.co script:', error);
+        script.onerror = () => {
+            console.error('❌ Failed to load Daily.co script');
             resolve(false);
         };
         
@@ -114,11 +85,6 @@ function loadDailyScript() {
 // Start a new call
 async function startNewCall() {
     try {
-        // Check if already pre-loading
-        if (preloadComplete) {
-            console.log('✅ Using pre-loaded data for new call');
-        }
-        
         const result = await createCallRoom();
         if (!result?.success) {
             showError('Failed to create call: ' + (result?.error || 'Unknown error'));
@@ -161,25 +127,16 @@ async function joinCall(url) {
 
         console.log('🔌 Joining call...');
         
-        // Add a small delay to ensure everything is ready
-        setTimeout(async () => {
-            try {
-                await callFrame.join({
-                    url: url,
-                    startVideoOff: true,
-                    startAudioOff: false
-                });
-                console.log('✅ Join command sent');
-            } catch (joinError) {
-                console.error('❌ Join error:', joinError);
-                showError('Failed to join call');
-            }
-        }, 100);
+        // Join the call
+        callFrame.join({
+            url: url,
+            startVideoOff: true,
+            startAudioOff: false
+        });
 
         // Successfully joined
         callFrame.on('joined-meeting', () => {
             console.log('✅ Successfully joined call');
-            preloadComplete = true;
             document.getElementById('callLoading').style.display = 'none';
             document.getElementById('callContainer').style.display = 'block';
             document.getElementById('callError').style.display = 'none';
@@ -200,11 +157,18 @@ async function joinCall(url) {
         // Handle participant left
         callFrame.on('participant-left', (event) => {
             console.log('👤 Participant left:', event);
+            // If other participant left, show message but don't redirect
+            if (event && event.participant && event.participant.user_name) {
+                showToast('info', `${event.participant.user_name} left the call`);
+            }
         });
 
         // Handle participant joined
         callFrame.on('participant-joined', (event) => {
             console.log('👤 Participant joined:', event);
+            if (event && event.participant && event.participant.user_name) {
+                showToast('success', `${event.participant.user_name} joined the call`);
+            }
         });
 
         setupCallControls();
@@ -300,11 +264,47 @@ function showError(message) {
     }
 }
 
-// Block any attempt to redirect
-window.addEventListener('beforeunload', (e) => {
-    console.log('⚠️ Page is unloading - checking if this is manual navigation');
-    // Don't do anything, just log
-});
+// Simple toast for messages
+function showToast(type, message) {
+    // Create temporary toast if needed
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${type === 'success' ? '#22c55e' : '#3b82f6'};
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        z-index: 2000;
+        animation: slideDown 0.3s ease;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Add animation style
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideDown {
+        from {
+            transform: translate(-50%, -20px);
+            opacity: 0;
+        }
+        to {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', initCallPage);
