@@ -12,7 +12,7 @@ let currentRoom = null;
 // Initialize call page
 async function initCallPage() {
     console.log('📞 Initializing call page...');
-    
+
     document.getElementById('callLoading').style.display = 'flex';
 
     // Check auth
@@ -28,7 +28,7 @@ async function initCallPage() {
 
     // Load Daily.co script
     const scriptLoaded = await loadDailyScript();
-    
+
     if (!scriptLoaded) {
         showError('Failed to load call service');
         return;
@@ -52,7 +52,7 @@ function loadDailyScript() {
         const script = document.createElement('script');
         script.src = 'https://unpkg.com/@daily-co/daily-js@0.24.0/dist/daily.js';
         script.async = true;
-        
+
         script.onload = () => {
             // Wait for DailyIframe
             let attempts = 0;
@@ -67,7 +67,7 @@ function loadDailyScript() {
                 }
             }, 100);
         };
-        
+
         script.onerror = () => resolve(false);
         document.head.appendChild(script);
     });
@@ -78,7 +78,7 @@ async function startNewCall() {
     try {
         const result = await createCallRoom();
         if (!result?.success) {
-            showError('Failed to create call');
+            showError('Failed to create call: ' + (result?.error || 'Unknown error'));
             return;
         }
         currentRoom = result;
@@ -101,7 +101,7 @@ async function joinCall(url) {
             showError('Call interface not found');
             return;
         }
-        
+
         callFrame = window.DailyIframe.createFrame(iframe, {
             showLeaveButton: false,
             iframeStyle: {
@@ -121,38 +121,45 @@ async function joinCall(url) {
         });
 
         callFrame.on('joined-meeting', () => {
+            console.log('✅ Successfully joined call');
             document.getElementById('callLoading').style.display = 'none';
             document.getElementById('callContainer').style.display = 'block';
         });
 
-        // 🔥 FIXED: NO AUTO REDIRECT - Just show ended message
+        // 🔥 IMPORTANT: NO AUTO REDIRECT - Just show ended message
         callFrame.on('left-meeting', () => {
-            console.log('Call ended');
+            console.log('👋 Call ended - showing end screen');
             showCallEnded();
         });
 
-        callFrame.on('error', () => {
+        callFrame.on('error', (error) => {
+            console.error('❌ Call error:', error);
             showError('Connection failed');
         });
 
         setupCallControls();
-        
+
     } catch (error) {
+        console.error('❌ Failed to join call:', error);
         showError('Failed to join call');
     }
 }
 
-// 🔥 NEW: Show call ended (NO REDIRECT)
+// 🔥 SHOW CALL ENDED - NO AUTO REDIRECT
 function showCallEnded() {
+    // Hide call container, show error/end screen
     document.getElementById('callContainer').style.display = 'none';
+    document.getElementById('callLoading').style.display = 'none';
     document.getElementById('callError').style.display = 'flex';
     document.getElementById('errorMessage').textContent = 'Call ended';
     
+    // Update the button to ONLY redirect on MANUAL click
     const closeBtn = document.querySelector('.back-btn');
     if (closeBtn) {
         closeBtn.textContent = 'Close';
         closeBtn.onclick = () => {
-            window.location.href = '/pages/friends/index.html';  // ONLY on manual click
+            console.log('👆 User manually clicked close - redirecting to friends');
+            window.location.href = '/pages/home/friends/index.html';  // ONLY on manual click
         };
     }
 }
@@ -182,20 +189,35 @@ function setupCallControls() {
         });
     }
 
-    // 🔥 FIXED: End button - NO AUTO REDIRECT
+    // 🔥 END BUTTON - NO AUTO REDIRECT
     if (endBtn) {
         endBtn.addEventListener('click', () => {
-            if (callFrame) callFrame.leave();
-            showCallEnded();  // Show message, don't redirect
+            console.log('👆 User clicked end call button');
+            if (callFrame) {
+                callFrame.leave(); // This will trigger 'left-meeting' event
+            } else {
+                // If no callFrame, just show ended screen
+                showCallEnded();
+            }
         });
     }
 }
 
 // Show error
 function showError(message) {
+    console.error('❌ Error:', message);
     document.getElementById('callLoading').style.display = 'none';
+    document.getElementById('callContainer').style.display = 'none';
     document.getElementById('callError').style.display = 'flex';
     document.getElementById('errorMessage').textContent = message;
+    
+    // Update close button for error state
+    const closeBtn = document.querySelector('.back-btn');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            window.location.href = '/pages/home/friends/index.html';  // ONLY on manual click
+        };
+    }
 }
 
 // Initialize
