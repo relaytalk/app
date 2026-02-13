@@ -5,7 +5,7 @@ const DAILY_API_URL = 'https://api.daily.co/v1';
 // Create a private room for 1-on-1 call
 async function createCallRoom() {
     try {
-        console.log('Creating Daily.co room...');
+        console.log('📞 Creating Daily.co room...');
         
         const response = await fetch(`${DAILY_API_URL}/rooms`, {
             method: 'POST',
@@ -29,12 +29,12 @@ async function createCallRoom() {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Daily.co API error:', response.status, errorText);
+            console.error('❌ Daily.co API error:', response.status, errorText);
             throw new Error(`Daily.co API error: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('✅ Room created:', data.url);
+        console.log('✅ Room created successfully:', data.url);
         
         return {
             success: true,
@@ -42,7 +42,7 @@ async function createCallRoom() {
             name: data.name
         };
     } catch (error) {
-        console.error('Daily room creation failed:', error);
+        console.error('❌ Daily room creation failed:', error);
         return {
             success: false,
             error: error.message
