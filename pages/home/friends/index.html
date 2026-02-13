@@ -53,7 +53,7 @@
     <!-- Friends List -->
     <main class="friends-list" id="friendsList"></main>
 
-    <!-- Bottom Navigation - REMOVED CHATS, KEPT FRIENDS -->
+    <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <a href="../../home/index.html" class="nav-item">
             <i class="fas fa-home"></i>
@@ -90,12 +90,41 @@
         </div>
     </div>
 
+    <!-- INCOMING CALL MODAL -->
+    <div id="incomingCallModal" class="incoming-call-modal" style="display: none;">
+        <div class="incoming-call-content">
+            <div class="incoming-call-header">
+                <i class="fas fa-phone-alt incoming-icon"></i>
+                <h2>Incoming Call</h2>
+            </div>
+            
+            <div class="caller-info">
+                <div class="caller-avatar" id="callerAvatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="caller-details">
+                    <div class="caller-name" id="callerName">Loading...</div>
+                    <div class="call-status">Ringing...</div>
+                </div>
+            </div>
+
+            <div class="call-actions">
+                <button class="call-action-btn accept-btn" id="acceptCallBtn">
+                    <i class="fas fa-phone-alt"></i>
+                    Accept
+                </button>
+                <button class="call-action-btn decline-btn" id="declineCallBtn">
+                    <i class="fas fa-phone-slash"></i>
+                    Decline
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Scripts - MODULE TYPE -->
-    <script type="module" src="../../utils/supabase.js"></script>
-<script type="module" src="/utils/call-listener.js"></script>
+    <!-- Scripts -->
     <script type="module" src="friends.js"></script>
 </body>
 </html>
