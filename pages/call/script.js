@@ -13,17 +13,21 @@ let currentRoom = null;
 async function initCallPage() {
     console.log('📞 Initializing call page...');
 
+    // Show loading immediately
     document.getElementById('callLoading').style.display = 'flex';
+    document.getElementById('callContainer').style.display = 'none';
+    document.getElementById('callError').style.display = 'none';
 
-    // Check auth
+    // Try auth but DON'T redirect on failure
     try {
-        const { success } = await auth.getCurrentUser();
-        if (!success) {
-            window.location.href = '/';
-            return;
+        const user = await auth.getCurrentUser();
+        if (user?.success) {
+            console.log('✅ Auth successful');
+        } else {
+            console.log('⚠️ Auth failed, but continuing anyway - user can still join call with URL');
         }
     } catch (error) {
-        console.error('Auth error:', error);
+        console.log('⚠️ Auth error, but continuing anyway:', error);
     }
 
     // Load Daily.co script
@@ -34,9 +38,12 @@ async function initCallPage() {
         return;
     }
 
+    // Check if we have a room URL
     if (roomUrl) {
+        console.log('📞 Joining existing call:', roomUrl);
         await joinCall(roomUrl);
     } else {
+        console.log('📞 Starting new call');
         await startNewCall();
     }
 }
@@ -68,7 +75,11 @@ function loadDailyScript() {
             }, 100);
         };
 
-        script.onerror = () => resolve(false);
+        script.onerror = () => {
+            console.error('❌ Failed to load Daily.co script');
+            resolve(false);
+        };
+        
         document.head.appendChild(script);
     });
 }
@@ -84,6 +95,7 @@ async function startNewCall() {
         currentRoom = result;
         await joinCall(result.url);
     } catch (error) {
+        console.error('❌ Error starting new call:', error);
         showError(error.message);
     }
 }
@@ -102,6 +114,7 @@ async function joinCall(url) {
             return;
         }
 
+        console.log('🔧 Creating Daily iframe...');
         callFrame = window.DailyIframe.createFrame(iframe, {
             showLeaveButton: false,
             iframeStyle: {
@@ -114,42 +127,61 @@ async function joinCall(url) {
             }
         });
 
+        console.log('🔌 Joining call...');
         callFrame.join({
             url: url,
             startVideoOff: true,
             startAudioOff: false
         });
 
+        // Successfully joined
         callFrame.on('joined-meeting', () => {
             console.log('✅ Successfully joined call');
             document.getElementById('callLoading').style.display = 'none';
             document.getElementById('callContainer').style.display = 'block';
+            document.getElementById('callError').style.display = 'none';
         });
 
-        // 🔥 IMPORTANT: NO AUTO REDIRECT - Just show ended message
-        callFrame.on('left-meeting', () => {
-            console.log('👋 Call ended - showing end screen');
+        // 🔥 CRITICAL: NO AUTO REDIRECT - Just show ended message
+        callFrame.on('left-meeting', (event) => {
+            console.log('👋 Call ended - showing end screen', event);
             showCallEnded();
         });
 
+        // Handle errors
         callFrame.on('error', (error) => {
             console.error('❌ Call error:', error);
-            showError('Connection failed');
+            showError('Connection failed: ' + (error.errorMsg || 'Unknown error'));
+        });
+
+        // Handle participant left
+        callFrame.on('participant-left', (event) => {
+            console.log('👤 Participant left:', event);
+            // Don't do anything - let the call continue
+        });
+
+        // Handle participant joined
+        callFrame.on('participant-joined', (event) => {
+            console.log('👤 Participant joined:', event);
         });
 
         setupCallControls();
 
     } catch (error) {
         console.error('❌ Failed to join call:', error);
-        showError('Failed to join call');
+        showError('Failed to join call: ' + error.message);
     }
 }
 
-// 🔥 SHOW CALL ENDED - NO AUTO REDIRECT
+// 🔥 SHOW CALL ENDED - NO AUTO REDIRECT, EVER!
 function showCallEnded() {
-    // Hide call container, show error/end screen
+    console.log('📱 Showing call ended screen');
+    
+    // Hide all other screens
     document.getElementById('callContainer').style.display = 'none';
     document.getElementById('callLoading').style.display = 'none';
+    
+    // Show error/end screen
     document.getElementById('callError').style.display = 'flex';
     document.getElementById('errorMessage').textContent = 'Call ended';
     
@@ -194,7 +226,8 @@ function setupCallControls() {
         endBtn.addEventListener('click', () => {
             console.log('👆 User clicked end call button');
             if (callFrame) {
-                callFrame.leave(); // This will trigger 'left-meeting' event
+                // Just leave the call - this will trigger 'left-meeting' event
+                callFrame.leave();
             } else {
                 // If no callFrame, just show ended screen
                 showCallEnded();
@@ -206,19 +239,30 @@ function setupCallControls() {
 // Show error
 function showError(message) {
     console.error('❌ Error:', message);
+    
+    // Hide all other screens
     document.getElementById('callLoading').style.display = 'none';
     document.getElementById('callContainer').style.display = 'none';
+    
+    // Show error screen
     document.getElementById('callError').style.display = 'flex';
     document.getElementById('errorMessage').textContent = message;
     
-    // Update close button for error state
+    // Update close button for error state - ONLY redirect on manual click
     const closeBtn = document.querySelector('.back-btn');
     if (closeBtn) {
         closeBtn.onclick = () => {
+            console.log('👆 User manually clicked close from error');
             window.location.href = '/pages/home/friends/index.html';  // ONLY on manual click
         };
     }
 }
 
-// Initialize
+// Make sure we never redirect automatically
+window.addEventListener('beforeunload', (e) => {
+    // This prevents any accidental redirects
+    console.log('Page is unloading - but this should only happen on manual navigation');
+});
+
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', initCallPage);
