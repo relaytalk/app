@@ -1,6 +1,7 @@
-// friends.js - WITH AVATAR SUPPORT
+// friends.js - WITH AVATAR SUPPORT + CALL FEATURE
 
 import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
+import { createCallRoom } from '../../../utils/daily.js';  // ✅ ADD THIS
 
 let supabase = null;
 let currentUser = null;
@@ -41,7 +42,7 @@ async function initFriendsPage() {
     }
 }
 
-// 🔥 UPDATED: Load friends WITH AVATAR URL
+// Load friends WITH AVATAR URL
 async function loadFriends() {
     try {
         if (!currentUser || !supabase) return;
@@ -59,8 +60,7 @@ async function loadFriends() {
         }
 
         const friendIds = friendsData.map(f => f.friend_id);
-        
-        // 🔥 UPDATED: Include avatar_url
+
         const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
             .select('id, username, avatar_url, status, last_seen')
@@ -79,7 +79,7 @@ async function loadFriends() {
     }
 }
 
-// 🔥 UPDATED: Render friends list WITH AVATAR URL
+// 🔥 UPDATED: Render friends list WITH AVATAR URL AND CALL BUTTON
 function renderFriendsList() {
     const container = document.getElementById('friendsList');
     if (!container) return;
@@ -97,29 +97,79 @@ function renderFriendsList() {
         const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Never';
 
         html += `
-            <div class="friend-item" onclick="openChat('${friend.id}', '${friend.username}')">
-                <div class="friend-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8); position: relative;">
+            <div class="friend-item" style="display: flex; align-items: center; gap: 15px; padding: 15px; background: white; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
+                
+                <!-- Avatar (click to chat) -->
+                <div class="friend-avatar" onclick="openChat('${friend.id}', '${friend.username}')" style="cursor: pointer; width: 55px; height: 55px; background: linear-gradient(45deg, #007acc, #00b4d8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 600; color: white; position: relative;">
                     ${friend.avatar_url 
                         ? `<img src="${friend.avatar_url}" alt="${friend.username}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
                         : `<span style="color:white; font-size:1.3rem; font-weight:600;">${initial}</span>`
                     }
-                    <span class="status-indicator-clean ${online ? 'online' : 'offline'}" style="position: absolute; bottom: 5px; right: 5px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; ${online ? 'background: #28a745;' : 'background: #888888;'}"></span>
+                    <span style="position: absolute; bottom: 5px; right: 5px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; ${online ? 'background: #28a745;' : 'background: #888888;'}"></span>
                 </div>
-                <div class="friend-info-clean">
-                    <div class="friend-name-status">
-                        <div class="friend-name-clean">${friend.username || 'User'}</div>
-                        <div class="friend-status-clean">
-                            ${online ? 'Online' : `Last seen ${lastSeen}`}
-                        </div>
+                
+                <!-- Friend Info (click to chat) -->
+                <div onclick="openChat('${friend.id}', '${friend.username}')" style="flex: 1; cursor: pointer;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #1e293b; margin-bottom: 5px;">${friend.username || 'User'}</div>
+                    <div style="font-size: 0.85rem; color: #64748b;">
+                        ${online ? 'Online' : `Last seen ${lastSeen}`}
                     </div>
-                    <i class="fas fa-chevron-right" style="color:#cbd5e1;"></i>
                 </div>
+                
+                <!-- ✅ NEW: Call Button -->
+                <button class="call-friend-btn" onclick="startCall('${friend.id}', '${friend.username}')" style="background: #28a745; border: none; color: white; width: 45px; height: 45px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3); transition: all 0.2s;">
+                    <i class="fas fa-phone"></i>
+                </button>
             </div>
         `;
     });
 
     container.innerHTML = html;
 }
+
+// ✅ NEW: Start a call
+window.startCall = async function(friendId, friendName) {
+    try {
+        console.log('📞 Calling:', friendName);
+        
+        // Show loading toast
+        showToast('info', `Calling ${friendName}...`);
+
+        // 1. Create Daily.co room
+        const roomResult = await createCallRoom();
+        
+        if (!roomResult.success) {
+            showToast('error', 'Failed to create call');
+            return;
+        }
+
+        console.log('✅ Room created:', roomResult.url);
+
+        // 2. Save to Supabase calls table
+        const { error } = await supabase
+            .from('calls')
+            .insert({
+                caller_id: currentUser.id,
+                receiver_id: friendId,
+                room_url: roomResult.url,
+                status: 'ringing',
+                created_at: new Date().toISOString()
+            });
+
+        if (error) {
+            console.error('Database error:', error);
+            showToast('error', 'Failed to start call');
+            return;
+        }
+
+        // 3. Navigate to call page (caller)
+        window.location.href = `/pages/call/index.html?room=${encodeURIComponent(roomResult.url)}`;
+        
+    } catch (error) {
+        console.error('Call error:', error);
+        showToast('error', 'Failed to start call');
+    }
+};
 
 // Format last seen
 function formatLastSeen(timestamp) {
@@ -203,7 +253,7 @@ window.openChat = function(friendId, friendName) {
     window.location.href = `../../chats/index.html?friendId=${friendId}`;
 };
 
-// 🔥 UPDATED: Search users WITH AVATAR URL
+// Search users WITH AVATAR URL
 window.searchUsers = async function() {
     if (!supabase || !currentUser) {
         console.log('Waiting for Supabase...');
@@ -237,7 +287,6 @@ window.searchUsers = async function() {
 
         const pendingIds = pending?.map(r => r.receiver_id) || [];
 
-        // 🔥 UPDATED: Include avatar_url
         const { data: users, error } = await supabase
             .from('profiles')
             .select('id, username, avatar_url')
@@ -357,12 +406,11 @@ window.logout = async () => {
     if (supabase) await supabase.auth.signOut();
     localStorage.clear();
     sessionStorage.clear();
-    
-    // Clear cookies
+
     document.cookie.split(";").forEach(function(c) {
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
     });
-    
+
     window.location.href = '../../../pages/login/index.html';
 };
 
