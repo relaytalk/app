@@ -1,4 +1,4 @@
-// pages/call-app/utils/jitsi.js - COMPLETE FIXED VERSION
+// pages/call-app/utils/jitsi.js - FINAL FIX (NO PHONE NUMBERS!)
 
 export async function createCallRoom(roomName = null) {
     try {
@@ -6,24 +6,26 @@ export async function createCallRoom(roomName = null) {
         
         console.log('🎯 Creating Jitsi room:', uniqueRoomName);
         
-        // PERFECT CONFIGURATION - Auto-joins, audio works, no distractions
+        // COMPLETE CONFIG - NO PHONE, NO MODERATOR MESSAGES
         const jitsiConfig = '#' +
-            // CRITICAL: Skip welcome page and auto-join
-            'config.prejoinPageEnabled=false' +
+            // DISABLE EVERYTHING ANNOYING
+            'config.dialInConfCode.enabled=false' +
+            '&config.dialInNumbersUrl=""' +
+            '&config.dialOutAuthUrl=""' +
+            '&config.dialOutEnabled=false' +
+            '&config.enableDialIn=false' +
+            
+            // DISABLE MODERATOR MESSAGES
+            '&config.disableModeratorIndicator=true' +
+            '&config.hideModeratorMessage=true' +
+            
+            // AUTO-JOIN (YOUR FIX)
+            '&config.prejoinPageEnabled=false' +
             '&config.startWithAudioMuted=false' +
             '&config.startWithVideoMuted=true' +
             '&config.enableWelcomePage=false' +
             
-            // Essential permissions
-            '&config.disableAudioLevel=false' +
-            '&config.enableNoAudioDetection=true' +
-            '&config.enableNoisyMicDetection=true' +
-            
-            // Show ONLY essential controls
-            '&config.toolbarButtons=["microphone","camera","hangup"]' +
-            '&config.toolbarAlwaysVisible=true' +
-            
-            // Hide distractions
+            // HIDE EVERYTHING
             '&config.disableChat=true' +
             '&config.disableInviteFunctions=true' +
             '&config.disableRecording=true' +
@@ -33,9 +35,9 @@ export async function createCallRoom(roomName = null) {
             '&config.hideWatermark=true' +
             '&config.hideBrandWatermark=true' +
             
-            // Audio optimization
-            '&config.channelLastN=2' +
-            '&config.startBitrate=200';
+            // ONLY 3 BUTTONS
+            '&config.toolbarButtons=["microphone","camera","hangup"]' +
+            '&config.toolbarAlwaysVisible=true';
         
         return {
             name: uniqueRoomName,
@@ -44,7 +46,7 @@ export async function createCallRoom(roomName = null) {
         };
         
     } catch (error) {
-        console.error('❌ Error creating room:', error);
+        console.error('❌ Error:', error);
         throw error;
     }
 }
@@ -52,13 +54,15 @@ export async function createCallRoom(roomName = null) {
 export async function getRoomInfo(roomName) {
     try {
         const jitsiConfig = '#' +
-            'config.prejoinPageEnabled=false' +
+            'config.dialInConfCode.enabled=false' +
+            '&config.dialOutEnabled=false' +
+            '&config.enableDialIn=false' +
+            '&config.disableModeratorIndicator=true' +
+            '&config.prejoinPageEnabled=false' +
             '&config.startWithAudioMuted=false' +
             '&config.startWithVideoMuted=true' +
             '&config.enableWelcomePage=false' +
-            '&config.toolbarButtons=["microphone","camera","hangup"]' +
-            '&config.disableChat=true' +
-            '&config.disableInviteFunctions=true';
+            '&config.toolbarButtons=["microphone","camera","hangup"]';
         
         return {
             name: roomName,
@@ -66,7 +70,7 @@ export async function getRoomInfo(roomName) {
         };
         
     } catch (error) {
-        console.error('❌ Error getting room info:', error);
+        console.error('❌ Error:', error);
         throw error;
     }
 }
