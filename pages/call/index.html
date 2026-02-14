@@ -2,101 +2,187 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Call · RelayTalk</title>
-    
-    <!-- ✅ ADD THIS SAME AUTH CHECK AS ROOT PAGE -->
-    <script>
-        (function() {
-            try {
-                // Check for Supabase session token (EXACT same as root page)
-                let hasSession = false;
-
-                // Check localStorage
-                const localToken = localStorage.getItem('supabase.auth.token');
-                // Check sessionStorage
-                const sessionToken = sessionStorage.getItem('supabase.auth.token');
-
-                hasSession = !!(localToken || sessionToken);
-
-                // Additional check: if we have persisted session in localStorage
-                if (!hasSession) {
-                    try {
-                        const persistedSession = localStorage.getItem('supabase.auth.token');
-                        if (persistedSession && persistedSession.includes('access_token')) {
-                            hasSession = true;
-                        }
-                    } catch (e) {}
-                }
-
-                // ✅ Store in window for scripts to use
-                window.hasUserSession = hasSession;
-                
-                // Try to get user email for display
-                if (hasSession) {
-                    try {
-                        const session = JSON.parse(localToken || sessionToken);
-                        const user = session?.user || session?.currentSession?.user;
-                        if (user?.email) {
-                            window.userEmail = user.email;
-                            window.userName = user.email.split('@')[0];
-                        }
-                    } catch (e) {}
-                }
-                
-                console.log('🔐 Auth check:', { 
-                    hasSession, 
-                    user: window.userName,
-                    page: 'call page'
-                });
-                
-            } catch (e) {
-                console.log('Session check error:', e);
-                window.hasUserSession = false;
-            }
-        })();
-    </script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #1a1a1a; color: white; font-family: Arial; }
+        #status { padding: 20px; background: #333; margin: 10px; border-radius: 8px; }
+        #roomInfo { padding: 20px; background: #2a2a2a; margin: 10px; border-radius: 8px; word-break: break-all; }
+        button { padding: 15px 30px; margin: 10px; background: #007acc; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        #dailyFrame { width: 100%; height: 500px; background: #000; margin: 10px; border-radius: 8px; display: none; }
+        .debug-box { background: #333; padding: 10px; margin: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; }
+    </style>
 </head>
 <body>
-    <!-- Loading State -->
-    <div id="callLoading" class="call-loading">
-        <div class="loading-spinner"></div>
-        <div>Connecting to call...</div>
+    <!-- STEP 1: CATCH ALL REDIRECTS -->
+    <script>
+        (function() {
+            console.log('🚨 REDIRECT CATCHER ACTIVE');
+            
+            // Store original functions
+            const originalReplace = window.location.replace;
+            const originalAssign = window.location.assign;
+            
+            // Override them
+            window.location.replace = function(url) {
+                console.error('🔴 REDIRECT ATTEMPTED (replace):', url);
+                console.trace('Stack trace:');
+                document.body.innerHTML += `<div style="background:#ff0000; color:white; padding:10px; margin:10px;">
+                    <strong>🚫 REDIRECT BLOCKED TO:</strong> ${url}<br>
+                    <small>Check console for stack trace</small>
+                </div>`;
+                return false;
+            };
+            
+            window.location.assign = function(url) {
+                console.error('🔴 REDIRECT ATTEMPTED (assign):', url);
+                console.trace('Stack trace:');
+                document.body.innerHTML += `<div style="background:#ff0000; color:white; padding:10px; margin:10px;">
+                    <strong>🚫 REDIRECT BLOCKED TO:</strong> ${url}<br>
+                    <small>Check console for stack trace</small>
+                </div>`;
+                return false;
+            };
+            
+            console.log('✅ Redirect catcher ready');
+        })();
+    </script>
+
+    <h1>📞 Call Page - Debug Mode</h1>
+    
+    <div class="debug-box" id="debugInfo">
+        Loading debug info...
+    </div>
+    
+    <div id="status">🔍 Initializing...</div>
+    <div id="roomInfo">Waiting for room URL...</div>
+    <div id="dailyFrame"></div>
+
+    <div style="display: flex; justify-content: center;">
+        <button onclick="goBack()">← Back to Friends</button>
     </div>
 
-    <!-- Call Container -->
-    <div id="callContainer" class="call-container" style="display: none;">
-        <!-- Daily.co frame will be injected here -->
-        <div id="dailyFrame"></div>
+    <script>
+        // STEP 2: Log everything
+        console.log('🚀 PAGE STARTED');
+        console.log('📍 URL:', window.location.href);
+        console.log('📍 Params:', window.location.search);
+        console.log('📍 Path:', window.location.pathname);
         
-        <!-- Call Controls -->
-        <div class="call-controls">
-            <button class="call-btn mute-btn" id="muteBtn" title="Mute">
-                <i class="fas fa-microphone"></i>
-            </button>
-            <button class="call-btn video-btn" id="videoBtn" title="Video">
-                <i class="fas fa-video"></i>
-            </button>
-            <button class="call-btn end-btn" id="endCallBtn" title="End Call">
-                <i class="fas fa-phone-slash"></i>
-            </button>
-        </div>
-    </div>
+        // Check localStorage
+        console.log('📍 localStorage keys:', Object.keys(localStorage));
+        console.log('📍 Has supabase token:', !!localStorage.getItem('supabase.auth.token'));
+        
+        // Update debug box
+        document.getElementById('debugInfo').innerHTML = `
+            <strong>URL:</strong> ${window.location.href}<br>
+            <strong>Room param:</strong> ${new URLSearchParams(window.location.search).get('room') || 'MISSING'}<br>
+            <strong>Has session:</strong> ${!!localStorage.getItem('supabase.auth.token')}<br>
+            <strong>Time:</strong> ${new Date().toLocaleTimeString()}
+        `;
 
-    <!-- Error State -->
-    <div id="callError" class="call-error" style="display: none;">
-        <i class="fas fa-exclamation-circle"></i>
-        <h3>Call Error</h3>
-        <p id="errorMessage">Something went wrong</p>
-        <button class="back-btn" onclick="goBack()">← Back to Friends</button>
-    </div>
+        // STEP 3: Get room URL
+        const urlParams = new URLSearchParams(window.location.search);
+        let roomUrl = urlParams.get('room');
 
-    <script src="script.js"></script>
+        const roomInfo = document.getElementById('roomInfo');
+        const statusDiv = document.getElementById('status');
+
+        roomInfo.innerHTML = `
+            <strong>Room URL:</strong> ${roomUrl || '❌ NOT FOUND!'}<br>
+            <strong>Full URL:</strong> ${window.location.href}<br>
+            <strong>Time:</strong> ${new Date().toLocaleTimeString()}
+        `;
+
+        if (!roomUrl) {
+            statusDiv.innerHTML = '❌ ERROR: No room URL!';
+            throw new Error('No room URL');
+        }
+
+        statusDiv.innerHTML = '✅ Room URL found! Loading Daily.co...';
+
+        // STEP 4: Load Daily.co
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/@daily-co/daily-js';
+        script.onload = function() {
+            statusDiv.innerHTML = '✅ Daily.co loaded! Creating call...';
+            startCall();
+        };
+        script.onerror = function() {
+            statusDiv.innerHTML = '❌ Failed to load Daily.co';
+        };
+        document.head.appendChild(script);
+
+        function startCall() {
+            try {
+                statusDiv.innerHTML = '🔧 Creating call frame...';
+
+                // Hide status, show video
+                document.getElementById('status').style.display = 'none';
+                document.getElementById('roomInfo').style.display = 'none';
+                document.getElementById('dailyFrame').style.display = 'block';
+
+                // Get user name from localStorage
+                let userName = 'User';
+                try {
+                    const sessionStr = localStorage.getItem('supabase.auth.token');
+                    if (sessionStr) {
+                        const session = JSON.parse(sessionStr);
+                        const user = session?.user || session?.currentSession?.user;
+                        if (user?.email) {
+                            userName = user.email.split('@')[0];
+                        }
+                    }
+                } catch(e) {
+                    console.log('Could not get user name:', e);
+                }
+
+                // Create call
+                const callFrame = window.DailyIframe.createFrame(
+                    document.getElementById('dailyFrame'),
+                    {
+                        showLeaveButton: true,
+                        iframeStyle: {
+                            width: '100%',
+                            height: '100%',
+                            border: '0'
+                        }
+                    }
+                );
+
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '🔌 Joining call...';
+
+                callFrame.join({
+                    url: roomUrl,
+                    userName: userName
+                });
+
+                callFrame.on('joined-meeting', () => {
+                    statusDiv.style.display = 'none';
+                });
+
+                callFrame.on('left-meeting', () => {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = '👋 Call ended';
+                    document.getElementById('roomInfo').style.display = 'block';
+                    document.getElementById('roomInfo').innerHTML = 'Call ended. Click Back to return.';
+                });
+
+            } catch (error) {
+                statusDiv.innerHTML = '❌ Error: ' + error.message;
+            }
+        }
+
+        window.goBack = function() {
+            console.log('🔙 Going back to friends');
+            window.location.href = '/pages/home/friends/index.html';
+        };
+
+        // Keep alive log
+        setInterval(() => {
+            console.log('⏱️ Still on call page -', new Date().toLocaleTimeString());
+        }, 2000);
+    </script>
 </body>
 </html>
