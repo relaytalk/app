@@ -1,9 +1,8 @@
-// pages/call/script.js - ULTRA SIMPLE version
-// NO IMPORTS! NO DEPENDENCIES!
+// pages/call/script.js - WITH SAME AUTH DETECTION AS ROOT PAGE
 
-console.log('🚀 CALL PAGE STARTED - ULTRA SIMPLE MODE');
-console.log('🔍 URL:', window.location.href);
-console.log('🔍 Params:', window.location.search);
+console.log('📞 Call page initializing...');
+console.log('🔐 Has session:', window.hasUserSession);
+console.log('👤 User:', window.userName || 'Guest');
 
 // ===== GET ROOM URL =====
 function getRoomUrl() {
@@ -28,23 +27,28 @@ function getRoomUrl() {
     return roomUrl;
 }
 
-// ===== GET USER =====
+// ===== GET USER NAME (using window.hasUserSession) =====
 function getUserName() {
+    // Use the already-detected user info
+    if (window.hasUserSession && window.userName) {
+        return window.userName;
+    }
+    
+    // Fallback: try to get from localStorage directly
     try {
         const sessionStr = localStorage.getItem('supabase.auth.token');
-        if (!sessionStr) return 'You';
-        
-        const session = JSON.parse(sessionStr);
-        const user = session?.user || session?.currentSession?.user;
-        
-        if (user && user.email) {
-            return user.email.split('@')[0];
+        if (sessionStr) {
+            const session = JSON.parse(sessionStr);
+            const user = session?.user || session?.currentSession?.user;
+            if (user?.email) {
+                return user.email.split('@')[0];
+            }
         }
-        return 'You';
     } catch(e) {
-        console.log('Error getting user:', e);
-        return 'You';
+        console.log('Error parsing user:', e);
     }
+    
+    return 'Guest';
 }
 
 // ===== MAIN =====
@@ -52,30 +56,43 @@ const roomUrl = getRoomUrl();
 const userName = getUserName();
 
 console.log('🎯 Final room:', roomUrl);
-console.log('👤 User:', userName);
+console.log('👤 Display name:', userName);
 
 // Update UI
-const roomInfo = document.getElementById('roomInfo');
 const statusDiv = document.getElementById('status');
+const roomInfo = document.getElementById('roomInfo');
+
+if (statusDiv) {
+    statusDiv.innerHTML = roomUrl ? 
+        '✅ Room found! Loading...' : 
+        '❌ ERROR: No room URL!';
+}
+
+if (roomInfo) {
+    roomInfo.innerHTML = `
+        <strong>Room:</strong> ${roomUrl || 'MISSING'}<br>
+        <strong>User:</strong> ${userName}<br>
+        <strong>Logged in:</strong> ${window.hasUserSession ? '✅ Yes' : '❌ No'}<br>
+        <strong>Time:</strong> ${new Date().toLocaleTimeString()}
+    `;
+}
 
 if (!roomUrl) {
-    statusDiv.innerHTML = '❌ ERROR: No room URL!';
+    if (statusDiv) statusDiv.innerHTML = '❌ ERROR: No room URL provided!';
     throw new Error('No room URL');
 }
 
-statusDiv.innerHTML = '✅ Room found! Loading Daily.co...';
-
-// Load Daily.co
+// ===== LOAD DAILY.CO =====
 const script = document.createElement('script');
 script.src = 'https://unpkg.com/@daily-co/daily-js';
 script.onload = function() {
     console.log('✅ Daily.co loaded');
-    statusDiv.innerHTML = '✅ Daily loaded! Starting call...';
+    if (statusDiv) statusDiv.innerHTML = '✅ Daily loaded! Starting call...';
     startCall();
 };
 script.onerror = function() {
     console.error('❌ Failed to load Daily.co');
-    statusDiv.innerHTML = '❌ Failed to load Daily.co';
+    if (statusDiv) statusDiv.innerHTML = '❌ Failed to load Daily.co';
 };
 document.head.appendChild(script);
 
@@ -84,9 +101,13 @@ function startCall() {
         console.log('🔧 Creating call...');
         
         // Hide status, show video
-        document.getElementById('status').style.display = 'none';
-        document.getElementById('roomInfo').style.display = 'none';
-        document.getElementById('dailyFrame').style.display = 'block';
+        const statusEl = document.getElementById('status');
+        const roomInfoEl = document.getElementById('roomInfo');
+        const dailyFrameEl = document.getElementById('dailyFrame');
+        
+        if (statusEl) statusEl.style.display = 'none';
+        if (roomInfoEl) roomInfoEl.style.display = 'none';
+        if (dailyFrameEl) dailyFrameEl.style.display = 'block';
         
         // Create call
         const callFrame = window.DailyIframe.createFrame(
@@ -101,8 +122,10 @@ function startCall() {
             }
         );
         
-        statusDiv.style.display = 'block';
-        statusDiv.innerHTML = '🔌 Joining call...';
+        if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = '🔌 Joining call...';
+        }
         
         callFrame.join({
             url: roomUrl,
@@ -111,19 +134,21 @@ function startCall() {
         
         callFrame.on('joined-meeting', () => {
             console.log('✅ Joined call!');
-            statusDiv.style.display = 'none';
+            if (statusEl) statusEl.style.display = 'none';
         });
         
         callFrame.on('left-meeting', () => {
             console.log('👋 Left call');
-            statusDiv.style.display = 'block';
-            statusDiv.innerHTML = 'Call ended';
-            document.getElementById('roomInfo').style.display = 'block';
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.innerHTML = 'Call ended';
+            }
+            if (roomInfoEl) roomInfoEl.style.display = 'block';
         });
         
     } catch(error) {
         console.error('❌ Error:', error);
-        statusDiv.innerHTML = '❌ Error: ' + error.message;
+        if (statusDiv) statusDiv.innerHTML = '❌ Error: ' + error.message;
     }
 }
 
@@ -135,5 +160,6 @@ window.goBack = function() {
 
 // Keep alive log
 setInterval(() => {
-    console.log('⏱️ Still on call page -', new Date().toLocaleTimeString());
-}, 2000);
+    console.log('⏱️ Still on call page -', new Date().toLocaleTimeString(), 
+                'User:', window.userName || 'Guest');
+}, 5000);
