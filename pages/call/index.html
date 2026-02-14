@@ -5,17 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Call · RelayTalk</title>
     
+    <!-- ✅ ADD THIS SAME AUTH CHECK AS ROOT PAGE -->
+    <script>
+        (function() {
+            try {
+                // Check for Supabase session token (EXACT same as root page)
+                let hasSession = false;
+
+                // Check localStorage
+                const localToken = localStorage.getItem('supabase.auth.token');
+                // Check sessionStorage
+                const sessionToken = sessionStorage.getItem('supabase.auth.token');
+
+                hasSession = !!(localToken || sessionToken);
+
+                // Additional check: if we have persisted session in localStorage
+                if (!hasSession) {
+                    try {
+                        const persistedSession = localStorage.getItem('supabase.auth.token');
+                        if (persistedSession && persistedSession.includes('access_token')) {
+                            hasSession = true;
+                        }
+                    } catch (e) {}
+                }
+
+                // ✅ Store in window for scripts to use
+                window.hasUserSession = hasSession;
+                
+                // Try to get user email for display
+                if (hasSession) {
+                    try {
+                        const session = JSON.parse(localToken || sessionToken);
+                        const user = session?.user || session?.currentSession?.user;
+                        if (user?.email) {
+                            window.userEmail = user.email;
+                            window.userName = user.email.split('@')[0];
+                        }
+                    } catch (e) {}
+                }
+                
+                console.log('🔐 Auth check:', { 
+                    hasSession, 
+                    user: window.userName,
+                    page: 'call page'
+                });
+                
+            } catch (e) {
+                console.log('Session check error:', e);
+                window.hasUserSession = false;
+            }
+        })();
+    </script>
+    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
-    
-    <!-- DEBUG: CATCH REDIRECTS FIRST! -->
-    <script src="../../../utils/debug.js"></script>
-    
-    <!-- Supabase (needed for auth utilities but we'll override) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <!-- Loading State -->
@@ -51,6 +97,6 @@
         <button class="back-btn" onclick="goBack()">← Back to Friends</button>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
