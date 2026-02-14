@@ -3,142 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Call</title>
+    <title>Call · RelayTalk</title>
     <style>
-        body { margin: 0; padding: 20px; background: #1a1a1a; color: white; font-family: Arial; }
-        #status { padding: 20px; background: #333; margin: 10px; border-radius: 8px; }
-        #roomInfo { padding: 20px; background: #2a2a2a; margin: 10px; border-radius: 8px; word-break: break-all; }
-        button { padding: 15px 30px; margin: 10px; background: #007acc; color: white; border: none; border-radius: 8px; cursor: pointer; }
-        #dailyFrame { width: 100%; height: 500px; background: #000; margin: 10px; border-radius: 8px; display: none; }
-        .debug-box { background: #333; padding: 10px; margin: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #007acc;
+        }
+
+        .status-box {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007acc;
+        }
+
+        .room-box {
+            background: #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .control-panel {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            border: 1px solid #444;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #007acc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #005a9e;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #1a1a1a;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .redirect-log {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #444;
+        }
+
+        .redirect-entry {
+            padding: 8px;
+            border-bottom: 1px solid #333;
+            color: #ff6b6b;
+        }
+
+        .redirect-entry:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .badge-red { background: #dc3545; color: white; }
+        .badge-green { background: #28a745; color: white; }
+        .badge-blue { background: #007acc; color: white; }
+
+        #dailyFrame {
+            width: 100%;
+            height: 500px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+            border: 2px solid #333;
+        }
+
+        .user-info {
+            background: #333;
+            border-radius: 20px;
+            padding: 8px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .user-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #007acc;
+        }
     </style>
 </head>
 <body>
-    <!-- STEP 1: CATCH ALL REDIRECTS -->
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📞 Call Page · Debug Mode</h1>
+            <div class="user-info" id="userInfo">
+                <span class="user-dot"></span>
+                <span id="userName">Checking...</span>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Session Status</div>
+                <div class="stat-value" id="sessionStatus">Checking...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">User ID</div>
+                <div class="stat-value" id="userId">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Room URL</div>
+                <div class="stat-value" id="roomStatus">Checking...</div>
+            </div>
+        </div>
+
+        <!-- Status Box -->
+        <div class="status-box" id="statusBox">
+            <strong>Status:</strong> <span id="statusText">Initializing...</span>
+        </div>
+
+        <!-- Room Info -->
+        <div class="room-box" id="roomInfo">
+            Waiting for room URL...
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="btn-success" onclick="loadCall()">
+                <span>📞</span> Load Call Manually
+            </button>
+            
+            <button class="btn-primary" onclick="forceStartCall()">
+                <span>▶️</span> Force Start Call
+            </button>
+            
+            <button class="btn-warning" onclick="showSession()">
+                <span>🔍</span> Show Session
+            </button>
+            
+            <button class="btn-danger" onclick="clearRedirects()">
+                <span>🗑️</span> Clear Log
+            </button>
+            
+            <button class="btn-primary" onclick="goBack()">
+                <span>🔙</span> Back to Friends
+            </button>
+            
+            <span style="flex:1; text-align:right; color:#888;" id="timer">00:00</span>
+        </div>
+
+        <!-- Daily.co Frame -->
+        <div id="dailyFrame"></div>
+
+        <!-- Redirect Log -->
+        <div style="margin-top: 30px;">
+            <h3 style="margin-bottom: 10px; color:#888;">🚫 Blocked Redirects</h3>
+            <div class="redirect-log" id="redirectLog">
+                No redirects attempted yet.
+            </div>
+        </div>
+    </div>
+
     <script>
+        // ===== REDIRECT CATCHER WITH STOP BUTTON =====
         (function() {
-            console.log('🚨 REDIRECT CATCHER ACTIVE');
+            console.log('🛡️ REDIRECT CATCHER INSTALLED');
             
             // Store original functions
             const originalReplace = window.location.replace;
             const originalAssign = window.location.assign;
             
-            // Override them
+            // Store blocked redirects
+            window.blockedRedirects = [];
+            
+            // Override replace
             window.location.replace = function(url) {
-                console.error('🔴 REDIRECT ATTEMPTED (replace):', url);
-                console.trace('Stack trace:');
-                document.body.innerHTML += `<div style="background:#ff0000; color:white; padding:10px; margin:10px;">
-                    <strong>🚫 REDIRECT BLOCKED TO:</strong> ${url}<br>
-                    <small>Check console for stack trace</small>
-                </div>`;
+                const redirectInfo = {
+                    type: 'replace',
+                    url: url,
+                    time: new Date().toLocaleTimeString(),
+                    stack: new Error().stack
+                };
+                
+                console.error('🚫 BLOCKED REPLACE:', redirectInfo);
+                window.blockedRedirects.push(redirectInfo);
+                
+                // Update UI
+                const logEl = document.getElementById('redirectLog');
+                if (logEl) {
+                    const entry = document.createElement('div');
+                    entry.className = 'redirect-entry';
+                    entry.innerHTML = `
+                        <span class="badge badge-red">BLOCKED</span>
+                        <strong>${url}</strong><br>
+                        <small>${redirectInfo.time}</small>
+                    `;
+                    logEl.prepend(entry);
+                }
+                
+                // Show alert if too many redirects
+                if (window.blockedRedirects.length > 3) {
+                    alert('⚠️ Too many redirects blocked! Click "Load Call Manually" to proceed.');
+                }
+                
                 return false;
             };
             
+            // Override assign
             window.location.assign = function(url) {
-                console.error('🔴 REDIRECT ATTEMPTED (assign):', url);
-                console.trace('Stack trace:');
-                document.body.innerHTML += `<div style="background:#ff0000; color:white; padding:10px; margin:10px;">
-                    <strong>🚫 REDIRECT BLOCKED TO:</strong> ${url}<br>
-                    <small>Check console for stack trace</small>
-                </div>`;
+                const redirectInfo = {
+                    type: 'assign',
+                    url: url,
+                    time: new Date().toLocaleTimeString(),
+                    stack: new Error().stack
+                };
+                
+                console.error('🚫 BLOCKED ASSIGN:', redirectInfo);
+                window.blockedRedirects.push(redirectInfo);
+                
+                const logEl = document.getElementById('redirectLog');
+                if (logEl) {
+                    const entry = document.createElement('div');
+                    entry.className = 'redirect-entry';
+                    entry.innerHTML = `
+                        <span class="badge badge-red">BLOCKED</span>
+                        <strong>${url}</strong><br>
+                        <small>${redirectInfo.time}</small>
+                    `;
+                    logEl.prepend(entry);
+                }
+                
                 return false;
             };
             
-            console.log('✅ Redirect catcher ready');
+            console.log('✅ Redirect catcher active');
         })();
-    </script>
 
-    <h1>📞 Call Page - Debug Mode</h1>
-    
-    <div class="debug-box" id="debugInfo">
-        Loading debug info...
-    </div>
-    
-    <div id="status">🔍 Initializing...</div>
-    <div id="roomInfo">Waiting for room URL...</div>
-    <div id="dailyFrame"></div>
+        // ===== GLOBAL VARIABLES =====
+        let callFrame = null;
+        let roomUrl = null;
+        let userName = 'Guest';
+        let userEmail = null;
+        let hasSession = false;
+        let timerInterval = null;
+        let seconds = 0;
 
-    <div style="display: flex; justify-content: center;">
-        <button onclick="goBack()">← Back to Friends</button>
-    </div>
-
-    <script>
-        // STEP 2: Log everything
-        console.log('🚀 PAGE STARTED');
-        console.log('📍 URL:', window.location.href);
-        console.log('📍 Params:', window.location.search);
-        console.log('📍 Path:', window.location.pathname);
-        
-        // Check localStorage
-        console.log('📍 localStorage keys:', Object.keys(localStorage));
-        console.log('📍 Has supabase token:', !!localStorage.getItem('supabase.auth.token'));
-        
-        // Update debug box
-        document.getElementById('debugInfo').innerHTML = `
-            <strong>URL:</strong> ${window.location.href}<br>
-            <strong>Room param:</strong> ${new URLSearchParams(window.location.search).get('room') || 'MISSING'}<br>
-            <strong>Has session:</strong> ${!!localStorage.getItem('supabase.auth.token')}<br>
-            <strong>Time:</strong> ${new Date().toLocaleTimeString()}
-        `;
-
-        // STEP 3: Get room URL
-        const urlParams = new URLSearchParams(window.location.search);
-        let roomUrl = urlParams.get('room');
-
-        const roomInfo = document.getElementById('roomInfo');
-        const statusDiv = document.getElementById('status');
-
-        roomInfo.innerHTML = `
-            <strong>Room URL:</strong> ${roomUrl || '❌ NOT FOUND!'}<br>
-            <strong>Full URL:</strong> ${window.location.href}<br>
-            <strong>Time:</strong> ${new Date().toLocaleTimeString()}
-        `;
-
-        if (!roomUrl) {
-            statusDiv.innerHTML = '❌ ERROR: No room URL!';
-            throw new Error('No room URL');
+        // ===== INITIALIZE =====
+        function init() {
+            console.log('🚀 Initializing call page...');
+            
+            // Check session from localStorage
+            checkSession();
+            
+            // Get room URL
+            getRoomFromParams();
+            
+            // Start timer
+            startTimer();
+            
+            // Update UI
+            updateUI();
         }
 
-        statusDiv.innerHTML = '✅ Room URL found! Loading Daily.co...';
-
-        // STEP 4: Load Daily.co
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/@daily-co/daily-js';
-        script.onload = function() {
-            statusDiv.innerHTML = '✅ Daily.co loaded! Creating call...';
-            startCall();
-        };
-        script.onerror = function() {
-            statusDiv.innerHTML = '❌ Failed to load Daily.co';
-        };
-        document.head.appendChild(script);
-
-        function startCall() {
+        // ===== CHECK SESSION =====
+        function checkSession() {
             try {
-                statusDiv.innerHTML = '🔧 Creating call frame...';
-
-                // Hide status, show video
-                document.getElementById('status').style.display = 'none';
-                document.getElementById('roomInfo').style.display = 'none';
-                document.getElementById('dailyFrame').style.display = 'block';
-
-                // Get user name from localStorage
-                let userName = 'User';
-                try {
-                    const sessionStr = localStorage.getItem('supabase.auth.token');
-                    if (sessionStr) {
+                const sessionStr = localStorage.getItem('supabase.auth.token');
+                
+                if (sessionStr && sessionStr.includes('access_token')) {
+                    hasSession = true;
+                    
+                    // Try to parse user
+                    try {
                         const session = JSON.parse(sessionStr);
                         const user = session?.user || session?.currentSession?.user;
-                        if (user?.email) {
-                            userName = user.email.split('@')[0];
+                        
+                        if (user) {
+                            userEmail = user.email;
+                            userName = user.email ? user.email.split('@')[0] : 'User';
                         }
+                    } catch(e) {
+                        console.log('Could not parse user');
+                    }
+                } else {
+                    hasSession = false;
+                    userName = 'Guest';
+                }
+                
+                console.log('🔐 Session check:', { hasSession, userName, userEmail });
+                
+                // Update UI
+                document.getElementById('sessionStatus').innerHTML = hasSession ? 
+                    '<span style="color:#28a745;">✅ Logged In</span>' : 
+                    '<span style="color:#ffc107;">⚠️ Guest Mode</span>';
+                
+                document.getElementById('userName').textContent = userName;
+                document.getElementById('userId').textContent = userEmail || 'Guest';
+                
+            } catch(e) {
+                console.error('Session check error:', e);
+                document.getElementById('sessionStatus').innerHTML = '<span style="color:#dc3545;">❌ Error</span>';
+            }
+        }
+
+        // ===== GET ROOM URL =====
+        function getRoomFromParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            roomUrl = urlParams.get('room');
+            
+            console.log('📦 Room from URL:', roomUrl);
+            
+            if (!roomUrl) {
+                try {
+                    const stored = sessionStorage.getItem('currentCall');
+                    if (stored) {
+                        const data = JSON.parse(stored);
+                        roomUrl = data.roomUrl;
+                        console.log('📦 Room from sessionStorage:', roomUrl);
                     }
                 } catch(e) {
-                    console.log('Could not get user name:', e);
+                    console.log('No stored room');
                 }
+            }
+            
+            // Update UI
+            document.getElementById('roomStatus').innerHTML = roomUrl ? 
+                '<span style="color:#28a745;">✅ Found</span>' : 
+                '<span style="color:#dc3545;">❌ Missing</span>';
+            
+            document.getElementById('roomInfo').innerHTML = `
+                <strong>Room URL:</strong> ${roomUrl || '❌ NOT FOUND!'}<br>
+                <strong>Full URL:</strong> ${window.location.href}<br>
+                <strong>Time:</strong> ${new Date().toLocaleTimeString()}
+            `;
+            
+            if (!roomUrl) {
+                document.getElementById('statusText').innerHTML = '❌ No room URL found!';
+            } else {
+                document.getElementById('statusText').innerHTML = '✅ Room found. Click "Load Call" to start.';
+            }
+            
+            return roomUrl;
+        }
 
+        // ===== LOAD CALL MANUALLY =====
+        window.loadCall = function() {
+            if (!roomUrl) {
+                alert('No room URL found!');
+                return;
+            }
+            
+            document.getElementById('statusText').innerHTML = '📥 Loading Daily.co...';
+            
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@daily-co/daily-js';
+            script.onload = function() {
+                document.getElementById('statusText').innerHTML = '✅ Daily.co loaded. Click "Force Start Call".';
+            };
+            script.onerror = function() {
+                document.getElementById('statusText').innerHTML = '❌ Failed to load Daily.co';
+            };
+            document.head.appendChild(script);
+        };
+
+        // ===== FORCE START CALL =====
+        window.forceStartCall = function() {
+            if (!roomUrl) {
+                alert('No room URL!');
+                return;
+            }
+            
+            if (!window.DailyIframe) {
+                alert('Daily.co not loaded yet. Click "Load Call" first.');
+                return;
+            }
+            
+            try {
+                document.getElementById('statusText').innerHTML = '🔧 Creating call...';
+                
+                // Hide status, show video
+                document.getElementById('statusBox').style.display = 'none';
+                document.getElementById('roomInfo').style.display = 'none';
+                document.getElementById('dailyFrame').style.display = 'block';
+                
                 // Create call
-                const callFrame = window.DailyIframe.createFrame(
+                callFrame = window.DailyIframe.createFrame(
                     document.getElementById('dailyFrame'),
                     {
                         showLeaveButton: true,
@@ -149,40 +514,75 @@
                         }
                     }
                 );
-
-                statusDiv.style.display = 'block';
-                statusDiv.innerHTML = '🔌 Joining call...';
-
+                
                 callFrame.join({
                     url: roomUrl,
                     userName: userName
                 });
-
+                
                 callFrame.on('joined-meeting', () => {
-                    statusDiv.style.display = 'none';
+                    document.getElementById('statusText').innerHTML = '✅ In call';
                 });
-
+                
                 callFrame.on('left-meeting', () => {
-                    statusDiv.style.display = 'block';
-                    statusDiv.innerHTML = '👋 Call ended';
-                    document.getElementById('roomInfo').style.display = 'block';
-                    document.getElementById('roomInfo').innerHTML = 'Call ended. Click Back to return.';
+                    document.getElementById('statusText').innerHTML = '👋 Call ended';
                 });
-
+                
             } catch (error) {
-                statusDiv.innerHTML = '❌ Error: ' + error.message;
+                alert('Error: ' + error.message);
             }
+        };
+
+        // ===== SHOW SESSION =====
+        window.showSession = function() {
+            try {
+                const sessionStr = localStorage.getItem('supabase.auth.token');
+                alert('Session in localStorage:\n\n' + (sessionStr || 'No session'));
+            } catch(e) {
+                alert('Error reading session');
+            }
+        };
+
+        // ===== CLEAR REDIRECT LOG =====
+        window.clearRedirects = function() {
+            const logEl = document.getElementById('redirectLog');
+            if (logEl) {
+                logEl.innerHTML = 'No redirects attempted yet.';
+            }
+            window.blockedRedirects = [];
+        };
+
+        // ===== START TIMER =====
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                seconds++;
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                document.getElementById('timer').textContent = 
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
         }
 
+        // ===== UPDATE UI =====
+        function updateUI() {
+            setInterval(() => {
+                const sessionStr = localStorage.getItem('supabase.auth.token');
+                const hasToken = !!(sessionStr && sessionStr.includes('access_token'));
+                
+                document.getElementById('sessionStatus').innerHTML = hasToken ? 
+                    '<span style="color:#28a745;">✅ Logged In</span>' : 
+                    '<span style="color:#ffc107;">⚠️ Guest Mode</span>';
+            }, 1000);
+        }
+
+        // ===== GO BACK =====
         window.goBack = function() {
             console.log('🔙 Going back to friends');
             window.location.href = '/pages/home/friends/index.html';
         };
 
-        // Keep alive log
-        setInterval(() => {
-            console.log('⏱️ Still on call page -', new Date().toLocaleTimeString());
-        }, 2000);
+        // ===== START =====
+        init();
     </script>
 </body>
 </html>
