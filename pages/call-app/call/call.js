@@ -1,7 +1,7 @@
-// pages/call-app/call/call.js - COMPLETE FIXED VERSION
+// pages/call-app/call/call.js - USING JITSI (NO CARD NEEDED)
 
 import { initializeSupabase } from '../utils/supabase.js'
-import { createCallRoom, getRoomInfo, getCallUrl } from '../utils/daily.js'
+import { createCallRoom, getRoomInfo, getCallUrl, testJitsiConnection } from '../utils/jitsi.js'
 import { getRelayTalkUser, syncUserToDatabase } from '../utils/userSync.js'
 
 let supabase
@@ -11,9 +11,12 @@ let dailyIframe
 let callRoom
 
 async function initCall() {
-    console.log('📞 Initializing call page...')
+    console.log('📞 Initializing call page with Jitsi...')
     
     try {
+        // Test Jitsi connection (always works!)
+        await testJitsiConnection()
+        
         // Get user from RelayTalk
         const relayUser = getRelayTalkUser()
         if (!relayUser) {
@@ -61,8 +64,8 @@ async function startOutgoingCall(friendId, friendName) {
         document.getElementById('loadingText').textContent = `Calling ${friendName}...`
         console.log('1️⃣ Starting outgoing call to:', friendId, friendName)
         
-        // Create Daily.co room
-        console.log('2️⃣ Creating Daily.co room...')
+        // Create Jitsi room (no API key needed!)
+        console.log('2️⃣ Creating Jitsi room...')
         callRoom = await createCallRoom()
         console.log('3️⃣ Room created:', callRoom)
         
@@ -189,7 +192,7 @@ function setupCallListener(callId) {
 
 async function joinCall(roomName) {
     try {
-        console.log('7️⃣ Joining call room:', roomName)
+        console.log('7️⃣ Joining Jitsi call room:', roomName)
         
         // Remove outgoing UI
         document.getElementById('outgoingUI')?.remove()
@@ -201,15 +204,15 @@ async function joinCall(roomName) {
         const roomInfo = await getRoomInfo(roomName)
         console.log('8️⃣ Room info:', roomInfo)
         
-        // Create iframe
+        // Create iframe for Jitsi
         const iframe = document.createElement('iframe')
-        iframe.allow = 'microphone; autoplay; playinline'
+        iframe.allow = 'microphone; camera; autoplay; display-capture'
         iframe.style.width = '100%'
         iframe.style.height = '100%'
         iframe.style.border = 'none'
         iframe.style.background = '#000'
         
-        // Build URL
+        // Build URL with username
         const url = getCallUrl(roomInfo.url, currentUser.username)
         iframe.src = url
         console.log('9️⃣ Iframe URL:', url)
@@ -223,7 +226,7 @@ async function joinCall(roomName) {
         document.getElementById('loadingScreen').style.display = 'none'
         document.getElementById('activeCallScreen').style.display = 'block'
         
-        console.log('✅ Call connected!')
+        console.log('✅ Jitsi call connected!')
         
     } catch (error) {
         console.error('❌ Join error:', error)
@@ -240,6 +243,7 @@ window.toggleMute = function() {
     } else {
         btn.innerHTML = '<i class="fas fa-microphone"></i>'
     }
+    // Jitsi handles mute internally, this is just UI feedback
 }
 
 window.toggleSpeaker = function() {
