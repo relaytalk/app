@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CallApp · Voice Calls</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-indicator" id="loadingIndicator">
+        <div class="loading-spinner"></div>
+        <div id="loadingText">Accessing CallApp...</div>
+    </div>
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <h1 class="header-title">📞 CallApp</h1>
+            <div class="header-actions">
+                <button class="header-btn" onclick="window.location.href='/'">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="mainContent"></main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottomNav" style="display: none;">
+        <a href="#" class="nav-item active" onclick="loadDashboard()">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item" onclick="loadFriends()">
+            <i class="fas fa-users"></i>
+            <span>Friends</span>
+        </a>
+        <a href="profile.html" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script type="module">
+        import { initializeSupabase } from './utils/supabase.js'
+        import { getRelayTalkUser, syncUserToDatabase } from './utils/userSync.js'
+        import { initCallListener } from './utils/callListener.js'
+        
+        let supabase
+        let currentUser
+        let friends = []
+        
+        // Initialize app
+        async function init() {
+            showLoading(true, 'Accessing CallApp...')
+            
+            try {
+                // 1️⃣ Get user from old RelayTalk
+                const user = getRelayTalkUser()
+                if (!user) {
+                    showError('Please login to RelayTalk first')
+                    return
+                }
+                
+                console.log('✅ Got user from RelayTalk:', user.email)
+                
+                // 2️⃣ Initialize new Supabase
+                supabase = await initializeSupabase()
+                
+                // 3️⃣ Sync user to new database
+                currentUser = await syncUserToDatabase(supabase, user)
+                
+                // 4️⃣ Start call listener
+                initCallListener(supabase, currentUser)
+                
+                // 5️⃣ Load dashboard
+                showLoading(false)
+                document.getElementById('bottomNav').style.display = 'flex'
+                loadDashboard()
+                
+            } catch (error) {
+                console.error('Init error:', error)
+                showError('Failed to initialize CallApp: ' + error.message)
+            }
+        }
+        
+        // Load dashboard
+        window.loadDashboard = function() {
+            updateActiveNav('home')
+            
+            document.getElementById('mainContent').innerHTML = `
+                <div class="dashboard-container">
+                    <div class="welcome-card">
+                        <div class="welcome-avatar">
+                            ${currentUser.avatar_url 
+                                ? `<img src="${currentUser.avatar_url}" alt="${currentUser.username}">`
+                                : `<span>${currentUser.username.charAt(0).toUpperCase()}</span>`
+                            }
+                        </div>
+                        <div class="welcome-info">
+                            <h2>Welcome back, ${currentUser.username}!</h2>
+                            <p>Ready to make some calls?</p>
+                        </div>
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <div class="action-card" onclick="loadFriends()">
+                            <div class="action-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="action-info">
+                                <h3>Friends</h3>
+                                <p>Call your friends instantly</p>
+                            </div>
+                        </div>
+                        
+                        <div class="action-card" onclick="window.location.href='pages/history/index.html'">
+                            <div class="action-icon">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div class="action-info">
+                                <h3>Call History</h3>
+                                <p>View your past calls</p>
+                            </div>
+                        </div>
+                        
+                        <div class="action-card" onclick="window.location.href='profile.html'">
+                            <div class="action-icon">
+                                <i class="fas fa-user-cog"></i>
+                            </div>
+                            <div class="action-info">
+                                <h3>Profile</h3>
+                                <p>Manage your account</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="recent-section">
+                        <h3>Recent Friends</h3>
+                        <div id="recentFriendsList" class="recent-list">
+                            <div class="loading-spinner-small"></div>
+                        </div>
+                    </div>
+                </div>
+            `
+            
+            loadRecentFriends()
+        }
+        
+        // Load friends list
+        window.loadFriends = async function() {
+            updateActiveNav('friends')
+            
+            document.getElementById('mainContent').innerHTML = `
+                <div class="friends-container">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="friendSearch" placeholder="Search friends..." oninput="searchFriends()">
+                    </div>
+                    <div id="friendsList" class="friends-list">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            `
+            
+            await loadFriendsList()
+        }
+        
+        // Load recent friends
+        async function loadRecentFriends() {
+            try {
+                const { data: friendships } = await supabase
+                    .from('friends')
+                    .select('friend_id')
+                    .eq('user_id', currentUser.id)
+                    .limit(5)
+                
+                if (!friendships || friendships.length === 0) {
+                    document.getElementById('recentFriendsList').innerHTML = `
+                        <div class="empty-small">
+                            <p>No friends yet</p>
+                            <button onclick="loadFriends()" class="link-btn">Add friends</button>
+                        </div>
+                    `
+                    return
+                }
+                
+                const friendIds = friendships.map(f => f.friend_id)
+                
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url, status')
+                    .in('id', friendIds)
+                
+                let html = ''
+                profiles.forEach(friend => {
+                    html += `
+                        <div class="recent-friend-item">
+                            <div class="friend-avatar small">
+                                ${friend.avatar_url 
+                                    ? `<img src="${friend.avatar_url}" alt="${friend.username}">`
+                                    : `<span>${friend.username.charAt(0).toUpperCase()}</span>`
+                                }
+                                <span class="status-dot ${friend.status === 'online' ? 'online' : 'offline'}"></span>
+                            </div>
+                            <div class="friend-info">
+                                <div class="friend-name">${friend.username}</div>
+                                <div class="friend-status">${friend.status === 'online' ? 'Online' : 'Offline'}</div>
+                            </div>
+                            <button class="call-btn small" onclick="startCall('${friend.id}', '${friend.username}')">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                        </div>
+                    `
+                })
+                
+                document.getElementById('recentFriendsList').innerHTML = html
+                
+            } catch (error) {
+                console.error('Error loading recent friends:', error)
+            }
+        }
+        
+        // Load full friends list
+        async function loadFriendsList() {
+            try {
+                const { data: friendships } = await supabase
+                    .from('friends')
+                    .select('friend_id')
+                    .eq('user_id', currentUser.id)
+                
+                if (!friendships || friendships.length === 0) {
+                    document.getElementById('friendsList').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <h3>No friends yet</h3>
+                            <p>Add friends to start calling</p>
+                            <button onclick="showAddFriend()" class="primary-btn">
+                                <i class="fas fa-user-plus"></i> Add Friends
+                            </button>
+                        </div>
+                    `
+                    return
+                }
+                
+                const friendIds = friendships.map(f => f.friend_id)
+                
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url, status, last_seen')
+                    .in('id', friendIds)
+                    .order('username')
+                
+                friends = profiles || []
+                renderFriendsList(friends)
+                
+            } catch (error) {
+                console.error('Error loading friends:', error)
+                document.getElementById('friendsList').innerHTML = `
+                    <div class="error-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Failed to load friends</p>
+                        <button onclick="loadFriends()" class="link-btn">Try again</button>
+                    </div>
+                `
+            }
+        }
+        
+        function renderFriendsList(friendsToRender) {
+            if (!friendsToRender || friendsToRender.length === 0) {
+                document.getElementById('friendsList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <p>No friends found</p>
+                    </div>
+                `
+                return
+            }
+            
+            let html = ''
+            friendsToRender.forEach(friend => {
+                const online = friend.status === 'online'
+                const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Offline'
+                
+                html += `
+                    <div class="friend-item">
+                        <div class="friend-avatar">
+                            ${friend.avatar_url 
+                                ? `<img src="${friend.avatar_url}" alt="${friend.username}">`
+                                : `<span>${friend.username.charAt(0).toUpperCase()}</span>`
+                            }
+                            <span class="status-indicator ${online ? 'online' : 'offline'}"></span>
+                        </div>
+                        <div class="friend-info">
+                            <div class="friend-name">${friend.username}</div>
+                            <div class="friend-status-text">${online ? 'Online' : lastSeen}</div>
+                        </div>
+                        <button class="call-btn" onclick="startCall('${friend.id}', '${friend.username}')">
+                            <i class="fas fa-phone"></i>
+                        </button>
+                    </div>
+                `
+            })
+            
+            document.getElementById('friendsList').innerHTML = html
+        }
+        
+        // Search friends
+        window.searchFriends = function() {
+            const term = document.getElementById('friendSearch').value.toLowerCase()
+            
+            if (!term) {
+                renderFriendsList(friends)
+                return
+            }
+            
+            const filtered = friends.filter(f => 
+                f.username.toLowerCase().includes(term)
+            )
+            
+            renderFriendsList(filtered)
+        }
+        
+        // Start a call
+        window.startCall = function(friendId, friendName) {
+            window.location.href = `pages/call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`
+        }
+        
+        // Show add friend modal
+        window.showAddFriend = function() {
+            // Create modal
+            const modal = document.createElement('div')
+            modal.className = 'modal-overlay'
+            modal.id = 'addFriendModal'
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-user-plus"></i> Add Friend</h2>
+                        <button class="modal-close" onclick="closeModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="userSearch" placeholder="Search by username..." oninput="searchUsers()">
+                        </div>
+                        <div id="userSearchResults" class="search-results"></div>
+                    </div>
+                </div>
+            `
+            document.body.appendChild(modal)
+            modal.style.display = 'flex'
+        }
+        
+        // Search users to add
+        window.searchUsers = async function() {
+            const term = document.getElementById('userSearch').value.toLowerCase()
+            const results = document.getElementById('userSearchResults')
+            
+            if (!term) {
+                results.innerHTML = ''
+                return
+            }
+            
+            const { data: users } = await supabase
+                .from('profiles')
+                .select('id, username, avatar_url')
+                .neq('id', currentUser.id)
+                .ilike('username', `%${term}%`)
+                .limit(10)
+            
+            if (!users || users.length === 0) {
+                results.innerHTML = '<p class="empty-search">No users found</p>'
+                return
+            }
+            
+            // Get existing friends
+            const { data: friendships } = await supabase
+                .from('friends')
+                .select('friend_id')
+                .eq('user_id', currentUser.id)
+            
+            const friendIds = friendships?.map(f => f.friend_id) || []
+            
+            let html = ''
+            users.forEach(user => {
+                const isFriend = friendIds.includes(user.id)
+                
+                html += `
+                    <div class="search-result-item">
+                        <div class="result-avatar">
+                            ${user.avatar_url 
+                                ? `<img src="${user.avatar_url}" alt="${user.username}">`
+                                : `<span>${user.username.charAt(0).toUpperCase()}</span>`
+                            }
+                        </div>
+                        <div class="result-info">
+                            <div class="result-name">${user.username}</div>
+                        </div>
+                        ${isFriend 
+                            ? '<span class="friend-badge">✓ Friend</span>'
+                            : `<button class="add-btn" onclick="sendFriendRequest('${user.id}', this)">Add</button>`
+                        }
+                    </div>
+                `
+            })
+            
+            results.innerHTML = html
+        }
+        
+        // Send friend request
+        window.sendFriendRequest = async function(userId, btn) {
+            btn.disabled = true
+            btn.textContent = 'Sending...'
+            
+            try {
+                await supabase
+                    .from('friend_requests')
+                    .insert({
+                        sender_id: currentUser.id,
+                        receiver_id: userId,
+                        status: 'pending'
+                    })
+                
+                btn.textContent = '✓ Sent'
+                btn.classList.add('sent')
+                showToast('Friend request sent!')
+                
+            } catch (error) {
+                console.error('Error:', error)
+                btn.disabled = false
+                btn.textContent = 'Add'
+                showToast('Failed to send request')
+            }
+        }
+        
+        // Close modal
+        window.closeModal = function() {
+            const modal = document.getElementById('addFriendModal')
+            if (modal) modal.remove()
+        }
+        
+        // Helper functions
+        function formatLastSeen(timestamp) {
+            const now = new Date()
+            const time = new Date(timestamp)
+            const diff = Math.floor((now - time) / 60000)
+            
+            if (diff < 1) return 'Just now'
+            if (diff < 60) return `${diff}m ago`
+            if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
+            return time.toLocaleDateString()
+        }
+        
+        function updateActiveNav(active) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active')
+            })
+            if (active === 'home') document.querySelector('.nav-item:nth-child(1)').classList.add('active')
+            if (active === 'friends') document.querySelector('.nav-item:nth-child(2)').classList.add('active')
+        }
+        
+        function showLoading(show, text = 'Loading...') {
+            document.getElementById('loadingIndicator').style.display = show ? 'flex' : 'none'
+            document.getElementById('loadingText').textContent = text
+        }
+        
+        function showError(message) {
+            showLoading(false)
+            document.getElementById('mainContent').innerHTML = `
+                <div class="error-container">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Access Denied</h3>
+                    <p>${message}</p>
+                    <a href="/" class="primary-btn">Go to RelayTalk</a>
+                </div>
+            `
+        }
+        
+        function showToast(message) {
+            const container = document.getElementById('toastContainer')
+            const toast = document.createElement('div')
+            toast.className = 'toast'
+            toast.innerHTML = `<i class="fas fa-check-circle"></i>${message}`
+            container.appendChild(toast)
+            
+            setTimeout(() => {
+                toast.style.opacity = '0'
+                setTimeout(() => toast.remove(), 300)
+            }, 3000)
+        }
+        
+        // Start the app
+        init()
+    </script>
+</body>
+</html>
