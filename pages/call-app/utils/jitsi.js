@@ -1,29 +1,41 @@
-// pages/call-app/utils/jitsi.js - UPDATED with cleaner UI
+// pages/call-app/utils/jitsi.js - COMPLETE FIXED VERSION
 
 export async function createCallRoom(roomName = null) {
     try {
-        // Generate a unique room name
         const uniqueRoomName = roomName || `CallApp-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
         
         console.log('🎯 Creating Jitsi room:', uniqueRoomName);
         
-        // Jitsi configuration for voice-only, clean UI
-        const jitsiConfig = '#config.startWithAudioMuted=false' +
+        // PERFECT CONFIGURATION - Auto-joins, audio works, no distractions
+        const jitsiConfig = '#' +
+            // CRITICAL: Skip welcome page and auto-join
+            'config.prejoinPageEnabled=false' +
+            '&config.startWithAudioMuted=false' +
             '&config.startWithVideoMuted=true' +
+            '&config.enableWelcomePage=false' +
+            
+            // Essential permissions
+            '&config.disableAudioLevel=false' +
+            '&config.enableNoAudioDetection=true' +
+            '&config.enableNoisyMicDetection=true' +
+            
+            // Show ONLY essential controls
+            '&config.toolbarButtons=["microphone","camera","hangup"]' +
+            '&config.toolbarAlwaysVisible=true' +
+            
+            // Hide distractions
             '&config.disableChat=true' +
             '&config.disableInviteFunctions=true' +
-            '&config.enableClosePage=false' +
-            '&config.disableProfile=true' +
-            '&config.disableAudioLevel=false' +
-            '&config.disableVideoQualityLabel=true' +
             '&config.disableRecording=true' +
             '&config.hideConferenceTimer=true' +
             '&config.hideParticipantsStats=true' +
-            '&config.hideSubject=true' +
-            '&config.disableTileView=true' +
-            '&config.disableFilmstripAutoHide=false' +
-            '&config.toolbarButtons=["microphone","camera","hangup"]' +
-            '&config.buttonsWithNotifyClick=["hangup"]';
+            '&config.hideLogo=true' +
+            '&config.hideWatermark=true' +
+            '&config.hideBrandWatermark=true' +
+            
+            // Audio optimization
+            '&config.channelLastN=2' +
+            '&config.startBitrate=200';
         
         return {
             name: uniqueRoomName,
@@ -32,31 +44,21 @@ export async function createCallRoom(roomName = null) {
         };
         
     } catch (error) {
-        console.error('❌ Error creating Jitsi room:', error);
+        console.error('❌ Error creating room:', error);
         throw error;
     }
 }
 
 export async function getRoomInfo(roomName) {
     try {
-        console.log('🔍 Getting Jitsi room info for:', roomName);
-        
-        const jitsiConfig = '#config.startWithAudioMuted=false' +
+        const jitsiConfig = '#' +
+            'config.prejoinPageEnabled=false' +
+            '&config.startWithAudioMuted=false' +
             '&config.startWithVideoMuted=true' +
-            '&config.disableChat=true' +
-            '&config.disableInviteFunctions=true' +
-            '&config.enableClosePage=false' +
-            '&config.disableProfile=true' +
-            '&config.disableAudioLevel=false' +
-            '&config.disableVideoQualityLabel=true' +
-            '&config.disableRecording=true' +
-            '&config.hideConferenceTimer=true' +
-            '&config.hideParticipantsStats=true' +
-            '&config.hideSubject=true' +
-            '&config.disableTileView=true' +
-            '&config.disableFilmstripAutoHide=false' +
+            '&config.enableWelcomePage=false' +
             '&config.toolbarButtons=["microphone","camera","hangup"]' +
-            '&config.buttonsWithNotifyClick=["hangup"]';
+            '&config.disableChat=true' +
+            '&config.disableInviteFunctions=true';
         
         return {
             name: roomName,
@@ -71,7 +73,6 @@ export async function getRoomInfo(roomName) {
 
 export function getCallUrl(roomUrl, username = 'User') {
     try {
-        // Add username properly encoded
         return `${roomUrl}&userInfo.displayName=${encodeURIComponent(username)}`;
     } catch (error) {
         return roomUrl;
