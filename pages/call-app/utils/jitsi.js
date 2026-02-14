@@ -1,4 +1,4 @@
-// pages/call-app/utils/jitsi.js - 100% FREE, NO CARD NEEDED!
+// pages/call-app/utils/jitsi.js - UPDATED with cleaner UI
 
 export async function createCallRoom(roomName = null) {
     try {
@@ -7,9 +7,23 @@ export async function createCallRoom(roomName = null) {
         
         console.log('🎯 Creating Jitsi room:', uniqueRoomName);
         
-        // Jitsi doesn't need API calls - just return the URL!
-        // Configuration: video off, audio on, no chat, mobile optimized
-        const jitsiConfig = '#config.startWithAudioMuted=false&config.startWithVideoMuted=true&config.disableChat=true&config.disableInviteFunctions=true';
+        // Jitsi configuration for voice-only, clean UI
+        const jitsiConfig = '#config.startWithAudioMuted=false' +
+            '&config.startWithVideoMuted=true' +
+            '&config.disableChat=true' +
+            '&config.disableInviteFunctions=true' +
+            '&config.enableClosePage=false' +
+            '&config.disableProfile=true' +
+            '&config.disableAudioLevel=false' +
+            '&config.disableVideoQualityLabel=true' +
+            '&config.disableRecording=true' +
+            '&config.hideConferenceTimer=true' +
+            '&config.hideParticipantsStats=true' +
+            '&config.hideSubject=true' +
+            '&config.disableTileView=true' +
+            '&config.disableFilmstripAutoHide=false' +
+            '&config.toolbarButtons=["microphone","camera","hangup"]' +
+            '&config.buttonsWithNotifyClick=["hangup"]';
         
         return {
             name: uniqueRoomName,
@@ -27,7 +41,22 @@ export async function getRoomInfo(roomName) {
     try {
         console.log('🔍 Getting Jitsi room info for:', roomName);
         
-        const jitsiConfig = '#config.startWithAudioMuted=false&config.startWithVideoMuted=true&config.disableChat=true&config.disableInviteFunctions=true';
+        const jitsiConfig = '#config.startWithAudioMuted=false' +
+            '&config.startWithVideoMuted=true' +
+            '&config.disableChat=true' +
+            '&config.disableInviteFunctions=true' +
+            '&config.enableClosePage=false' +
+            '&config.disableProfile=true' +
+            '&config.disableAudioLevel=false' +
+            '&config.disableVideoQualityLabel=true' +
+            '&config.disableRecording=true' +
+            '&config.hideConferenceTimer=true' +
+            '&config.hideParticipantsStats=true' +
+            '&config.hideSubject=true' +
+            '&config.disableTileView=true' +
+            '&config.disableFilmstripAutoHide=false' +
+            '&config.toolbarButtons=["microphone","camera","hangup"]' +
+            '&config.buttonsWithNotifyClick=["hangup"]';
         
         return {
             name: roomName,
@@ -42,15 +71,9 @@ export async function getRoomInfo(roomName) {
 
 export function getCallUrl(roomUrl, username = 'User') {
     try {
-        // Add username to Jitsi URL
+        // Add username properly encoded
         return `${roomUrl}&userInfo.displayName=${encodeURIComponent(username)}`;
     } catch (error) {
         return roomUrl;
     }
-}
-
-// Test function to verify Jitsi is working
-export async function testJitsiConnection() {
-    console.log('✅ Jitsi is ready to use! No API key needed.');
-    return true;
 }
