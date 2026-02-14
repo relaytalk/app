@@ -57,7 +57,8 @@
         import { 
             getRelayTalkUser, 
             syncUserToDatabase, 
-            syncFriendsFromRelayTalk,
+            syncFriendsFromOldDatabase,
+            saveFriendsToCallApp,
             getUserFriends,
             updateUserStatus 
         } from './utils/userSync.js'
@@ -71,6 +72,7 @@
             showLoading(true, 'Accessing CallApp...')
             
             try {
+                // 1. Get user from RelayTalk
                 const user = getRelayTalkUser()
                 if (!user) {
                     showError('Please login to RelayTalk first')
@@ -78,95 +80,49 @@
                 }
                 
                 console.log('✅ Got user from RelayTalk:', user.email)
+                console.log('✅ User ID:', user.id)
                 
+                // 2. Initialize CallApp Supabase
                 supabase = await initializeSupabase()
+                
+                // 3. Sync user to CallApp DB
                 currentUser = await syncUserToDatabase(supabase, user)
+                console.log('✅ User synced to CallApp DB')
                 
-                // Sync friends from old app
-                await syncFriendsFromRelayTalk(supabase, currentUser.id)
+                // 4. Try to get friends from old database
+                showLoading(true, 'Syncing friends...')
+                console.log('🔍 Fetching friends from old database...')
                 
-                // Load friends list
+                const oldFriends = await syncFriendsFromOldDatabase(currentUser.id)
+                
+                if (oldFriends && oldFriends.length > 0) {
+                    console.log(`📝 Found ${oldFriends.length} friends in old DB:`, oldFriends)
+                    await saveFriendsToCallApp(supabase, currentUser.id, oldFriends)
+                } else {
+                    console.log('ℹ️ No friends found in old database')
+                }
+                
+                // 5. Load friends list from CallApp DB
                 friends = await getUserFriends(supabase, currentUser.id)
+                console.log(`✅ Loaded ${friends.length} friends from CallApp DB:`, friends)
                 
-                initCallListener(supabase, currentUser, showIncomingCall)
+                // 6. Initialize call listener
+                initCallListener(supabase, currentUser)
                 
+                // 7. Show dashboard
                 showLoading(false)
                 document.getElementById('bottomNav').style.display = 'flex'
                 loadDashboard()
                 
-                // Update status periodically
+                // 8. Update status periodically
                 setInterval(() => {
                     updateUserStatus(supabase, currentUser.id, 'online')
                 }, 30000)
                 
             } catch (error) {
-                console.error('Init error:', error)
+                console.error('❌ Init error:', error)
                 showError('Failed to initialize: ' + error.message)
             }
-        }
-        
-        // Show incoming call (used by listener)
-        window.showIncomingCall = function(call, caller) {
-            showIncomingCallNotification(call, caller)
-        }
-        
-        function showIncomingCallNotification(call, caller) {
-            const notification = document.createElement('div')
-            notification.id = 'incomingCallNotification'
-            notification.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background: #f5b342;
-                color: #333;
-                padding: 16px 20px;
-                z-index: 10000;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                animation: slideDown 0.3s ease;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            `
-            
-            notification.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #f5b342; font-size: 20px; font-weight: bold;">
-                        ${caller?.avatar_url 
-                            ? `<img src="${caller.avatar_url}" style="width:44px; height:44px; border-radius:50%; object-fit:cover;">`
-                            : (caller?.username?.charAt(0).toUpperCase() || '?')
-                        }
-                    </div>
-                    <div>
-                        <div style="font-weight: bold;">${caller?.username || 'Incoming Call'}</div>
-                        <div style="font-size: 13px;">🔊 Incoming voice call...</div>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 12px;">
-                    <button onclick="acceptCall('${call.id}', '${call.room_name}', '${call.caller_id}')" style="background: white; border: none; color: #28a745; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer;">
-                        <i class="fas fa-phone-alt"></i>
-                    </button>
-                    <button onclick="declineCall('${call.id}')" style="background: white; border: none; color: #dc3545; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer;">
-                        <i class="fas fa-phone-slash"></i>
-                    </button>
-                </div>
-            `
-            
-            document.body.prepend(notification)
-        }
-        
-        window.acceptCall = function(callId, roomName, callerId) {
-            document.getElementById('incomingCallNotification')?.remove()
-            window.location.href = `pages/call/index.html?incoming=true&room=${roomName}&callerId=${callerId}&callId=${callId}`
-        }
-        
-        window.declineCall = async function(callId) {
-            document.getElementById('incomingCallNotification')?.remove()
-            await supabase
-                .from('calls')
-                .update({ status: 'rejected', ended_at: new Date().toISOString() })
-                .eq('id', callId)
         }
         
         window.loadDashboard = function() {
@@ -224,9 +180,9 @@
         function renderQuickCallList() {
             if (!friends || friends.length === 0) {
                 return `
-                    <div class="empty-small">
-                        <p>No friends yet</p>
-                        <button onclick="loadFriends()" class="link-btn" style="color: #f5b342;">Add friends</button>
+                    <div class="empty-small" style="text-align: center; padding: 20px;">
+                        <p style="color: #666;">No friends yet</p>
+                        <button onclick="loadFriends()" class="link-btn" style="color: #f5b342; margin-top: 8px;">View friends</button>
                     </div>
                 `
             }
@@ -235,8 +191,8 @@
             
             if (onlineFriends.length === 0) {
                 return `
-                    <div class="empty-small">
-                        <p>No friends online</p>
+                    <div class="empty-small" style="text-align: center; padding: 20px;">
+                        <p style="color: #666;">No friends online</p>
                     </div>
                 `
             }
@@ -269,27 +225,44 @@
         window.loadFriends = async function() {
             updateActiveNav('friends')
             
+            // Show loading in friends list
             document.getElementById('mainContent').innerHTML = `
                 <div class="friends-container">
                     <div class="search-box">
                         <i class="fas fa-search" style="color: #f5b342;"></i>
-                        <input type="text" id="friendSearch" placeholder="Search friends..." oninput="searchFriends()" style="border-color: #f5b342; focus:border-color: #f5b342;">
+                        <input type="text" id="friendSearch" placeholder="Search friends..." oninput="searchFriends()" style="border-color: #f5b342;">
                     </div>
                     <div id="friendsList" class="friends-list">
-                        ${renderFriendsList(friends)}
+                        <div style="text-align: center; padding: 40px;">
+                            <div class="loading-spinner" style="margin: 0 auto 20px;"></div>
+                            <p>Loading friends...</p>
+                        </div>
                     </div>
                 </div>
             `
+            
+            // Refresh friends list from database
+            friends = await getUserFriends(supabase, currentUser.id)
+            console.log('📋 Refreshed friends list:', friends)
+            
+            // Render friends
+            document.getElementById('friendsList').innerHTML = renderFriendsList(friends)
         }
         
         function renderFriendsList(friendsToRender) {
             if (!friendsToRender || friendsToRender.length === 0) {
                 return `
                     <div class="empty-state">
-                        <i class="fas fa-users" style="color: #f5b342;"></i>
-                        <h3>No friends yet</h3>
-                        <p>Add friends from RelayTalk to see them here</p>
-                        <button onclick="window.location.href='/'" class="primary-btn" style="background: #f5b342; color: #333;">
+                        <i class="fas fa-users" style="color: #f5b342; font-size: 48px;"></i>
+                        <h3 style="margin: 16px 0 8px;">No friends yet</h3>
+                        <p style="color: #666; margin-bottom: 20px;">Add friends in RelayTalk and they'll appear here automatically</p>
+                        <div style="background: #fff9e6; padding: 16px; border-radius: 8px; margin-top: 20px;">
+                            <p style="color: #666; font-size: 14px;">
+                                <i class="fas fa-sync" style="color: #f5b342;"></i> 
+                                Friends sync automatically from RelayTalk
+                            </p>
+                        </div>
+                        <button onclick="window.location.href='/'" class="primary-btn" style="background: #f5b342; color: #333; margin-top: 20px;">
                             Go to RelayTalk
                         </button>
                     </div>
@@ -363,23 +336,28 @@
         }
         
         function showLoading(show, text) {
-            document.getElementById('loadingIndicator').style.display = show ? 'flex' : 'none'
-            if (text) document.getElementById('loadingText').textContent = text
+            const loader = document.getElementById('loadingIndicator')
+            if (loader) {
+                loader.style.display = show ? 'flex' : 'none'
+                if (text) document.getElementById('loadingText').textContent = text
+            }
         }
         
         function showError(message) {
             showLoading(false)
             document.getElementById('mainContent').innerHTML = `
-                <div class="error-container">
-                    <i class="fas fa-exclamation-circle" style="color: #f5b342;"></i>
-                    <h3>Access Denied</h3>
-                    <p>${message}</p>
-                    <a href="/" class="primary-btn" style="background: #f5b342; color: #333;">Go to RelayTalk</a>
+                <div class="error-container" style="max-width: 400px; margin: 50px auto; text-align: center; padding: 20px;">
+                    <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #f5b342; margin-bottom: 16px;"></i>
+                    <h3 style="margin-bottom: 8px;">Access Denied</h3>
+                    <p style="color: #666; margin: 16px 0;">${message}</p>
+                    <a href="/" class="primary-btn" style="background: #f5b342; color: #333; padding: 12px 24px; border-radius: 25px; text-decoration: none; display: inline-block;">
+                        Go to RelayTalk
+                    </a>
                 </div>
             `
         }
         
-        // Start
+        // Start the app
         init()
     </script>
 </body>
