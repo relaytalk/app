@@ -97,10 +97,15 @@
     <script type="module" src="../../utils/supabase.js"></script>
     <script type="module" src="friends.js"></script>
 <!-- Call Listener -->
+<!-- Call Listener - FIXED PATH -->
 <script type="module">
-    import { initCallListener } from '/utils/callListener.js';
-    // Initialize call listener for incoming calls
-    initCallListener();
+    import { initCallListener } from '../../../utils/callListener.js';
+    console.log('📞 Loading call listener...');
+    
+    // Initialize call listener when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        initCallListener();
+    });
 </script>
 </body>
 </html>
