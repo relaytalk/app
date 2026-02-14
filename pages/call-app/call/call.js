@@ -1,4 +1,4 @@
-// pages/call-app/call/call.js - COMPLETE WORKING VERSION WITH JITSI LOVE 💕
+// pages/call-app/call/call.js - COMPLETE WITH JITSI
 
 import { initializeSupabase } from '../utils/supabase.js'
 import { createCallRoom, getRoomInfo, getCallUrl } from '../utils/jitsi.js'
@@ -14,7 +14,6 @@ async function initCall() {
     console.log('📞 Initializing call page with Jitsi...')
     
     try {
-        // Get user from RelayTalk
         const relayUser = getRelayTalkUser()
         if (!relayUser) {
             showError('Please login to RelayTalk first')
@@ -23,13 +22,9 @@ async function initCall() {
         
         console.log('✅ Got user:', relayUser.email)
         
-        // Initialize Supabase
         supabase = await initializeSupabase()
-        
-        // Sync user to database
         currentUser = await syncUserToDatabase(supabase, relayUser)
         
-        // Get call parameters
         const params = new URLSearchParams(window.location.search)
         const friendId = params.get('friendId')
         const friendName = params.get('friendName')
@@ -38,13 +33,9 @@ async function initCall() {
         const callerId = params.get('callerId')
         const callId = params.get('callId')
         
-        console.log('📞 Call params:', { friendId, friendName, incoming, roomName, callerId, callId })
-        
         if (incoming === 'true' && roomName && callerId && callId) {
-            // Handle incoming call
             await handleIncomingCall(roomName, callerId, callId)
         } else if (friendId) {
-            // Start outgoing call
             await startOutgoingCall(friendId, friendName)
         } else {
             showError('No call information provided')
@@ -59,15 +50,8 @@ async function initCall() {
 async function startOutgoingCall(friendId, friendName) {
     try {
         document.getElementById('loadingText').textContent = `Calling ${friendName}...`
-        console.log('1️⃣ Starting outgoing call to:', friendId, friendName)
         
-        // Create Jitsi room (no API key needed!)
-        console.log('2️⃣ Creating Jitsi room...')
         callRoom = await createCallRoom()
-        console.log('3️⃣ Room created:', callRoom)
-        
-        // Store call in database
-        console.log('4️⃣ Inserting call into Supabase...')
         
         const callData = {
             caller_id: currentUser.id,
@@ -78,28 +62,17 @@ async function startOutgoingCall(friendId, friendName) {
             created_at: new Date().toISOString()
         }
         
-        console.log('Call data:', callData)
-        
         const { data: call, error } = await supabase
             .from('calls')
             .insert([callData])
             .select()
             .single()
         
-        if (error) {
-            console.error('❌ Supabase error:', error)
-            throw new Error('Database error: ' + error.message)
-        }
-        
-        console.log('5️⃣ ✅ Call inserted:', call)
+        if (error) throw new Error('Database error: ' + error.message)
         
         currentCall = call
-        
-        // Hide loading, show calling UI
         document.getElementById('loadingScreen').style.display = 'none'
         showCallingUI(friendName)
-        
-        // Listen for answer
         setupCallListener(call.id)
         
     } catch (error) {
@@ -110,25 +83,15 @@ async function startOutgoingCall(friendId, friendName) {
 
 async function handleIncomingCall(roomName, callerId, callId) {
     try {
-        console.log('📞 Handling incoming call:', { roomName, callerId, callId })
         document.getElementById('loadingText').textContent = 'Connecting...'
         
         currentCall = { id: callId, room_name: roomName }
         
-        // Update call status
-        const { error } = await supabase
+        await supabase
             .from('calls')
-            .update({ 
-                status: 'active',
-                answered_at: new Date().toISOString()
-            })
+            .update({ status: 'active', answered_at: new Date().toISOString() })
             .eq('id', callId)
         
-        if (error) {
-            console.error('❌ Failed to update call:', error)
-        }
-        
-        // Join the call
         await joinCall(roomName)
         
     } catch (error) {
@@ -161,8 +124,6 @@ function showCallingUI(friendName) {
 }
 
 function setupCallListener(callId) {
-    console.log('6️⃣ Setting up call listener for ID:', callId)
-    
     supabase
         .channel(`call-${callId}`)
         .on('postgres_changes', {
@@ -171,8 +132,6 @@ function setupCallListener(callId) {
             table: 'calls',
             filter: `id=eq.${callId}`
         }, (payload) => {
-            console.log('📞 Call update received:', payload.new.status)
-            
             if (payload.new.status === 'active') {
                 document.getElementById('callStatus').textContent = 'Connecting...'
                 joinCall(payload.new.room_name)
@@ -182,30 +141,20 @@ function setupCallListener(callId) {
                 showCallEnded('Call was cancelled')
             }
         })
-        .subscribe((status) => {
-            console.log('Call listener subscription status:', status)
-        })
+        .subscribe()
 }
 
 async function joinCall(roomName) {
     try {
-        console.log('7️⃣ Joining Jitsi call room:', roomName)
-        
-        // Remove outgoing UI
         document.getElementById('outgoingUI')?.remove()
-        
         document.getElementById('loadingScreen').style.display = 'flex'
         document.getElementById('loadingText').textContent = 'Connecting...'
         
-        // Get room info
         const roomInfo = await getRoomInfo(roomName)
-        console.log('8️⃣ Room info:', roomInfo)
         
-        // Clear the container
         const container = document.getElementById('dailyContainer')
         container.innerHTML = ''
         
-        // Create iframe for Jitsi with minimal UI
         const iframe = document.createElement('iframe')
         iframe.allow = 'microphone; camera; autoplay'
         iframe.style.width = '100%'
@@ -213,30 +162,24 @@ async function joinCall(roomName) {
         iframe.style.border = 'none'
         iframe.style.background = '#000'
         
-        // Build URL with username
         const url = getCallUrl(roomInfo.url, currentUser.username)
         iframe.src = url
-        console.log('9️⃣ Iframe URL:', url)
         
-        // Add to container
         container.appendChild(iframe)
         jitsiIframe = iframe
         
-        // Show call screen
         document.getElementById('loadingScreen').style.display = 'none'
         document.getElementById('activeCallScreen').style.display = 'block'
         
-        console.log('✅ Jitsi call connected!')
-        
-        // Auto-hide Jitsi controls after 2 seconds
+        // Auto-hide toolbar after 3 seconds
         setTimeout(() => {
             try {
-                // Send message to iframe to hide controls
                 iframe.contentWindow.postMessage({
-                    type: 'hideControls'
+                    type: 'toolbarVisible',
+                    visible: false
                 }, '*');
             } catch (e) {}
-        }, 2000)
+        }, 3000)
         
     } catch (error) {
         console.error('❌ Join error:', error)
@@ -244,91 +187,38 @@ async function joinCall(roomName) {
     }
 }
 
-// Call controls
 window.toggleMute = function() {
     const btn = document.getElementById('muteBtn')
     btn.classList.toggle('muted')
-    if (btn.classList.contains('muted')) {
-        btn.innerHTML = '<i class="fas fa-microphone-slash"></i>'
-        // Try to mute via iframe
-        if (jitsiIframe) {
-            jitsiIframe.contentWindow.postMessage({
-                type: 'muteAudio',
-                muted: true
-            }, '*');
-        }
-    } else {
-        btn.innerHTML = '<i class="fas fa-microphone"></i>'
-        if (jitsiIframe) {
-            jitsiIframe.contentWindow.postMessage({
-                type: 'muteAudio',
-                muted: false
-            }, '*');
-        }
-    }
+    btn.innerHTML = btn.classList.contains('muted') 
+        ? '<i class="fas fa-microphone-slash"></i>' 
+        : '<i class="fas fa-microphone"></i>'
 }
 
 window.toggleSpeaker = function() {
     const btn = document.getElementById('speakerBtn')
     btn.classList.toggle('speaker-off')
-    if (btn.classList.contains('speaker-off')) {
-        btn.innerHTML = '<i class="fas fa-volume-mute"></i>'
-    } else {
-        btn.innerHTML = '<i class="fas fa-volume-up"></i>'
-    }
+    btn.innerHTML = btn.classList.contains('speaker-off')
+        ? '<i class="fas fa-volume-mute"></i>'
+        : '<i class="fas fa-volume-up"></i>'
 }
 
 window.endCall = async function() {
     if (currentCall) {
-        try {
-            await supabase
-                .from('calls')
-                .update({ 
-                    status: 'ended',
-                    ended_at: new Date().toISOString()
-                })
-                .eq('id', currentCall.id)
-        } catch (error) {
-            console.error('Error ending call:', error)
-        }
+        await supabase
+            .from('calls')
+            .update({ status: 'ended', ended_at: new Date().toISOString() })
+            .eq('id', currentCall.id)
     }
     window.location.href = '../index.html'
 }
 
 window.cancelCall = async function() {
     if (currentCall) {
-        try {
-            await supabase
-                .from('calls')
-                .update({ 
-                    status: 'cancelled',
-                    ended_at: new Date().toISOString()
-                })
-                .eq('id', currentCall.id)
-        } catch (error) {
-            console.error('Error cancelling call:', error)
-        }
-    }
-    window.location.href = '../index.html'
-}
-
-window.acceptCall = async function() {
-    // Handled by incoming flow
-}
-
-window.declineCall = async function() {
-    if (currentCall) {
-        try {
-            await supabase
-                .from('calls')
-                .update({ 
-                    status: 'rejected',
-                    ended_at: new Date().toISOString()
-                })
-                .eq('id', currentCall.id)
-        } catch (error) {
-            console.error('Error declining call:', error)
-        }
+        await supabase
+            .from('calls')
+            .update({ status: 'cancelled', ended_at: new Date().toISOString() })
+            .eq('id', currentCall.id)
     }
     window.location.href = '../index.html'
 }
@@ -345,18 +235,14 @@ function showCallEnded(message) {
             </div>
             <div class="caller-info">
                 <h2 style="color: white;">Call Ended</h2>
-                <p style="color:#ccc; margin: 10px 0 20px;">${message}</p>
+                <p style="color:#ccc;">${message}</p>
             </div>
-            <button class="back-home-btn" onclick="window.location.href='../index.html'" style="background: #f5b342; color: #333; border: none; padding: 12px 24px; border-radius: 25px; font-size: 16px; cursor: pointer;">
+            <button onclick="window.location.href='../index.html'" style="background: #f5b342; color: #333; border: none; padding: 12px 24px; border-radius: 25px; margin-top: 20px; cursor: pointer;">
                 Go Back
             </button>
         </div>
     `
     document.body.appendChild(endedScreen)
-    
-    setTimeout(() => {
-        window.location.href = '../index.html'
-    }, 2000)
 }
 
 function showError(message) {
@@ -365,11 +251,4 @@ function showError(message) {
     document.getElementById('errorMessage').textContent = message
 }
 
-// Add message event listener for Jitsi iframe
-window.addEventListener('message', (event) => {
-    // Handle messages from Jitsi if needed
-    console.log('Message from Jitsi:', event.data);
-});
-
-// Start the app
 initCall()
