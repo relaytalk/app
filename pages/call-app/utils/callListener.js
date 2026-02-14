@@ -1,4 +1,4 @@
-// pages/call-app/utils/callListener.js - FIXED
+// pages/call-app/utils/callListener.js - SAME AS BEFORE
 
 let supabase = null
 let currentUser = null
@@ -201,7 +201,6 @@ function showIncomingCallNotification(call, caller) {
             .update({ status: 'active', answered_at: new Date().toISOString() })
             .eq('id', call.id)
         
-        // FIXED: Removed 'pages/' from path
         window.location.href = `call/index.html?incoming=true&room=${call.room_name}&callerId=${call.caller_id}&callId=${call.id}`
     })
     
