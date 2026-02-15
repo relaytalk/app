@@ -93,7 +93,7 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Incoming Call Notification Container (Hidden by default) -->
+    <!-- Incoming Call Notification Container -->
     <div id="incomingCallNotification" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #007acc; color: white; padding: 16px 20px; z-index: 10000; align-items: center; justify-content: space-between; animation: slideDown 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></div>
 
     <!-- Animation Styles -->
@@ -141,22 +141,26 @@
         }
     </style>
 
-    <!-- Scripts -->
+    <!-- Scripts - WITH CORRECT PATHS -->
     <script type="module" src="../../../utils/supabase.js"></script>
     <script type="module" src="friends.js"></script>
     
-    <!-- Use the SAME callListener.js that works in CallApp -->
+    <!-- Use callListener.js with CORRECT path -->
     <script type="module">
         import { initializeSupabase } from '../../../utils/supabase.js';
         import { initCallListener } from '../../../utils/callListener.js';
         
         async function startListener() {
+            console.log('📞 Starting call listener from friends page...');
             const supabase = await initializeSupabase();
             const { data: { session } } = await supabase.auth.getSession();
             
-            if (!session) return;
+            if (!session) {
+                console.log('No session found');
+                return;
+            }
             
-            console.log('📞 Starting call listener for friends page...');
+            console.log('📞 Call listener active for:', session.user.email);
             
             // Initialize the same listener that works in CallApp
             initCallListener(supabase, session.user);
