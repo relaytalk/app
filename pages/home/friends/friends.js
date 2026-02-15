@@ -1,4 +1,4 @@
-// friends.js - WITH CALL BUTTON AND INCOMING CALL LISTENER
+// friends.js - WITH INCOMING CALL NOTIFICATION LIKE CALLAPP
 
 import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
 
@@ -7,6 +7,7 @@ let currentUser = null;
 let allFriends = [];
 let filteredFriends = [];
 let callSubscription = null;
+let audioPlayer = null;
 
 // Initialize with Supabase wait
 async function initFriendsPage() {
@@ -32,6 +33,7 @@ async function initFriendsPage() {
         console.log('✅ Logged in as:', currentUser.email);
 
         await loadFriends();
+        setupRingtone();
         setupIncomingCallListener();
 
         const loader = document.getElementById('loadingIndicator');
@@ -40,6 +42,33 @@ async function initFriendsPage() {
     } catch (error) {
         console.error('Init error:', error);
         showError('Failed to load friends: ' + error.message);
+    }
+}
+
+// Setup ringtone
+function setupRingtone() {
+    try {
+        audioPlayer = new Audio();
+        audioPlayer.loop = true;
+        audioPlayer.volume = 0.5;
+        audioPlayer.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
+    } catch (e) {
+        console.log('Ringtone setup failed:', e);
+    }
+}
+
+// Play ringtone
+function playRingtone() {
+    if (audioPlayer) {
+        audioPlayer.play().catch(e => console.log('Audio play failed:', e));
+    }
+}
+
+// Stop ringtone
+function stopRingtone() {
+    if (audioPlayer) {
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
     }
 }
 
@@ -95,7 +124,7 @@ function renderFriendsList() {
     filteredFriends.forEach(friend => {
         const initial = friend.username ? friend.username.charAt(0).toUpperCase() : '?';
         const online = friend.status === 'online';
-        const lastSeen = friend.last_seen ? formatLastSeen(friend.lastSeen) : 'Never';
+        const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Never';
 
         html += `
             <div class="friend-item">
@@ -154,13 +183,28 @@ function setupIncomingCallListener() {
             table: 'calls',
             filter: `receiver_id=eq.${currentUser.id}`
         }, (payload) => {
-            console.log('📞 Incoming call detected!', payload.new);
+            console.log('📞📞📞 INCOMING CALL DETECTED!', payload.new);
             
             if (payload.new.status === 'ringing') {
                 handleIncomingCall(payload.new);
             }
         })
-        .subscribe();
+        .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'calls',
+            filter: `receiver_id=eq.${currentUser.id}`
+        }, (payload) => {
+            console.log('📞 Call updated:', payload.new.status);
+            
+            if (payload.new.status === 'cancelled' || payload.new.status === 'ended') {
+                hideIncomingCallNotification();
+                stopRingtone();
+            }
+        })
+        .subscribe((status) => {
+            console.log('Call listener status:', status);
+        });
 }
 
 // Handle incoming call
@@ -179,54 +223,33 @@ async function handleIncomingCall(call) {
     
     showIncomingCallNotification(call, caller);
     playRingtone();
+    
+    // Store in session storage
+    sessionStorage.setItem('incomingCall', JSON.stringify({
+        id: call.id,
+        roomName: call.room_name,
+        callerId: call.caller_id,
+        callerName: caller?.username || 'Unknown'
+    }));
 }
 
-// Play simple ringtone
-function playRingtone() {
-    try {
-        const audio = new Audio();
-        audio.loop = true;
-        audio.volume = 0.5;
-        audio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
-        audio.play().catch(e => console.log('Audio play failed:', e));
-        window.currentRingtone = audio;
-    } catch (e) {}
-}
-
-// Stop ringtone
-function stopRingtone() {
-    if (window.currentRingtone) {
-        window.currentRingtone.pause();
-        window.currentRingtone = null;
+// Hide incoming call notification
+function hideIncomingCallNotification() {
+    const existing = document.getElementById('incomingCallNotification');
+    if (existing) {
+        existing.remove();
     }
 }
 
-// Show incoming call notification
+// Show incoming call notification (LIKE CALLAPP)
 function showIncomingCallNotification(call, caller) {
     // Remove existing notification
-    const existing = document.getElementById('incomingCallNotification');
-    if (existing) existing.remove();
+    hideIncomingCallNotification();
     
     const notification = document.createElement('div');
     notification.id = 'incomingCallNotification';
-    notification.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: #007acc;
-        color: white;
-        padding: 16px 20px;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        animation: slideDown 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    `;
     
-    // Add animation style
+    // Add animation style if not exists
     if (!document.getElementById('callAnimationStyles')) {
         const style = document.createElement('style');
         style.id = 'callAnimationStyles';
@@ -245,22 +268,22 @@ function showIncomingCallNotification(call, caller) {
     }
     
     const avatar = caller?.avatar_url 
-        ? `<img src="${caller.avatar_url}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white;">`
-        : `<div style="width: 44px; height: 44px; border-radius: 50%; background: white; color: #007acc; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">${caller?.username?.charAt(0).toUpperCase() || '?'}</div>`;
+        ? `<img src="${caller.avatar_url}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid white;">`
+        : `<div style="width: 48px; height: 48px; border-radius: 50%; background: white; color: #007acc; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold;">${caller?.username?.charAt(0).toUpperCase() || '?'}</div>`;
     
     notification.innerHTML = `
         <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
             ${avatar}
             <div>
-                <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">${caller?.username || 'Incoming Call'}</div>
-                <div style="font-size: 13px; opacity: 0.9;">🔊 Incoming voice call...</div>
+                <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 4px;">${caller?.username || 'Incoming Call'}</div>
+                <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem;">🔊 Incoming voice call...</div>
             </div>
         </div>
         <div style="display: flex; gap: 12px;">
-            <button id="acceptCallBtn" style="background: white; border: none; color: #28a745; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite;">
+            <button id="acceptCallBtn" style="background: white; border: none; color: #28a745; width: 48px; height: 48px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                 <i class="fas fa-phone-alt"></i>
             </button>
-            <button id="declineCallBtn" style="background: white; border: none; color: #dc3545; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            <button id="declineCallBtn" style="background: white; border: none; color: #dc3545; width: 48px; height: 48px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                 <i class="fas fa-phone-slash"></i>
             </button>
         </div>
@@ -269,8 +292,9 @@ function showIncomingCallNotification(call, caller) {
     document.body.prepend(notification);
     
     document.getElementById('acceptCallBtn').addEventListener('click', async () => {
+        console.log('Accept button clicked');
         stopRingtone();
-        notification.remove();
+        hideIncomingCallNotification();
         
         await supabase
             .from('calls')
@@ -281,13 +305,16 @@ function showIncomingCallNotification(call, caller) {
     });
     
     document.getElementById('declineCallBtn').addEventListener('click', async () => {
+        console.log('Decline button clicked');
         stopRingtone();
-        notification.remove();
+        hideIncomingCallNotification();
         
         await supabase
             .from('calls')
             .update({ status: 'rejected', ended_at: new Date().toISOString() })
             .eq('id', call.id);
+        
+        sessionStorage.removeItem('incomingCall');
     });
 }
 
