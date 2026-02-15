@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Friends · RelayTalk</title>
-<meta name="google-site-verification" content="y2KUdk5NLGrxUgulLoxvA0a2y3jQlVPObdNtYkIef2U" />
+    <meta name="google-site-verification" content="y2KUdk5NLGrxUgulLoxvA0a2y3jQlVPObdNtYkIef2U" />
     <!-- Styles -->
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="friends.css">
@@ -53,7 +53,7 @@
     <!-- Friends List -->
     <main class="friends-list" id="friendsList"></main>
 
-    <!-- Bottom Navigation - REMOVED CHATS, KEPT FRIENDS -->
+    <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <a href="../../home/index.html" class="nav-item">
             <i class="fas fa-home"></i>
@@ -96,5 +96,71 @@
     <!-- Scripts - MODULE TYPE -->
     <script type="module" src="../../utils/supabase.js"></script>
     <script type="module" src="friends.js"></script>
+    
+    <!-- Call Listener for incoming calls -->
+    <script type="module">
+        import { initializeSupabase } from '../../../utils/supabase.js';
+        
+        async function setupCallListener() {
+            console.log('📞 Setting up call listener...');
+            
+            const supabase = await initializeSupabase();
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                console.log('No session, skipping call listener');
+                return;
+            }
+            
+            console.log('📞 Call listener active for:', session.user.email);
+            
+            // Listen for incoming calls
+            supabase
+                .channel('incoming-calls-friends-page')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'calls',
+                    filter: `receiver_id=eq.${session.user.id}`
+                }, (payload) => {
+                    console.log('📞📞📞 INCOMING CALL DETECTED!', payload.new);
+                    
+                    if (payload.new.status === 'ringing') {
+                        // Show notification (handled in friends.js)
+                        window.dispatchEvent(new CustomEvent('incomingCall', { detail: payload.new }));
+                        
+                        // Play ringtone
+                        try {
+                            const audio = new Audio();
+                            audio.loop = true;
+                            audio.volume = 0.5;
+                            audio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
+                            audio.play().catch(e => console.log('Audio play failed:', e));
+                            window.currentRingtone = audio;
+                        } catch (e) {}
+                    }
+                })
+                .subscribe((status) => {
+                    console.log('Call listener status:', status);
+                });
+        }
+        
+        // Listen for custom events from friends.js
+        window.addEventListener('incomingCall', async (event) => {
+            console.log('🎯 Custom event received:', event.detail);
+            // The notification is already handled in friends.js
+        });
+        
+        // Initialize listener
+        setupCallListener();
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (window.currentRingtone) {
+                window.currentRingtone.pause();
+                window.currentRingtone = null;
+            }
+        });
+    </script>
 </body>
 </html>
