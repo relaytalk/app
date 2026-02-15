@@ -1,4 +1,4 @@
-/* friends.css - ULTRA SIMPLE */
+/* friends.css - WITH CALL BUTTON STYLES */
 
 * {
     margin: 0;
@@ -118,24 +118,24 @@ body {
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
+    padding-bottom: 80px;
 }
 
-/* Friend Item - ONLY THIS MATTERS */
+/* Friend Item - WITH CALL BUTTON */
 .friend-item {
     display: flex;
     align-items: center;
     gap: 15px;
-    padding: 15px;
+    padding: 12px 15px;
     background: white;
     border-radius: 12px;
     margin-bottom: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     border: 1px solid #f0f0f0;
-    cursor: pointer;
     transition: all 0.1s;
 }
 
-.friend-item:active {
+.friend-item:hover {
     background: #f5f7fa;
 }
 
@@ -151,44 +151,83 @@ body {
     font-weight: 600;
     color: white;
     flex-shrink: 0;
+    position: relative;
 }
 
-.friend-info {
+.friend-info-clean {
     flex: 1;
     min-width: 0;
+    cursor: pointer;
 }
 
-.friend-name {
+.friend-name-status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.friend-name-clean {
     font-size: 1.1rem;
     font-weight: 600;
     color: #1e293b;
-    margin-bottom: 5px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.friend-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+.friend-status-clean {
     font-size: 0.85rem;
     color: #64748b;
 }
 
-.status-dot {
-    width: 8px;
-    height: 8px;
+/* 🔥 CALL BUTTON STYLES */
+.call-friend-btn {
+    width: 40px;
+    height: 40px;
+    background: #007acc;
+    border: none;
     border-radius: 50%;
-    display: inline-block;
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-right: 5px;
+    flex-shrink: 0;
 }
 
-.status-online {
-    background: #22c55e;
+.call-friend-btn:hover {
+    background: #005a9e;
+    transform: scale(1.05);
 }
 
-.status-offline {
-    background: #94a3b8;
+.call-friend-btn:active {
+    transform: scale(0.95);
+}
+
+.call-friend-btn i {
+    pointer-events: none;
+}
+
+/* Status Indicator */
+.status-indicator-clean {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid white;
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+}
+
+.status-indicator-clean.online {
+    background: #28a745;
+}
+
+.status-indicator-clean.offline {
+    background: #888888;
 }
 
 /* Empty State */
@@ -241,6 +280,7 @@ body {
     padding: 10px 0;
     max-width: 600px;
     margin: 0 auto;
+    z-index: 100;
 }
 
 .nav-item {
@@ -441,14 +481,20 @@ body {
     .friends-list {
         padding: 15px;
     }
-    
+
     .friend-avatar {
         width: 50px;
         height: 50px;
         font-size: 1.2rem;
     }
+
+    .friend-name-clean {
+        font-size: 1rem;
+    }
     
-    .friend-name {
+    .call-friend-btn {
+        width: 36px;
+        height: 36px;
         font-size: 1rem;
     }
 }
