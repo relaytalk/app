@@ -1,7 +1,6 @@
-// /pages/call-app/call/call.js - FIXED VERSION
+// /pages/call-app/call/call.js - COMPLETE FIXED VERSION
 
 import { initializeSupabase } from '/pages/call-app/utils/supabase.js'
-import { createCallRoom, getRoomInfo, getCallUrl } from '/pages/call-app/utils/jitsi.js'
 import { getRelayTalkUser, syncUserToDatabase } from '/pages/call-app/utils/userSync.js'
 
 let supabase
@@ -10,6 +9,9 @@ let currentCall
 let jitsiIframe
 let callRoom
 let isVideoOn = false
+
+const JAAS_APP_ID = 'vpaas-magic-cookie-16664d50d3a04e79a2876de86dcc38e4'
+const JAAS_DOMAIN = '8x8.vc'
 
 async function initCall() {
     console.log('📞 Initializing call...')
@@ -50,6 +52,25 @@ async function initCall() {
     }
 }
 
+async function createCallRoom() {
+    try {
+        const uniqueRoomName = `CallApp-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+        const fullRoomName = `${JAAS_APP_ID}/${uniqueRoomName}`
+        
+        console.log('🎯 Creating room:', fullRoomName)
+        
+        return {
+            name: fullRoomName,
+            url: `https://${JAAS_DOMAIN}/${fullRoomName}`,
+            id: uniqueRoomName
+        }
+        
+    } catch (error) {
+        console.error('❌ Error creating room:', error)
+        throw error
+    }
+}
+
 async function startOutgoingCall(friendId, friendName) {
     try {
         document.getElementById('loadingText').textContent = `Calling ${friendName}...`
@@ -83,11 +104,7 @@ async function startOutgoingCall(friendId, friendName) {
         console.log('4️⃣ ✅ Call inserted:', call)
         
         currentCall = call
-        
-        // Instead of showing calling UI, just update loading text
         document.getElementById('loadingText').textContent = `Waiting for ${friendName} to answer...`
-        
-        // Listen for answer
         setupCallListener(call.id)
         
     } catch (error) {
@@ -130,7 +147,6 @@ function setupCallListener(callId) {
             console.log('📞 Call update received:', payload.new.status)
             
             if (payload.new.status === 'active') {
-                // Update loading text if element exists
                 const loadingText = document.getElementById('loadingText')
                 if (loadingText) {
                     loadingText.textContent = 'Connecting...'
@@ -154,9 +170,6 @@ async function joinCall(roomName) {
         document.getElementById('loadingScreen').style.display = 'flex'
         document.getElementById('loadingText').textContent = 'Connecting...'
         
-        const roomInfo = await getRoomInfo(roomName)
-        console.log('7️⃣ Room info:', roomInfo)
-        
         const container = document.getElementById('dailyContainer')
         container.innerHTML = ''
         
@@ -174,8 +187,35 @@ async function joinCall(roomName) {
         iframe.style.border = 'none'
         iframe.style.background = '#000'
         
-        // FIXED: Use getCallUrl properly
-        const url = getCallUrl(roomInfo.url, currentUser.username)
+        // FIXED: Build URL correctly with all config
+        const baseUrl = `https://${JAAS_DOMAIN}/${roomName}`
+        const config = {
+            configOverwrite: {
+                prejoinPageEnabled: false,
+                enableWelcomePage: false,
+                startWithAudioMuted: false,
+                startWithVideoMuted: true,
+                disableChat: true,
+                disableInviteFunctions: true,
+                toolbarButtons: [],
+                hideConferenceTimer: true,
+                hideParticipantsStats: true,
+                hideLogo: true,
+                hideWatermark: true
+            },
+            interfaceConfigOverwrite: {
+                TOOLBAR_BUTTONS: [],
+                SHOW_JITSI_WATERMARK: false,
+                SHOW_WATERMARK_FOR_GUESTS: false,
+                VIDEO_LAYOUT_FIT: 'cover'
+            },
+            userInfo: {
+                displayName: currentUser.username
+            }
+        }
+        
+        const configParam = encodeURIComponent(JSON.stringify(config))
+        const url = `${baseUrl}#config=${configParam}`
         iframe.src = url
         console.log('8️⃣ Iframe URL:', url)
         
@@ -183,39 +223,47 @@ async function joinCall(roomName) {
         container.appendChild(wrapper)
         jitsiIframe = iframe
         
-        // AUTO-JOIN
+        // Add CSS to hide any remaining Jitsi UI
+        const style = document.createElement('style')
+        style.textContent = `
+            .prejoin-screen, .welcome-page, .join-dialog,
+            [class*="toolbar"], [class*="Toolbar"],
+            [class*="watermark"], [class*="Watermark"] {
+                display: none !important;
+            }
+            video {
+                object-fit: cover !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
+        `
+        wrapper.appendChild(style)
+        
+        // AUTO-JOIN: Click join button repeatedly
         iframe.onload = function() {
             console.log('Iframe loaded, auto-joining...')
             
-            // Try to join every second for 10 seconds
             const joinInterval = setInterval(() => {
                 try {
                     const iframeDoc = iframe.contentWindow.document
                     
-                    // Fill name input
-                    const nameInput = iframeDoc.querySelector('input[placeholder*="name"], input[type="text"]')
-                    if (nameInput) {
-                        nameInput.value = currentUser.username
-                        nameInput.dispatchEvent(new Event('input', { bubbles: true }))
-                    }
+                    // Try different join button selectors
+                    const joinSelectors = [
+                        '[data-testid="prejoin.joinButton"]',
+                        '.prejoin-input-area button',
+                        '.join-button',
+                        'button:contains("Join")'
+                    ]
                     
-                    // Click join buttons
-                    const joinBtn = iframeDoc.querySelector('[data-testid="prejoin.joinButton"]')
-                    if (joinBtn) {
-                        console.log('Clicking join button')
-                        joinBtn.click()
-                        clearInterval(joinInterval)
-                    }
-                    
-                    // Try other buttons
-                    const buttons = iframeDoc.querySelectorAll('button')
-                    buttons.forEach(btn => {
-                        const text = btn.textContent.toLowerCase()
-                        if (text.includes('join') || text.includes('continue')) {
-                            console.log('Clicking button:', text)
+                    for (const selector of joinSelectors) {
+                        const btn = iframeDoc.querySelector(selector)
+                        if (btn) {
+                            console.log('Clicking join button')
                             btn.click()
+                            clearInterval(joinInterval)
+                            break
                         }
-                    })
+                    }
                     
                 } catch(e) {}
             }, 1000)
@@ -308,6 +356,9 @@ window.cancelCall = async function() {
     }
     window.location.href = '/pages/call-app/index.html'
 }
+
+window.acceptCall = function() {}
+window.declineCall = function() {}
 
 function showCallEnded(message) {
     document.getElementById('loadingScreen').style.display = 'flex'
