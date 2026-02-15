@@ -1,4 +1,4 @@
-// call/utils/callListener.js - YOUR ORIGINAL WORKING VERSION
+// call/utils/callListener.js - FIXED with colon in channel name
 
 let supabase = null
 let currentUser = null
@@ -46,6 +46,7 @@ function setupIncomingCallListener() {
 
     console.log('Setting up call listener for user:', currentUser.id)
 
+    // FIXED: Use colon (:) like original call-app, not hyphen (-)
     callSubscription = supabase
         .channel(`calls:${currentUser.id}`)
         .on('postgres_changes', {
