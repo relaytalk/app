@@ -1,4 +1,4 @@
-// /pages/call-app/call/call.js - COMPLETE FIXED VERSION
+// /pages/call-app/call/call.js - FINAL VERSION with Jitsi UI
 
 import { initializeSupabase } from '/pages/call-app/utils/supabase.js'
 import { getRelayTalkUser, syncUserToDatabase } from '/pages/call-app/utils/userSync.js'
@@ -8,7 +8,6 @@ let currentUser
 let currentCall
 let jitsiIframe
 let callRoom
-let isVideoOn = false
 
 const JAAS_APP_ID = 'vpaas-magic-cookie-16664d50d3a04e79a2876de86dcc38e4'
 const JAAS_DOMAIN = '8x8.vc'
@@ -173,13 +172,6 @@ async function joinCall(roomName) {
         const container = document.getElementById('dailyContainer')
         container.innerHTML = ''
         
-        const wrapper = document.createElement('div')
-        wrapper.style.width = '100%'
-        wrapper.style.height = '100%'
-        wrapper.style.position = 'relative'
-        wrapper.style.overflow = 'hidden'
-        wrapper.style.background = '#000'
-        
         const iframe = document.createElement('iframe')
         iframe.allow = 'microphone; camera; autoplay; display-capture'
         iframe.style.width = '100%'
@@ -187,26 +179,25 @@ async function joinCall(roomName) {
         iframe.style.border = 'none'
         iframe.style.background = '#000'
         
-        // FIXED: Build URL correctly with all config
-        const baseUrl = `https://${JAAS_DOMAIN}/${roomName}`
+        // SIMPLE CONFIG - Let Jitsi show its beautiful UI!
         const config = {
             configOverwrite: {
                 prejoinPageEnabled: false,
                 enableWelcomePage: false,
                 startWithAudioMuted: false,
                 startWithVideoMuted: true,
-                disableChat: true,
-                disableInviteFunctions: true,
-                toolbarButtons: [],
-                hideConferenceTimer: true,
-                hideParticipantsStats: true,
-                hideLogo: true,
-                hideWatermark: true
+                disableChat: false,        // Keep chat if users want
+                disableInviteFunctions: false,
+                toolbarButtons: ['microphone', 'camera', 'hangup', 'chat', 'raisehand'], // Keep essential buttons
+                hideConferenceTimer: false,
+                hideParticipantsStats: false,
+                hideLogo: false,
+                hideWatermark: false
             },
             interfaceConfigOverwrite: {
-                TOOLBAR_BUTTONS: [],
-                SHOW_JITSI_WATERMARK: false,
-                SHOW_WATERMARK_FOR_GUESTS: false,
+                TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup', 'chat', 'raisehand', 'tileview'],
+                SHOW_JITSI_WATERMARK: true,
+                SHOW_WATERMARK_FOR_GUESTS: true,
                 VIDEO_LAYOUT_FIT: 'cover'
             },
             userInfo: {
@@ -215,61 +206,13 @@ async function joinCall(roomName) {
         }
         
         const configParam = encodeURIComponent(JSON.stringify(config))
+        const baseUrl = `https://${JAAS_DOMAIN}/${roomName}`
         const url = `${baseUrl}#config=${configParam}`
         iframe.src = url
         console.log('8️⃣ Iframe URL:', url)
         
-        wrapper.appendChild(iframe)
-        container.appendChild(wrapper)
+        container.appendChild(iframe)
         jitsiIframe = iframe
-        
-        // Add CSS to hide any remaining Jitsi UI
-        const style = document.createElement('style')
-        style.textContent = `
-            .prejoin-screen, .welcome-page, .join-dialog,
-            [class*="toolbar"], [class*="Toolbar"],
-            [class*="watermark"], [class*="Watermark"] {
-                display: none !important;
-            }
-            video {
-                object-fit: cover !important;
-                width: 100% !important;
-                height: 100% !important;
-            }
-        `
-        wrapper.appendChild(style)
-        
-        // AUTO-JOIN: Click join button repeatedly
-        iframe.onload = function() {
-            console.log('Iframe loaded, auto-joining...')
-            
-            const joinInterval = setInterval(() => {
-                try {
-                    const iframeDoc = iframe.contentWindow.document
-                    
-                    // Try different join button selectors
-                    const joinSelectors = [
-                        '[data-testid="prejoin.joinButton"]',
-                        '.prejoin-input-area button',
-                        '.join-button',
-                        'button:contains("Join")'
-                    ]
-                    
-                    for (const selector of joinSelectors) {
-                        const btn = iframeDoc.querySelector(selector)
-                        if (btn) {
-                            console.log('Clicking join button')
-                            btn.click()
-                            clearInterval(joinInterval)
-                            break
-                        }
-                    }
-                    
-                } catch(e) {}
-            }, 1000)
-            
-            setTimeout(() => clearInterval(joinInterval), 10000)
-        }
         
         // Hide loading after delay
         setTimeout(() => {
@@ -285,57 +228,7 @@ async function joinCall(roomName) {
     }
 }
 
-// Video toggle
-window.toggleVideo = function() {
-    const btn = document.getElementById('videoBtn')
-    isVideoOn = !isVideoOn
-    
-    if (isVideoOn) {
-        btn.innerHTML = '<i class="fas fa-video"></i>'
-        btn.style.background = '#f5b342'
-    } else {
-        btn.innerHTML = '<i class="fas fa-video-slash"></i>'
-        btn.style.background = '#333'
-    }
-    
-    if (jitsiIframe) {
-        try {
-            jitsiIframe.contentWindow.postMessage({
-                type: 'setVideoMuted',
-                muted: !isVideoOn
-            }, '*')
-        } catch(e) {}
-    }
-}
-
-// Mute toggle
-window.toggleMute = function() {
-    const btn = document.getElementById('muteBtn')
-    btn.classList.toggle('muted')
-    btn.innerHTML = btn.classList.contains('muted') 
-        ? '<i class="fas fa-microphone-slash"></i>' 
-        : '<i class="fas fa-microphone"></i>'
-    
-    if (jitsiIframe) {
-        try {
-            jitsiIframe.contentWindow.postMessage({
-                type: 'muteAudio',
-                muted: btn.classList.contains('muted')
-            }, '*')
-        } catch(e) {}
-    }
-}
-
-// Speaker toggle
-window.toggleSpeaker = function() {
-    const btn = document.getElementById('speakerBtn')
-    btn.classList.toggle('speaker-off')
-    btn.innerHTML = btn.classList.contains('speaker-off')
-        ? '<i class="fas fa-volume-mute"></i>'
-        : '<i class="fas fa-volume-up"></i>'
-}
-
-// End call
+// Keep only the hangup button functionality
 window.endCall = async function() {
     console.log('Ending call...')
     if (currentCall) {
