@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Call History · RelayTalk</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #1e293b;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* Header */
+        .app-header {
+            background: white;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #005a9e;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        .header-btn {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            color: #007acc;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        /* History Container */
+        .history-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        .history-date {
+            font-weight: 600;
+            margin: 20px 0 10px;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .history-avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #007acc, #00b4d8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .history-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .history-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #1e293b;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .history-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .status-active { background: #e8f5e9; color: #28a745; }
+        .status-missed { background: #ffebee; color: #dc3545; }
+        .status-rejected { background: #fff3e0; color: #f57c00; }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: white;
+            border-radius: 25px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: none;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: #007acc;
+            color: white;
+            font-weight: 500;
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-history i {
+            font-size: 48px;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+        }
+
+        .empty-history h3 {
+            font-size: 1.3rem;
+            color: #334155;
+            margin-bottom: 8px;
+        }
+
+        .empty-history p {
+            color: #64748b;
+        }
+
+        /* Loading */
+        .loading-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #007acc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            max-width: 600px;
+            margin: 0 auto;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            gap: 4px;
+        }
+
+        .nav-item i {
+            font-size: 1.2rem;
+        }
+
+        .nav-item.active {
+            color: #007acc;
+        }
+
+        /* Primary Button */
+        .primary-btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .history-container {
+                padding: 15px;
+            }
+            
+            .history-avatar {
+                width: 44px;
+                height: 44px;
+                font-size: 1rem;
+            }
+            
+            .history-name {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-indicator" id="loadingIndicator">
+        <div class="loading-spinner"></div>
+        <div>Loading history...</div>
+    </div>
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <h1 class="header-title">📋 Call History</h1>
+            <div class="header-actions">
+                <button class="header-btn" onclick="window.close()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="history-container" id="historyContent">
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="filterHistory('all')">All</button>
+                <button class="filter-btn" onclick="filterHistory('active')">Answered</button>
+                <button class="filter-btn" onclick="filterHistory('missed')">Missed</button>
+                <button class="filter-btn" onclick="filterHistory('outgoing')">Outgoing</button>
+            </div>
+            <div id="historyList"></div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="../../home/index.html" class="nav-item">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item active">
+            <i class="fas fa-history"></i>
+            <span>History</span>
+        </a>
+        <a href="../../home/profile/index.html" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <script type="module">
+        import { initializeSupabase } from '../utils/supabase.js'
+        import { getRelayTalkUser, syncUserToDatabase } from '../utils/userSync.js'
+
+        let supabase
+        let currentUser
+        let allCalls = []
+        let currentFilter = 'all'
+
+        async function initHistory() {
+            document.getElementById('loadingIndicator').style.display = 'flex'
+
+            try {
+                const user = getRelayTalkUser()
+                if (!user) {
+                    window.location.href = '../../home/'
+                    return
+                }
+
+                supabase = await initializeSupabase()
+                currentUser = await syncUserToDatabase(supabase, user)
+
+                await loadCallHistory()
+
+                document.getElementById('loadingIndicator').style.display = 'none'
+
+            } catch (error) {
+                console.error('History error:', error)
+                document.getElementById('loadingIndicator').style.display = 'none'
+                document.getElementById('historyList').innerHTML = `
+                    <div class="empty-history">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h3>Error loading history</h3>
+                        <p>Please try again</p>
+                    </div>
+                `
+            }
+        }
+
+        async function loadCallHistory() {
+            const { data: calls, error } = await supabase
+                .from('calls')
+                .select('*')
+                .or(`caller_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+                .order('created_at', { ascending: false })
+                .limit(50)
+
+            if (error) throw error
+
+            allCalls = calls || []
+
+            // Get unique user IDs to fetch profiles
+            const userIds = new Set()
+            allCalls.forEach(call => {
+                if (call.caller_id !== currentUser.id) userIds.add(call.caller_id)
+                if (call.receiver_id !== currentUser.id) userIds.add(call.receiver_id)
+            })
+
+            // Fetch profiles
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, username, avatar_url')
+                .in('id', [...userIds])
+
+            const profileMap = {}
+            profiles?.forEach(p => profileMap[p.id] = p)
+
+            renderHistory(allCalls, profileMap)
+        }
+
+        function renderHistory(calls, profileMap) {
+            if (!calls || calls.length === 0) {
+                document.getElementById('historyList').innerHTML = `
+                    <div class="empty-history">
+                        <i class="fas fa-history"></i>
+                        <h3>No call history</h3>
+                        <p>Your calls will appear here</p>
+                        <button onclick="window.close()" class="primary-btn">
+                            Close
+                        </button>
+                    </div>
+                `
+                return
+            }
+
+            let html = ''
+            let currentDate = ''
+
+            calls.forEach(call => {
+                const callDate = new Date(call.created_at).toLocaleDateString()
+
+                if (callDate !== currentDate) {
+                    currentDate = callDate
+                    html += `<div class="history-date">${currentDate}</div>`
+                }
+
+                const isOutgoing = call.caller_id === currentUser.id
+                const otherUserId = isOutgoing ? call.receiver_id : call.caller_id
+                const otherUser = profileMap[otherUserId] || { username: 'Unknown' }
+
+                let statusClass = ''
+                let statusText = ''
+
+                if (call.status === 'active') {
+                    statusClass = 'status-active'
+                    statusText = 'Answered'
+                } else if (call.status === 'missed' || (call.status === 'ringing' && !isOutgoing)) {
+                    statusClass = 'status-missed'
+                    statusText = 'Missed'
+                } else if (call.status === 'rejected') {
+                    statusClass = 'status-rejected'
+                    statusText = 'Rejected'
+                } else if (call.status === 'cancelled' && isOutgoing) {
+                    statusClass = 'status-rejected'
+                    statusText = 'Cancelled'
+                } else {
+                    statusClass = 'status-missed'
+                    statusText = call.status
+                }
+
+                // Apply filter
+                if (currentFilter === 'active' && call.status !== 'active') return
+                if (currentFilter === 'missed' && (call.status === 'active' || call.status === 'rejected')) return
+                if (currentFilter === 'outgoing' && !isOutgoing) return
+
+                const duration = call.duration ? formatDuration(call.duration) : ''
+                const time = new Date(call.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+                const initial = otherUser.username?.charAt(0).toUpperCase() || '?'
+
+                html += `
+                    <div class="history-item">
+                        <div class="history-avatar">
+                            ${otherUser.avatar_url 
+                                ? `<img src="${otherUser.avatar_url}" alt="${otherUser.username}">`
+                                : `<span>${initial}</span>`
+                            }
+                        </div>
+                        <div class="history-info">
+                            <div class="history-name">${otherUser.username}</div>
+                            <div class="history-meta">
+                                <span>${isOutgoing ? '📤 Outgoing' : '📥 Incoming'}</span>
+                                <span>•</span>
+                                <span>${time}</span>
+                                ${duration ? `<span>•</span><span>${duration}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="history-status ${statusClass}">${statusText}</div>
+                    </div>
+                `
+            })
+
+            document.getElementById('historyList').innerHTML = html || `
+                <div class="empty-history">
+                    <i class="fas fa-filter"></i>
+                    <h3>No calls match filter</h3>
+                </div>
+            `
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60)
+            const secs = seconds % 60
+            return `${mins}:${secs.toString().padStart(2, '0')}`
+        }
+
+        window.filterHistory = function(filter) {
+            currentFilter = filter
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active')
+            })
+            event.target.classList.add('active')
+
+            loadCallHistory() // Reload with filter
+        }
+
+        initHistory()
+    </script>
+</body>
+</html>
