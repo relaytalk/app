@@ -1,4 +1,4 @@
-// call-app/utils/jitsi.js - VOICE-FIRST JAAS INTEGRATION
+// call-app/utils/jitsi.js - COMPLETE WITH AUTO-JOIN
 
 const JAAS_APP_ID = 'vpaas-magic-cookie-16664d50d3a04e79a2876de86dcc38e4'
 const JAAS_DOMAIN = '8x8.vc'
@@ -10,14 +10,20 @@ export async function createCallRoom(roomName = null) {
         
         console.log('🎯 Creating VOICE-FIRST room:', fullRoomName)
         
+        // CONFIG THAT AUTO-JOINS!
         const config = {
             configOverwrite: {
-                startWithAudioMuted: false,
-                startWithVideoMuted: true,
+                // AUTO-JOIN SETTINGS - THIS IS KEY!
+                prejoinPageEnabled: false,           // Skip name entry
+                enableWelcomePage: false,             // Skip welcome
+                startWithAudioMuted: false,           // Audio on
+                startWithVideoMuted: true,            // Video off by default
+                
+                // Audio settings
                 enableNoAudioDetection: true,
                 enableNoisyMicDetection: true,
-                prejoinPageEnabled: false,
-                enableWelcomePage: false,
+                
+                // Remove all distractions
                 disableChat: true,
                 disableInviteFunctions: true,
                 disableRecording: true,
@@ -25,6 +31,8 @@ export async function createCallRoom(roomName = null) {
                 disableReactions: true,
                 disableRaiseHand: true,
                 disableModeratorIndicator: true,
+                
+                // Hide ALL the things
                 hideConferenceTimer: true,
                 hideParticipantsStats: true,
                 hideLogo: true,
@@ -35,21 +43,23 @@ export async function createCallRoom(roomName = null) {
                 hideVideoQualityLabel: true,
                 hideAddPersonButton: true,
                 hideMeetingName: true,
-                toolbarButtons: ['microphone', 'hangup'],
+                
+                // Hide Jitsi's toolbar completely - we have our own!
+                toolbarButtons: [],                    // Empty = hide all
                 toolbarAlwaysVisible: false,
-                toolbarAutoHide: true,
+                
+                // Prioritize audio
                 startBitrate: 'audio',
                 channelLastN: 1,
-                disableVideoQualityLabel: true,
-                enableLayerSuspension: true,
-                disableFilmstripAutoHide: false,
+                
+                // Disable dial-in
                 dialInConfCode: { enabled: false },
                 dialOutEnabled: false,
                 enableDialIn: false,
                 phoneEnabled: false
             },
             interfaceConfigOverwrite: {
-                TOOLBAR_BUTTONS: ['microphone', 'hangup'],
+                TOOLBAR_BUTTONS: [],                   // Hide all buttons
                 SHOW_JITSI_WATERMARK: false,
                 SHOW_WATERMARK_FOR_GUESTS: false,
                 DEFAULT_LOGO_URL: '',
@@ -94,19 +104,8 @@ export async function getRoomInfo(roomName) {
 
 export function getCallUrl(roomUrl, username = 'User') {
     try {
-        const config = {
-            userInfo: {
-                displayName: username
-            }
-        }
-        
-        if (roomUrl.includes('#config=')) {
-            return `${roomUrl}&userInfo.displayName=${encodeURIComponent(username)}`
-        } else {
-            const configParam = encodeURIComponent(JSON.stringify(config))
-            return `${roomUrl}#config=${configParam}`
-        }
-        
+        // Add username to URL - this auto-fills the name!
+        return `${roomUrl}&userInfo.displayName=${encodeURIComponent(username)}`
     } catch (error) {
         return roomUrl
     }
