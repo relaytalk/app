@@ -1,4 +1,4 @@
-/* friends.css - ULTRA SIMPLE WITH CALL BUTTON */
+/* friends.css - COMPLETE WITH CALL STYLES */
 
 * {
     margin: 0;
@@ -119,147 +119,6 @@ body {
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
-}
-
-/* Friend Item with Call Button */
-.friend-item {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 12px 15px;
-    background: white;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    border: 1px solid #f0f0f0;
-    transition: all 0.1s;
-}
-
-.friend-item:active {
-    background: #f5f7fa;
-}
-
-.friend-avatar {
-    width: 55px;
-    height: 55px;
-    background: linear-gradient(135deg, #007acc, #00b4d8);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: white;
-    flex-shrink: 0;
-    position: relative;
-    cursor: pointer;
-}
-
-.friend-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-.friend-info-clean {
-    flex: 1;
-    min-width: 0;
-    cursor: pointer;
-}
-
-.friend-name-status {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.friend-name-clean {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #1e293b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.friend-status-clean {
-    font-size: 0.85rem;
-    color: #64748b;
-}
-
-/* Call Button Styles */
-.call-friend-btn {
-    background: #007acc;
-    border: none;
-    color: white;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 5px;
-    cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0,122,204,0.3);
-}
-
-.call-friend-btn:active {
-    transform: scale(0.9);
-    background: #005a9e;
-}
-
-.call-friend-btn i {
-    font-size: 1.2rem;
-}
-
-/* Status Indicator */
-.status-indicator-clean {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 2px solid white;
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-}
-
-.status-indicator-clean.online {
-    background: #28a745;
-}
-
-.status-indicator-clean.offline {
-    background: #888888;
-}
-
-/* Incoming Call Notification */
-#incomingCallNotification {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: #007acc;
-    color: white;
-    padding: 16px 20px;
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    animation: slideDown 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-#incomingCallNotification button {
-    transition: all 0.2s;
-    border: none;
-    cursor: pointer;
-}
-
-#incomingCallNotification button:active {
-    transform: scale(0.95);
 }
 
 /* Empty State */
@@ -512,17 +371,6 @@ body {
     }
 }
 
-@keyframes slideDown {
-    from { transform: translateY(-100%); }
-    to { transform: translateY(0); }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
 /* Loading */
 .loading-indicator {
     position: fixed;
@@ -561,19 +409,5 @@ body {
     .friends-list {
         padding: 15px;
     }
-
-    .friend-avatar {
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
-    }
-    
-    .call-friend-btn {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .call-friend-btn i {
-        font-size: 1rem;
-    }
 }
+
