@@ -55,7 +55,7 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav">
-        <a href="../../home/index.html" class="nav-item">
+        <a href="../../../home/index.html" class="nav-item">
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
@@ -93,13 +93,13 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Scripts -->
-    <script type="module" src="../../utils/supabase.js"></script>
+    <!-- Scripts - FIXED PATHS (../../../ for utils) -->
+    <script type="module" src="../../../utils/supabase.js"></script>
     <script type="module" src="friends.js"></script>
     
-    <!-- SIMPLE CALL LISTENER - exactly like call-app -->
+    <!-- Simple Call Listener -->
     <script type="module">
-        import { initializeSupabase } from '../../utils/supabase.js';
+        import { initializeSupabase } from '../../../utils/supabase.js';
         
         let audioPlayer = null;
         
@@ -121,7 +121,7 @@
             
             // Listen for calls
             supabase
-                .channel('incoming-calls')
+                .channel('incoming-calls-friends')
                 .on('postgres_changes', {
                     event: 'INSERT',
                     schema: 'public',
@@ -149,7 +149,7 @@
                             if (audioPlayer) audioPlayer.pause();
                             await supabase
                                 .from('calls')
-                                .update({ status: 'rejected' })
+                                .update({ status: 'rejected', ended_at: new Date().toISOString() })
                                 .eq('id', payload.new.id);
                         }
                     }
@@ -158,6 +158,14 @@
         }
         
         initCallListener();
+        
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            if (audioPlayer) {
+                audioPlayer.pause();
+                audioPlayer = null;
+            }
+        });
     </script>
 </body>
 </html>
