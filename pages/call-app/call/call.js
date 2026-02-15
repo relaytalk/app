@@ -1,4 +1,4 @@
-// call-app/call/call.js - COMPLETE FIXED VERSION
+// call-app/call/call.js - WITH VIDEO BUTTON ON YOUR UI
 
 import { initializeSupabase } from '../utils/supabase.js'
 import { createCallRoom, getRoomInfo, getCallUrl } from '../utils/jitsi.js'
@@ -9,7 +9,7 @@ let currentUser
 let currentCall
 let jitsiIframe
 let callRoom
-let audioElements = []
+let isVideoOn = false  // Track video state
 
 async function initCall() {
     console.log('📞 Initializing call page with Jitsi...')
@@ -199,38 +199,76 @@ async function joinCall(roomName) {
         container.appendChild(wrapper)
         jitsiIframe = iframe
         
+        // Add CSS to hide ALL Jitsi UI
         const style = document.createElement('style')
         style.textContent = `
-            video, #largeVideo, .videocontainer, .remote-videos,
-            [class*="video"], [class*="Video"] {
+            /* Hide everything Jitsi */
+            .prejoin-screen, .welcome-page, .join-dialog,
+            input, button, [class*="toolbar"], [class*="Toolbar"],
+            [class*="watermark"], [class*="Watermark"],
+            [class*="filmstrip"], [class*="Filmstrip"],
+            [class*="chat"], [class*="Chat"],
+            [class*="invite"], [class*="Invite"],
+            [class*="moderator"], [class*="Moderator"],
+            [class*="dial"], [class*="Dial"],
+            [class*="phone"], [class*="Phone"],
+            .subject, .conference-timer {
+                display: none !important;
+            }
+            
+            /* Keep video visible */
+            video, #largeVideo, .videocontainer, .remote-videos {
+                display: block !important;
                 object-fit: cover !important;
                 width: 100% !important;
                 height: 100% !important;
             }
-            input, .prejoin-input-area, .welcome-page, .join-dialog,
-            [class*="prejoin"], [class*="welcome"], [class*="input"],
-            [class*="Input"], [class*="form"], [class*="Form"] {
-                display: none !important;
-            }
-            .watermark, .brand-watermark, .powered-by,
-            [class*="watermark"], [class*="logo"], [class*="Logo"] {
-                display: none !important;
-            }
         `
         wrapper.appendChild(style)
         
+        // AUTO-JOIN: Click any join button that appears
         iframe.onload = function() {
-            console.log('Iframe loaded')
-            setTimeout(() => {
-                try {
-                    const iframeDoc = iframe.contentWindow.document
-                    const audioEls = iframeDoc.querySelectorAll('audio, video')
-                    audioElements = Array.from(audioEls)
-                    console.log(`Found ${audioElements.length} audio/video elements`)
-                } catch(e) {
-                    console.log('Could not access iframe audio elements:', e)
-                }
-            }, 3000)
+            console.log('Iframe loaded, auto-joining...')
+            
+            // Try multiple times to ensure join happens
+            const joinAttempts = [1000, 2000, 3000, 5000]
+            
+            joinAttempts.forEach(delay => {
+                setTimeout(() => {
+                    try {
+                        const iframeDoc = iframe.contentWindow.document
+                        
+                        // Find and click join button
+                        const joinSelectors = [
+                            'button[data-testid="prejoin.joinButton"]',
+                            '.prejoin-input-area button',
+                            '.join-button',
+                            'button:contains("Join")',
+                            'button:contains("Join meeting")',
+                            'button:contains("Join now")'
+                        ]
+                        
+                        for (const selector of joinSelectors) {
+                            const btn = iframeDoc.querySelector(selector)
+                            if (btn) {
+                                console.log(`Found join button (${selector}), clicking...`)
+                                btn.click()
+                                break
+                            }
+                        }
+                        
+                        // Also try to find name input and fill it (just in case)
+                        const nameInput = iframeDoc.querySelector('input[placeholder*="name"], input[type="text"]')
+                        if (nameInput) {
+                            nameInput.value = currentUser.username
+                            nameInput.dispatchEvent(new Event('input', { bubbles: true }))
+                        }
+                        
+                    } catch(e) {
+                        // Ignore errors - iframe might not be ready
+                    }
+                }, delay)
+            })
         }
         
         setTimeout(() => {
@@ -246,28 +284,27 @@ async function joinCall(roomName) {
     }
 }
 
-function setAudioMode(mode) {
-    console.log(`Setting audio mode to: ${mode}`)
+// Toggle video on/off
+window.toggleVideo = function() {
+    const btn = document.getElementById('videoBtn')
+    isVideoOn = !isVideoOn
     
-    try {
-        if (jitsiIframe) {
-            try {
-                const iframeDoc = jitsiIframe.contentWindow.document
-                const mediaElements = iframeDoc.querySelectorAll('audio, video')
-                
-                mediaElements.forEach(el => {
-                    if (mode === 'speaker') {
-                        el.setSinkId?.('default').catch(() => {})
-                    } else {
-                        el.setSinkId?.('earpiece').catch(() => {})
-                    }
-                })
-            } catch(e) {
-                console.log('Could not access iframe audio:', e)
-            }
-        }
-    } catch (error) {
-        console.log('Audio mode change error:', error)
+    if (isVideoOn) {
+        btn.innerHTML = '<i class="fas fa-video"></i>'
+        btn.style.background = '#f5b342'  // Highlight when on
+    } else {
+        btn.innerHTML = '<i class="fas fa-video-slash"></i>'
+        btn.style.background = '#333'      // Dim when off
+    }
+    
+    // Send video toggle to Jitsi
+    if (jitsiIframe) {
+        try {
+            jitsiIframe.contentWindow.postMessage({
+                type: 'setVideoMuted',
+                muted: !isVideoOn
+            }, '*')
+        } catch(e) {}
     }
 }
 
@@ -292,18 +329,11 @@ window.toggleMute = function() {
 
 window.toggleSpeaker = function() {
     const btn = document.getElementById('speakerBtn')
-    const isSpeakerOff = btn.classList.contains('speaker-off')
-    
-    if (isSpeakerOff) {
-        btn.classList.remove('speaker-off')
-        btn.innerHTML = '<i class="fas fa-volume-up"></i>'
-        setAudioMode('speaker')
-        console.log('Switched to SPEAKER mode')
-    } else {
-        btn.classList.add('speaker-off')
+    btn.classList.toggle('speaker-off')
+    if (btn.classList.contains('speaker-off')) {
         btn.innerHTML = '<i class="fas fa-volume-mute"></i>'
-        setAudioMode('earpiece')
-        console.log('Switched to EARPIECE mode')
+    } else {
+        btn.innerHTML = '<i class="fas fa-volume-up"></i>'
     }
 }
 
