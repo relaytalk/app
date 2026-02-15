@@ -1,4 +1,4 @@
-// friends.js - WITH CORRECT IMPORTS
+// friends.js - WITH WORKING INCOMING CALL NOTIFICATION
 
 import { initializeSupabase } from '../../../utils/supabase.js';
 
@@ -6,6 +6,7 @@ let supabase = null;
 let currentUser = null;
 let allFriends = [];
 let filteredFriends = [];
+let callListener = null;
 
 async function initFriendsPage() {
     console.log('Loading friends...');
@@ -34,8 +35,8 @@ async function initFriendsPage() {
         const loader = document.getElementById('loadingIndicator');
         if (loader) loader.classList.add('hidden');
 
-        // Initialize call listener for incoming calls
-        initCallListener();
+        // IMPORTANT: Initialize call listener for incoming calls
+        await initializeCallListener();
 
     } catch (error) {
         console.error('Init error:', error);
@@ -43,13 +44,20 @@ async function initFriendsPage() {
     }
 }
 
-// Initialize call listener
-async function initCallListener() {
+// SEPARATE FUNCTION to initialize call listener
+async function initializeCallListener() {
     try {
+        console.log('📞 Initializing call listener for:', currentUser.username);
+        
+        // Dynamically import the call listener
         const { initCallListener } = await import('../../call/utils/callListener.js');
-        initCallListener(supabase, currentUser);
+        
+        // Initialize it with supabase and current user
+        callListener = initCallListener(supabase, currentUser);
+        
+        console.log('✅ Call listener initialized successfully');
     } catch (error) {
-        console.error('Failed to load call listener:', error);
+        console.error('❌ Failed to initialize call listener:', error);
     }
 }
 
@@ -113,7 +121,7 @@ function renderFriendsList() {
                         ? `<img src="${friend.avatar_url}" alt="${friend.username}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
                         : `<span style="color:white; font-size:1.3rem; font-weight:600;">${initial}</span>`
                     }
-                    <span class="status-indicator-clean ${online ? 'online' : 'offline'}" style="position: absolute; bottom: 5px; right: 5px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; ${online ? 'background: #28a745;' : 'background: #888888;'}"></span>
+                    <span class="status-indicator-clean ${online ? 'online' : 'offline'}"></span>
                 </div>
                 <div class="friend-info-clean" onclick="openChat('${friend.id}', '${friend.username}')" style="cursor:pointer; flex:1;">
                     <div class="friend-name-status">
@@ -139,7 +147,7 @@ function renderFriendsList() {
 window.startCall = function(friendId, friendName, event) {
     event.stopPropagation(); // Prevent opening chat
     
-    // Open call in new tab - CORRECT PATH
+    // Open call in new tab
     const callUrl = `../../call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`;
     window.open(callUrl, '_blank');
     
@@ -374,6 +382,13 @@ window.openSearch = () => {
 window.closeModal = () => {
     document.getElementById('searchModal').style.display = 'none';
 };
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (callListener && typeof callListener.cleanup === 'function') {
+        callListener.cleanup();
+    }
+});
 
 // Start
 document.addEventListener('DOMContentLoaded', initFriendsPage);
