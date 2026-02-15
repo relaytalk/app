@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Call · RelayTalk</title>
+
+    <!-- Jitsi External API -->
+    <script src='https://8x8.vc/external_api.js' async></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        #jitsiContainer {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: #000;
+        }
+
+        /* Loading Screen - RelayTalk Theme */
+        .call-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #1e293b;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #007acc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #loadingText {
+            font-size: 16px;
+            color: #64748b;
+        }
+
+        /* Error Screen - RelayTalk Theme */
+        .error-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #1e293b;
+            z-index: 2000;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .error-screen i {
+            font-size: 60px;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+
+        .error-screen h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+
+        #errorMessage {
+            color: #64748b;
+            margin: 10px 0 20px;
+            font-size: 16px;
+            max-width: 300px;
+        }
+
+        .back-home-btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .back-home-btn:active {
+            background: #005a9e;
+            transform: scale(0.98);
+        }
+
+        .back-home-btn i {
+            font-size: 16px;
+            color: white;
+            margin: 0;
+        }
+
+        /* Incoming Call Screen - RelayTalk Theme */
+        .incoming-call-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1500;
+        }
+
+        .incoming-call-content {
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .caller-avatar {
+            margin-bottom: 20px;
+        }
+
+        .caller-avatar i {
+            font-size: 100px;
+            color: #007acc;
+        }
+
+        .caller-avatar img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #007acc;
+        }
+
+        .caller-info h2 {
+            font-size: 28px;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+
+        .caller-info p {
+            color: #64748b;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        .call-actions {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .call-btn {
+            width: 70px;
+            height: 70px;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .call-btn:active {
+            transform: scale(0.95);
+        }
+
+        .accept-btn {
+            background: #28a745;
+        }
+
+        .decline-btn {
+            background: #dc3545;
+        }
+
+        /* Hide any Jitsi elements that might interfere */
+        .new-toolbox, .toolbox, .watermark {
+            z-index: 100 !important;
+        }
+
+        /* Ensure video is visible */
+        video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+        }
+
+        /* Call Ended Screen */
+        .call-ended-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1500;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .caller-avatar i {
+                font-size: 80px;
+            }
+
+            .caller-info h2 {
+                font-size: 24px;
+            }
+
+            .call-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="call-loading" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div id="loadingText">Starting call...</div>
+    </div>
+
+    <!-- Incoming Call Screen -->
+    <div class="incoming-call-screen" id="incomingCallScreen" style="display: none;">
+        <div class="incoming-call-content">
+            <div class="caller-avatar" id="callerAvatar">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="caller-info">
+                <h2 id="callerName">Incoming Call</h2>
+                <p>Voice call · RelayTalk</p>
+            </div>
+            <div class="call-actions">
+                <button class="call-btn decline-btn" onclick="window.declineCall()">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+                <button class="call-btn accept-btn" onclick="window.acceptCall()">
+                    <i class="fas fa-phone-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Call Container -->
+    <div id="jitsiContainer"></div>
+
+    <!-- Error Screen -->
+    <div class="error-screen" id="errorScreen" style="display: none;">
+        <i class="fas fa-exclamation-circle"></i>
+        <h3>Call Failed</h3>
+        <p id="errorMessage">Could not start the call</p>
+        <button class="back-home-btn" onclick="window.closeWindow()">
+            <i class="fas fa-times"></i> Close
+        </button>
+    </div>
+
+    <!-- Call Ended Screen -->
+    <div class="call-ended-screen" id="callEndedScreen" style="display: none;">
+        <div class="incoming-call-content">
+            <div class="caller-avatar">
+                <i class="fas fa-phone-slash" style="color: #dc3545; font-size: 80px;"></i>
+            </div>
+            <div class="caller-info">
+                <h2 style="color: #1e293b;">Call Ended</h2>
+                <p style="color: #64748b; margin: 10px 0 20px;">The call has ended</p>
+            </div>
+            <button class="back-home-btn" onclick="window.closeWindow()">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="call.js"></script>
+
+    <script>
+        // Close window function
+        window.closeWindow = function() {
+            window.close();
+            // Fallback if window.close is blocked
+            setTimeout(() => {
+                window.location.href = '../home/';
+            }, 100);
+        };
+
+        window.acceptCall = function() {
+            document.getElementById('incomingCallScreen').style.display = 'none';
+        };
+
+        window.declineCall = function() {
+            window.closeWindow();
+        };
+    </script>
+</body>
+</html>
