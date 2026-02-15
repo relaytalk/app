@@ -1,4 +1,4 @@
-// friends.js - WITH AVATAR SUPPORT
+// friends.js - WITH CALL BUTTON AND INCOMING CALL LISTENER
 
 import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
 
@@ -6,6 +6,7 @@ let supabase = null;
 let currentUser = null;
 let allFriends = [];
 let filteredFriends = [];
+let callSubscription = null;
 
 // Initialize with Supabase wait
 async function initFriendsPage() {
@@ -31,6 +32,7 @@ async function initFriendsPage() {
         console.log('✅ Logged in as:', currentUser.email);
 
         await loadFriends();
+        setupIncomingCallListener();
 
         const loader = document.getElementById('loadingIndicator');
         if (loader) loader.classList.add('hidden');
@@ -41,7 +43,7 @@ async function initFriendsPage() {
     }
 }
 
-// 🔥 UPDATED: Load friends WITH AVATAR URL
+// Load friends WITH AVATAR URL
 async function loadFriends() {
     try {
         if (!currentUser || !supabase) return;
@@ -59,8 +61,7 @@ async function loadFriends() {
         }
 
         const friendIds = friendsData.map(f => f.friend_id);
-        
-        // 🔥 UPDATED: Include avatar_url
+
         const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
             .select('id, username, avatar_url, status, last_seen')
@@ -79,7 +80,7 @@ async function loadFriends() {
     }
 }
 
-// 🔥 UPDATED: Render friends list WITH AVATAR URL
+// Render friends list WITH AVATAR URL AND CALL BUTTON
 function renderFriendsList() {
     const container = document.getElementById('friendsList');
     if (!container) return;
@@ -94,31 +95,200 @@ function renderFriendsList() {
     filteredFriends.forEach(friend => {
         const initial = friend.username ? friend.username.charAt(0).toUpperCase() : '?';
         const online = friend.status === 'online';
-        const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Never';
+        const lastSeen = friend.last_seen ? formatLastSeen(friend.lastSeen) : 'Never';
 
         html += `
-            <div class="friend-item" onclick="openChat('${friend.id}', '${friend.username}')">
-                <div class="friend-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8); position: relative;">
+            <div class="friend-item">
+                <div class="friend-avatar" onclick="openChat('${friend.id}', '${friend.username}')" style="background: linear-gradient(45deg, #007acc, #00b4d8); position: relative; cursor: pointer;">
                     ${friend.avatar_url 
                         ? `<img src="${friend.avatar_url}" alt="${friend.username}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
                         : `<span style="color:white; font-size:1.3rem; font-weight:600;">${initial}</span>`
                     }
                     <span class="status-indicator-clean ${online ? 'online' : 'offline'}" style="position: absolute; bottom: 5px; right: 5px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; ${online ? 'background: #28a745;' : 'background: #888888;'}"></span>
                 </div>
-                <div class="friend-info-clean">
+                <div class="friend-info-clean" onclick="openChat('${friend.id}', '${friend.username}')" style="flex:1; cursor: pointer;">
                     <div class="friend-name-status">
                         <div class="friend-name-clean">${friend.username || 'User'}</div>
                         <div class="friend-status-clean">
                             ${online ? 'Online' : `Last seen ${lastSeen}`}
                         </div>
                     </div>
-                    <i class="fas fa-chevron-right" style="color:#cbd5e1;"></i>
                 </div>
+                <button class="call-friend-btn" onclick="startCall('${friend.id}', '${friend.username}', event)" style="background: #007acc; border: none; color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 5px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,122,204,0.3);">
+                    <i class="fas fa-phone"></i>
+                </button>
             </div>
         `;
     });
 
     container.innerHTML = html;
+}
+
+// Start voice call
+window.startCall = async function(friendId, friendName, event) {
+    event.stopPropagation(); // Prevent opening chat
+    
+    try {
+        // Navigate to CallApp
+        window.location.href = `/pages/call-app/call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`;
+        
+        showToast('success', `Calling ${friendName}...`);
+        
+    } catch (error) {
+        console.error('Call error:', error);
+        showToast('error', 'Failed to start call');
+    }
+};
+
+// Setup incoming call listener
+function setupIncomingCallListener() {
+    if (!supabase || !currentUser) return;
+    
+    console.log('📞 Setting up incoming call listener for:', currentUser.email);
+    
+    callSubscription = supabase
+        .channel('incoming-calls-friends')
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'calls',
+            filter: `receiver_id=eq.${currentUser.id}`
+        }, (payload) => {
+            console.log('📞 Incoming call detected!', payload.new);
+            
+            if (payload.new.status === 'ringing') {
+                handleIncomingCall(payload.new);
+            }
+        })
+        .subscribe();
+}
+
+// Handle incoming call
+async function handleIncomingCall(call) {
+    // Don't show if already on call page
+    if (window.location.pathname.includes('/call-app/')) {
+        return;
+    }
+    
+    // Get caller info
+    const { data: caller } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', call.caller_id)
+        .single();
+    
+    showIncomingCallNotification(call, caller);
+    playRingtone();
+}
+
+// Play simple ringtone
+function playRingtone() {
+    try {
+        const audio = new Audio();
+        audio.loop = true;
+        audio.volume = 0.5;
+        audio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
+        audio.play().catch(e => console.log('Audio play failed:', e));
+        window.currentRingtone = audio;
+    } catch (e) {}
+}
+
+// Stop ringtone
+function stopRingtone() {
+    if (window.currentRingtone) {
+        window.currentRingtone.pause();
+        window.currentRingtone = null;
+    }
+}
+
+// Show incoming call notification
+function showIncomingCallNotification(call, caller) {
+    // Remove existing notification
+    const existing = document.getElementById('incomingCallNotification');
+    if (existing) existing.remove();
+    
+    const notification = document.createElement('div');
+    notification.id = 'incomingCallNotification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #007acc;
+        color: white;
+        padding: 16px 20px;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        animation: slideDown 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+    
+    // Add animation style
+    if (!document.getElementById('callAnimationStyles')) {
+        const style = document.createElement('style');
+        style.id = 'callAnimationStyles';
+        style.textContent = `
+            @keyframes slideDown {
+                from { transform: translateY(-100%); }
+                to { transform: translateY(0); }
+            }
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    const avatar = caller?.avatar_url 
+        ? `<img src="${caller.avatar_url}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white;">`
+        : `<div style="width: 44px; height: 44px; border-radius: 50%; background: white; color: #007acc; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">${caller?.username?.charAt(0).toUpperCase() || '?'}</div>`;
+    
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+            ${avatar}
+            <div>
+                <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">${caller?.username || 'Incoming Call'}</div>
+                <div style="font-size: 13px; opacity: 0.9;">🔊 Incoming voice call...</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button id="acceptCallBtn" style="background: white; border: none; color: #28a745; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite;">
+                <i class="fas fa-phone-alt"></i>
+            </button>
+            <button id="declineCallBtn" style="background: white; border: none; color: #dc3545; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.prepend(notification);
+    
+    document.getElementById('acceptCallBtn').addEventListener('click', async () => {
+        stopRingtone();
+        notification.remove();
+        
+        await supabase
+            .from('calls')
+            .update({ status: 'active', answered_at: new Date().toISOString() })
+            .eq('id', call.id);
+        
+        window.location.href = `/pages/call-app/call/index.html?incoming=true&room=${call.room_name}&callerId=${call.caller_id}&callId=${call.id}`;
+    });
+    
+    document.getElementById('declineCallBtn').addEventListener('click', async () => {
+        stopRingtone();
+        notification.remove();
+        
+        await supabase
+            .from('calls')
+            .update({ status: 'rejected', ended_at: new Date().toISOString() })
+            .eq('id', call.id);
+    });
 }
 
 // Format last seen
@@ -169,7 +339,7 @@ function showEmptyState() {
         <div class="empty-state">
             <div class="empty-icon">👥</div>
             <h3>No friends yet</h3>
-            <p>Add friends to start chatting</p>
+            <p>Add friends to start chatting and calling</p>
             <button class="add-friends-btn" onclick="openSearch()">
                 <i class="fas fa-user-plus"></i> Add Friends
             </button>
@@ -203,7 +373,7 @@ window.openChat = function(friendId, friendName) {
     window.location.href = `../../chats/index.html?friendId=${friendId}`;
 };
 
-// 🔥 UPDATED: Search users WITH AVATAR URL
+// Search users
 window.searchUsers = async function() {
     if (!supabase || !currentUser) {
         console.log('Waiting for Supabase...');
@@ -237,7 +407,6 @@ window.searchUsers = async function() {
 
         const pendingIds = pending?.map(r => r.receiver_id) || [];
 
-        // 🔥 UPDATED: Include avatar_url
         const { data: users, error } = await supabase
             .from('profiles')
             .select('id, username, avatar_url')
@@ -357,14 +526,21 @@ window.logout = async () => {
     if (supabase) await supabase.auth.signOut();
     localStorage.clear();
     sessionStorage.clear();
-    
-    // Clear cookies
+
     document.cookie.split(";").forEach(function(c) {
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
     });
-    
+
     window.location.href = '../../../pages/login/index.html';
 };
+
+// Cleanup
+window.addEventListener('beforeunload', () => {
+    if (callSubscription) {
+        callSubscription.unsubscribe();
+    }
+    stopRingtone();
+});
 
 // Start
 document.addEventListener('DOMContentLoaded', initFriendsPage);
