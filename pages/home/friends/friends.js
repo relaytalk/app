@@ -1,358 +1,289 @@
-// friends.js - USING YOUR ORIGINAL WORKING CALL LISTENER
+import { initializeSupabase } from '../../../utils/supabase.js'
+import { initCallListener } from '../../call/utils/callListener.js'
 
-import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
-import { initCallListener } from '../../call/utils/callListener.js';
-
-let supabase = null;
-let currentUser = null;
-let allFriends = [];
-let filteredFriends = [];
+let supabase
+let currentUser
+let friends = []
 
 async function initFriendsPage() {
-    console.log('Loading friends...');
+    showLoading(true, 'Loading friends...')
 
     try {
-        supabase = await initializeSupabase();
-
-        if (!supabase || !supabase.auth) {
-            throw new Error('Supabase not initialized');
+        const user = getRelayTalkUser()
+        if (!user) {
+            showError('Please login to RelayTalk first')
+            return
         }
 
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('✅ Got user from RelayTalk:', user.email)
+        console.log('✅ User ID:', user.id)
 
-        if (error) throw error;
+        supabase = await initializeSupabase()
+        currentUser = await syncUserToDatabase(supabase, user)
+        console.log('✅ User synced to CallApp DB')
 
-        if (!session) {
-            window.location.href = '../login/index.html';
-            return;
-        }
+        showLoading(true, 'Loading friends...')
+        friends = await getFriends()
 
-        currentUser = session.user;
-        console.log('✅ Logged in as:', currentUser.email);
+        showLoading(false)
 
-        await loadFriends();
+        // Initialize call listener - EXACTLY like call-app
+        initCallListener(supabase, currentUser)
 
-        const loader = document.getElementById('loadingIndicator');
-        if (loader) loader.classList.add('hidden');
-
-        // ✅ USE THE IMPORTED CALL LISTENER - JUST LIKE YOUR OLD CALL-APP
-        initCallListener(supabase, currentUser);
+        loadFriendsList()
 
     } catch (error) {
-        console.error('Init error:', error);
-        showError('Failed to load friends: ' + error.message);
+        console.error('❌ Init error:', error)
+        showError('Failed to initialize: ' + error.message)
     }
 }
 
-async function loadFriends() {
+function getRelayTalkUser() {
     try {
-        if (!currentUser || !supabase) return;
+        const possibleKeys = [
+            'supabase.auth.token',
+            'sb-auth-token',
+            'sb-refresh-token'
+        ]
 
-        const { data: friendsData, error: friendsError } = await supabase
-            .from('friends')
-            .select('friend_id')
-            .eq('user_id', currentUser.id);
-
-        if (friendsError) throw friendsError;
-
-        if (!friendsData || friendsData.length === 0) {
-            showEmptyState();
-            return;
+        let authData = null
+        for (const key of possibleKeys) {
+            const data = localStorage.getItem(key)
+            if (data) {
+                authData = data
+                console.log(`✅ Found auth in: ${key}`)
+                break
+            }
         }
 
-        const friendIds = friendsData.map(f => f.friend_id);
+        if (!authData) {
+            console.log('No auth data found')
+            return null
+        }
 
-        const { data: profiles, error: profilesError } = await supabase
+        const parsed = JSON.parse(authData)
+        let session = null
+
+        if (parsed.currentSession) {
+            session = parsed.currentSession
+        } else if (parsed.user) {
+            session = parsed
+        } else if (parsed.access_token) {
+            session = { user: parsed.user || parsed }
+        } else if (Array.isArray(parsed) && parsed[0]?.user) {
+            session = parsed[0]
+        }
+
+        if (!session?.user) return null
+
+        const user = session.user
+
+        return {
+            id: user.id,
+            email: user.email || '',
+            username: user.user_metadata?.username || 
+                     user.email?.split('@')[0] || 
+                     'User',
+            avatar_url: user.user_metadata?.avatar_url || null
+        }
+
+    } catch (e) {
+        console.error('Error getting user:', e)
+        return null
+    }
+}
+
+async function syncUserToDatabase(supabase, user) {
+    try {
+        console.log('🔄 Syncing user to CallApp DB:', user.email)
+
+        const { data: existing, error: checkError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle()
+
+        if (checkError) throw checkError
+
+        if (existing) {
+            const { data: updated, error: updateError } = await supabase
+                .from('profiles')
+                .update({ 
+                    status: 'online',
+                    last_seen: new Date().toISOString(),
+                    username: existing.username || user.username,
+                    email: user.email,
+                    avatar_url: user.avatar_url || existing.avatar_url
+                })
+                .eq('id', user.id)
+                .select()
+                .single()
+
+            if (updateError) throw updateError
+            return updated || existing
+        }
+
+        const newUser = {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            avatar_url: user.avatar_url,
+            status: 'online',
+            last_seen: new Date().toISOString(),
+            created_at: new Date().toISOString()
+        }
+
+        const { data: created, error: insertError } = await supabase
+            .from('profiles')
+            .insert([newUser])
+            .select()
+            .single()
+
+        if (insertError) throw insertError
+
+        console.log('✅ User created in CallApp DB')
+        return created
+
+    } catch (error) {
+        console.error('❌ Sync failed:', error)
+        throw error
+    }
+}
+
+async function getFriends() {
+    try {
+        const { data: friendships } = await supabase
+            .from('friends')
+            .select('friend_id')
+            .eq('user_id', currentUser.id)
+
+        if (!friendships || friendships.length === 0) {
+            return []
+        }
+
+        const friendIds = friendships.map(f => f.friend_id)
+
+        const { data: friends } = await supabase
             .from('profiles')
             .select('id, username, avatar_url, status, last_seen')
             .in('id', friendIds)
-            .order('username');
+            .order('username')
 
-        if (profilesError) throw profilesError;
-
-        allFriends = profiles || [];
-        filteredFriends = [...allFriends];
-        renderFriendsList();
+        return friends || []
 
     } catch (error) {
-        console.error('Load error:', error);
-        showEmptyState();
+        console.error('Error getting friends:', error)
+        return []
     }
+}
+
+function loadFriendsList() {
+    const onlineFriends = friends.filter(f => f.status === 'online').length
+
+    document.getElementById('mainContent').innerHTML = `
+        <div class="friends-container">
+            <div class="search-box">
+                <i class="fas fa-search" style="color: #007acc;"></i>
+                <input type="text" id="friendSearch" placeholder="Search friends..." oninput="searchFriends()" style="border-color: #007acc;">
+            </div>
+            <div id="friendsList" class="friends-list">
+                ${renderFriendsList()}
+            </div>
+        </div>
+    `
 }
 
 function renderFriendsList() {
-    const container = document.getElementById('friendsList');
-    if (!container) return;
-
-    if (!filteredFriends || filteredFriends.length === 0) {
-        showEmptyState();
-        return;
+    if (!friends || friends.length === 0) {
+        return `
+            <div class="empty-state">
+                <i class="fas fa-users" style="color: #007acc; font-size: 48px;"></i>
+                <h3 style="margin: 16px 0 8px;">No friends yet</h3>
+                <p style="color: #666; margin-bottom: 20px;">Add friends in RelayTalk and they'll appear here</p>
+                <button onclick="window.location.href='/'" class="primary-btn" style="background: #007acc; color: white;">
+                    Go to RelayTalk
+                </button>
+            </div>
+        `
     }
 
-    let html = '';
-
-    filteredFriends.forEach(friend => {
-        const initial = friend.username ? friend.username.charAt(0).toUpperCase() : '?';
-        const online = friend.status === 'online';
-        const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Never';
+    let html = ''
+    friends.forEach(friend => {
+        const online = friend.status === 'online'
+        const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Offline'
 
         html += `
-            <div class="friend-item">
-                <div class="friend-avatar" onclick="openChat('${friend.id}', '${friend.username}')" style="cursor:pointer;">
+            <div class="friend-item" style="border-color: #007acc;">
+                <div class="friend-avatar" style="background: #007acc;">
                     ${friend.avatar_url 
-                        ? `<img src="${friend.avatar_url}" alt="${friend.username}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
-                        : `<span style="color:white; font-size:1.3rem; font-weight:600;">${initial}</span>`
+                        ? `<img src="${friend.avatar_url}" alt="${friend.username}">`
+                        : `<span>${friend.username.charAt(0).toUpperCase()}</span>`
                     }
-                    <span class="status-indicator-clean ${online ? 'online' : 'offline'}"></span>
+                    <span class="status-indicator ${online ? 'online' : 'offline'}"></span>
                 </div>
-                <div class="friend-info-clean" onclick="openChat('${friend.id}', '${friend.username}')" style="cursor:pointer; flex:1;">
-                    <div class="friend-name-status">
-                        <div class="friend-name-clean">${friend.username || 'User'}</div>
-                        <div class="friend-status-clean">
-                            ${online ? 'Online' : `Last seen ${lastSeen}`}
-                        </div>
-                    </div>
+                <div class="friend-info">
+                    <div class="friend-name">${friend.username}</div>
+                    <div class="friend-status-text">${online ? 'Online' : lastSeen}</div>
                 </div>
-                <button class="call-friend-btn" onclick="startCall('${friend.id}', '${friend.username}', event)" title="Call ${friend.username}">
+                <button class="call-btn" style="background: #007acc;" onclick="startCall('${friend.id}', '${friend.username}')">
                     <i class="fas fa-phone"></i>
                 </button>
-                <i class="fas fa-chevron-right" style="color:#cbd5e1; margin-left:5px;" onclick="openChat('${friend.id}', '${friend.username}')"></i>
             </div>
-        `;
-    });
+        `
+    })
 
-    container.innerHTML = html;
-}
-
-window.startCall = function(friendId, friendName, event) {
-    event.stopPropagation();
-    
-    if (friendId === currentUser.id) {
-        showToast('error', 'You cannot call yourself');
-        return;
-    }
-    
-    window.open(`../../call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`, '_blank');
-    showToast('success', `Calling ${friendName}...`);
-};
-
-function formatLastSeen(timestamp) {
-    const now = new Date();
-    const time = new Date(timestamp);
-    const diff = Math.floor((now - time) / 60000);
-
-    if (diff < 1) return 'just now';
-    if (diff < 60) return `${diff}m ago`;
-    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
-    if (diff < 10080) return `${Math.floor(diff / 1440)}d ago`;
-    return time.toLocaleDateString();
+    return html
 }
 
 window.searchFriends = function() {
-    const input = document.getElementById('searchInput');
-    const clearBtn = document.getElementById('clearSearch');
-    if (!input) return;
+    const term = document.getElementById('friendSearch').value.toLowerCase()
 
-    const term = input.value.toLowerCase().trim();
-
-    if (clearBtn) clearBtn.style.display = term ? 'flex' : 'none';
-
-    filteredFriends = term 
-        ? allFriends.filter(f => f.username?.toLowerCase().includes(term))
-        : [...allFriends];
-
-    renderFriendsList();
-};
-
-window.clearSearch = function() {
-    const input = document.getElementById('searchInput');
-    if (input) {
-        input.value = '';
-        window.searchFriends();
+    if (!term) {
+        document.getElementById('friendsList').innerHTML = renderFriendsList()
+        return
     }
-};
 
-function showEmptyState() {
-    const container = document.getElementById('friendsList');
-    if (!container) return;
+    const filtered = friends.filter(f => 
+        f.username.toLowerCase().includes(term)
+    )
 
-    container.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">👥</div>
-            <h3>No friends yet</h3>
-            <p>Add friends to start calling and chatting</p>
-            <button class="add-friends-btn" onclick="openSearch()">
-                <i class="fas fa-user-plus"></i> Add Friends
-            </button>
-        </div>
-    `;
+    document.getElementById('friendsList').innerHTML = renderFriendsList(filtered)
+}
+
+window.startCall = function(friendId, friendName) {
+    window.open(`../../call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`, '_blank')
+}
+
+function formatLastSeen(timestamp) {
+    const now = new Date()
+    const time = new Date(timestamp)
+    const diff = Math.floor((now - time) / 60000)
+
+    if (diff < 1) return 'Just now'
+    if (diff < 60) return `${diff}m ago`
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
+    return time.toLocaleDateString()
+}
+
+function showLoading(show, text) {
+    const loader = document.getElementById('loadingIndicator')
+    if (loader) {
+        loader.style.display = show ? 'flex' : 'none'
+        if (text) document.getElementById('loadingText').textContent = text
+    }
 }
 
 function showError(message) {
-    const container = document.getElementById('friendsList');
-    if (!container) return;
-
-    container.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">❌</div>
+    showLoading(false)
+    document.getElementById('mainContent').innerHTML = `
+        <div class="error-container">
+            <i class="fas fa-exclamation-circle"></i>
             <h3>Error</h3>
             <p>${message}</p>
-            <button class="add-friends-btn" onclick="location.reload()">
-                <i class="fas fa-redo"></i> Try Again
-            </button>
+            <a href="/" class="primary-btn">Go to RelayTalk</a>
         </div>
-    `;
+    `
 }
 
-window.openChat = function(friendId, friendName) {
-    sessionStorage.setItem('currentChatFriend', JSON.stringify({
-        id: friendId,
-        username: friendName
-    }));
-    window.location.href = `../chats/index.html?friendId=${friendId}`;
-};
-
-window.searchUsers = async function() {
-    if (!supabase || !currentUser) return;
-
-    const input = document.getElementById('userSearchInput');
-    const container = document.getElementById('searchResults');
-    if (!input || !container) return;
-
-    const term = input.value.toLowerCase().trim();
-
-    if (!term) {
-        container.innerHTML = `<div class="empty-search" style="text-align:center;padding:30px;"><i class="fas fa-search" style="font-size:2rem;color:#cbd5e1;margin-bottom:10px;"></i><p>Search for friends to add</p></div>`;
-        return;
-    }
-
-    try {
-        const { data: friends } = await supabase
-            .from('friends')
-            .select('friend_id')
-            .eq('user_id', currentUser.id);
-
-        const friendIds = friends?.map(f => f.friend_id) || [];
-
-        const { data: pending } = await supabase
-            .from('friend_requests')
-            .select('receiver_id')
-            .eq('sender_id', currentUser.id)
-            .eq('status', 'pending');
-
-        const pendingIds = pending?.map(r => r.receiver_id) || [];
-
-        const { data: users, error } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url')
-            .neq('id', currentUser.id)
-            .ilike('username', `%${term}%`)
-            .limit(20);
-
-        if (error) throw error;
-
-        if (!users || users.length === 0) {
-            container.innerHTML = `<div class="empty-search" style="text-align:center;padding:30px;"><i class="fas fa-user-slash" style="font-size:2rem;color:#cbd5e1;margin-bottom:10px;"></i><p>No users found</p></div>`;
-            return;
-        }
-
-        let html = '';
-        users.forEach(user => {
-            const isFriend = friendIds.includes(user.id);
-            const isPending = pendingIds.includes(user.id);
-            const initial = user.username?.charAt(0).toUpperCase() || '?';
-
-            html += `
-                <div class="search-result-item">
-                    <div class="search-result-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8);">
-                        ${user.avatar_url 
-                            ? `<img src="${user.avatar_url}" alt="${user.username}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
-                            : `<span style="color:white; font-size:1.2rem; font-weight:600;">${initial}</span>`
-                        }
-                    </div>
-                    <div class="search-result-info">
-                        <div class="search-result-name">${user.username}</div>
-                        <div class="search-result-username">@${user.username}</div>
-                    </div>
-                    ${isFriend 
-                        ? '<button class="add-friend-btn added" disabled>✓ Friends</button>'
-                        : isPending
-                        ? '<button class="add-friend-btn added" disabled>⏳ Sent</button>'
-                        : `<button class="add-friend-btn" onclick="sendFriendRequest('${user.id}', '${user.username}', this)">+ Add</button>`
-                    }
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
-
-    } catch (error) {
-        console.error('Search error:', error);
-        container.innerHTML = `<div class="empty-search" style="text-align:center;padding:30px;"><i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i><p>Error searching users</p></div>`;
-    }
-};
-
-window.sendFriendRequest = async function(userId, username, btn) {
-    try {
-        btn.disabled = true;
-        btn.textContent = 'Sending...';
-
-        const { error } = await supabase
-            .from('friend_requests')
-            .insert({
-                sender_id: currentUser.id,
-                receiver_id: userId,
-                status: 'pending',
-                created_at: new Date().toISOString()
-            });
-
-        if (error) throw error;
-
-        btn.textContent = '✓ Sent';
-        btn.classList.add('added');
-        showToast('success', `Friend request sent to ${username}`);
-
-    } catch (error) {
-        console.error('Request error:', error);
-        btn.disabled = false;
-        btn.textContent = '+ Add';
-        showToast('error', 'Failed to send request');
-    }
-};
-
-function showToast(type, message) {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-
-    let icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
-    let color = type === 'success' ? '#22c55e' : '#ef4444';
-
-    toast.innerHTML = `
-        <i class="fas fa-${icon}" style="color:${color};"></i>
-        <span>${message}</span>
-    `;
-
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-
-window.goToHome = () => window.location.href = '../index.html';
-window.openSearch = () => {
-    const modal = document.getElementById('searchModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        setTimeout(() => document.getElementById('userSearchInput')?.focus(), 100);
-    }
-};
-window.closeModal = () => {
-    document.getElementById('searchModal').style.display = 'none';
-};
-
-document.addEventListener('DOMContentLoaded', initFriendsPage);
+// Start the app
+initFriendsPage()
