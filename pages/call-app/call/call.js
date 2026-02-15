@@ -1,4 +1,4 @@
-// /pages/call-app/call/call.js - FINAL VERSION with Jitsi UI
+// /pages/call-app/call/call.js - FIXED with proper hangup
 
 import { initializeSupabase } from '/pages/call-app/utils/supabase.js'
 import { getRelayTalkUser, syncUserToDatabase } from '/pages/call-app/utils/userSync.js'
@@ -8,6 +8,7 @@ let currentUser
 let currentCall
 let jitsiIframe
 let callRoom
+let conferenceStarted = false
 
 const JAAS_APP_ID = 'vpaas-magic-cookie-16664d50d3a04e79a2876de86dcc38e4'
 const JAAS_DOMAIN = '8x8.vc'
@@ -38,7 +39,13 @@ async function initCall() {
         console.log('📞 Call params:', { friendId, friendName, incoming, roomName, callerId, callId })
         
         if (incoming === 'true' && roomName && callerId && callId) {
-            await handleIncomingCall(roomName, callerId, callId)
+            // For incoming calls, first update the call status
+            currentCall = { id: callId, room_name: roomName }
+            await supabase
+                .from('calls')
+                .update({ status: 'active', answered_at: new Date().toISOString() })
+                .eq('id', callId)
+            await joinCall(roomName)
         } else if (friendId) {
             await startOutgoingCall(friendId, friendName)
         } else {
@@ -112,26 +119,6 @@ async function startOutgoingCall(friendId, friendName) {
     }
 }
 
-async function handleIncomingCall(roomName, callerId, callId) {
-    try {
-        console.log('📞 Handling incoming call:', { roomName, callerId, callId })
-        document.getElementById('loadingText').textContent = 'Connecting...'
-        
-        currentCall = { id: callId, room_name: roomName }
-        
-        await supabase
-            .from('calls')
-            .update({ status: 'active', answered_at: new Date().toISOString() })
-            .eq('id', callId)
-        
-        await joinCall(roomName)
-        
-    } catch (error) {
-        console.error('❌ Incoming call error:', error)
-        showError('Failed to accept call')
-    }
-}
-
 function setupCallListener(callId) {
     console.log('5️⃣ Setting up call listener for ID:', callId)
     
@@ -145,16 +132,11 @@ function setupCallListener(callId) {
         }, (payload) => {
             console.log('📞 Call update received:', payload.new.status)
             
-            if (payload.new.status === 'active') {
-                const loadingText = document.getElementById('loadingText')
-                if (loadingText) {
-                    loadingText.textContent = 'Connecting...'
-                }
+            if (payload.new.status === 'active' && !conferenceStarted) {
                 joinCall(payload.new.room_name)
-            } else if (payload.new.status === 'rejected') {
-                showCallEnded('Call was rejected')
-            } else if (payload.new.status === 'cancelled') {
-                showCallEnded('Call was cancelled')
+            } else if (payload.new.status === 'ended' || payload.new.status === 'rejected' || payload.new.status === 'cancelled') {
+                // If other user ended the call, go back
+                window.location.href = '/pages/call-app/index.html'
             }
         })
         .subscribe((status) => {
@@ -165,6 +147,7 @@ function setupCallListener(callId) {
 async function joinCall(roomName) {
     try {
         console.log('6️⃣ Joining Jitsi call room:', roomName)
+        conferenceStarted = true
         
         document.getElementById('loadingScreen').style.display = 'flex'
         document.getElementById('loadingText').textContent = 'Connecting...'
@@ -179,16 +162,16 @@ async function joinCall(roomName) {
         iframe.style.border = 'none'
         iframe.style.background = '#000'
         
-        // SIMPLE CONFIG - Let Jitsi show its beautiful UI!
+        // CONFIG with event listeners for call end
         const config = {
             configOverwrite: {
                 prejoinPageEnabled: false,
                 enableWelcomePage: false,
                 startWithAudioMuted: false,
                 startWithVideoMuted: true,
-                disableChat: false,        // Keep chat if users want
+                disableChat: false,
                 disableInviteFunctions: false,
-                toolbarButtons: ['microphone', 'camera', 'hangup', 'chat', 'raisehand'], // Keep essential buttons
+                toolbarButtons: ['microphone', 'camera', 'hangup', 'chat', 'raisehand'],
                 hideConferenceTimer: false,
                 hideParticipantsStats: false,
                 hideLogo: false,
@@ -214,10 +197,17 @@ async function joinCall(roomName) {
         container.appendChild(iframe)
         jitsiIframe = iframe
         
+        // Listen for Jitsi events
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'video-conference-left') {
+                // User left the conference, update call status
+                endCall()
+            }
+        })
+        
         // Hide loading after delay
         setTimeout(() => {
             document.getElementById('loadingScreen').style.display = 'none'
-            document.getElementById('activeCallScreen').style.display = 'block'
         }, 3000)
         
         console.log('✅ Jitsi call connected!')
@@ -228,8 +218,8 @@ async function joinCall(roomName) {
     }
 }
 
-// Keep only the hangup button functionality
-window.endCall = async function() {
+// Function to end call for both users
+async function endCall() {
     console.log('Ending call...')
     if (currentCall) {
         await supabase
@@ -240,6 +230,9 @@ window.endCall = async function() {
     window.location.href = '/pages/call-app/index.html'
 }
 
+// Handle Jitsi's hangup button
+window.endCall = endCall
+
 window.cancelCall = async function() {
     if (currentCall) {
         await supabase
@@ -249,9 +242,6 @@ window.cancelCall = async function() {
     }
     window.location.href = '/pages/call-app/index.html'
 }
-
-window.acceptCall = function() {}
-window.declineCall = function() {}
 
 function showCallEnded(message) {
     document.getElementById('loadingScreen').style.display = 'flex'
@@ -266,6 +256,11 @@ function showError(message) {
     document.getElementById('loadingScreen').style.display = 'none'
     document.getElementById('errorScreen').style.display = 'flex'
     document.getElementById('errorMessage').textContent = message
+}
+
+// Back button functionality
+window.goBack = function() {
+    window.location.href = '/pages/call-app/index.html'
 }
 
 initCall()
