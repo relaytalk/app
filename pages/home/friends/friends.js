@@ -1,4 +1,4 @@
-// friends.js - WITH FULL INCOMING CALL NOTIFICATION
+// friends.js - WITH FULL INCOMING CALL NOTIFICATION 
 
 import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
 
