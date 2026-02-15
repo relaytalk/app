@@ -1,4 +1,4 @@
-// pages/call-app/call/call.js - VOICE-FIRST WITH JITSI
+// pages/call-app/call/call.js - COMPLETE WITH SPEAKER TOGGLE
 
 import { initializeSupabase } from '../utils/supabase.js'
 import { createCallRoom, getRoomInfo, getCallUrl } from '../utils/jitsi.js'
@@ -9,6 +9,7 @@ let currentUser
 let currentCall
 let jitsiIframe
 let callRoom
+let audioElements = [] // Track audio elements for speaker toggle
 
 async function initCall() {
     console.log('📞 Initializing call page with Jitsi...')
@@ -224,18 +225,8 @@ async function joinCall(roomName) {
             [class*="input"],
             [class*="Input"],
             [class*="form"],
-            [class*="Form"],
-            button:not([aria-label*="microphone"]):not([aria-label*="hangup"]),
-            [class*="toolbar"]:not([class*="microphone"]):not([class*="hangup"]) {
+            [class*="Form"] {
                 display: none !important;
-            }
-            
-            /* Keep only essential buttons */
-            [aria-label="microphone"],
-            [aria-label="hangup"],
-            [class*="microphone"],
-            [class*="hangup"] {
-                display: flex !important;
             }
             
             /* Hide watermarks and logos */
@@ -249,6 +240,26 @@ async function joinCall(roomName) {
             }
         `;
         wrapper.appendChild(style);
+        
+        // Monitor iframe for audio elements
+        iframe.onload = function() {
+            console.log('Iframe loaded, setting up audio monitoring...');
+            
+            // Try to get audio elements from iframe
+            setTimeout(() => {
+                try {
+                    const iframeDoc = iframe.contentWindow.document;
+                    const audioEls = iframeDoc.querySelectorAll('audio, video');
+                    audioElements = Array.from(audioEls);
+                    console.log(`Found ${audioElements.length} audio/video elements`);
+                    
+                    // Set initial audio mode (earpiece)
+                    setAudioMode('earpiece');
+                } catch(e) {
+                    console.log('Could not access iframe audio elements:', e);
+                }
+            }, 3000);
+        };
         
         // Hide loading after delay
         setTimeout(() => {
@@ -264,6 +275,55 @@ async function joinCall(roomName) {
     }
 }
 
+// Function to set audio mode (earpiece vs speaker)
+function setAudioMode(mode) {
+    console.log(`Setting audio mode to: ${mode}`);
+    
+    try {
+        // Try to access iframe audio elements
+        if (jitsiIframe) {
+            try {
+                const iframeDoc = jitsiIframe.contentWindow.document;
+                const mediaElements = iframeDoc.querySelectorAll('audio, video');
+                
+                mediaElements.forEach(el => {
+                    if (mode === 'speaker') {
+                        // Speaker mode - use speaker
+                        el.setSinkId?.('default').catch(() => {});
+                        // Force audio output through speaker
+                        if (el.audioTracks) {
+                            // For video elements
+                            el.audioTracks[0]?.enabled = true;
+                        }
+                    } else {
+                        // Earpiece mode - use earpiece
+                        el.setSinkId?.('earpiece').catch(() => {});
+                    }
+                });
+            } catch(e) {
+                console.log('Could not access iframe audio:', e);
+            }
+        }
+        
+        // Also try Web Audio API approach
+        if (typeof AudioContext !== 'undefined') {
+            // Force audio output through appropriate channel
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            if (mode === 'speaker') {
+                // Force speaker
+                audioContext.resume();
+            } else {
+                // Force earpiece (for calls)
+                // This is handled by the browser automatically for WebRTC
+            }
+        }
+        
+    } catch (error) {
+        console.log('Audio mode change error:', error);
+    }
+}
+
 // Call controls
 window.toggleMute = function() {
     const btn = document.getElementById('muteBtn')
@@ -271,14 +331,35 @@ window.toggleMute = function() {
     btn.innerHTML = btn.classList.contains('muted') 
         ? '<i class="fas fa-microphone-slash"></i>' 
         : '<i class="fas fa-microphone"></i>'
+    
+    // Try to mute/unmute in Jitsi
+    if (jitsiIframe) {
+        try {
+            jitsiIframe.contentWindow.postMessage({
+                type: 'muteAudio',
+                muted: btn.classList.contains('muted')
+            }, '*');
+        } catch(e) {}
+    }
 }
 
 window.toggleSpeaker = function() {
     const btn = document.getElementById('speakerBtn')
-    btn.classList.toggle('speaker-off')
-    btn.innerHTML = btn.classList.contains('speaker-off')
-        ? '<i class="fas fa-volume-mute"></i>'
-        : '<i class="fas fa-volume-up"></i>'
+    const isSpeakerOff = btn.classList.contains('speaker-off')
+    
+    if (isSpeakerOff) {
+        // Currently off (earpiece), switch to speaker
+        btn.classList.remove('speaker-off')
+        btn.innerHTML = '<i class="fas fa-volume-up"></i>'
+        setAudioMode('speaker')
+        console.log('Switched to SPEAKER mode')
+    } else {
+        // Currently on (speaker), switch to earpiece
+        btn.classList.add('speaker-off')
+        btn.innerHTML = '<i class="fas fa-volume-mute"></i>'
+        setAudioMode('earpiece')
+        console.log('Switched to EARPIECE mode')
+    }
 }
 
 window.endCall = async function() {
@@ -301,6 +382,24 @@ window.cancelCall = async function() {
             .eq('id', currentCall.id)
     }
     window.location.href = '../index.html'
+}
+
+window.acceptCall = function() {
+    // Handled by incoming flow
+}
+
+window.declineCall = function() {
+    if (currentCall) {
+        supabase
+            .from('calls')
+            .update({ status: 'rejected', ended_at: new Date().toISOString() })
+            .eq('id', currentCall.id)
+            .then(() => {
+                window.location.href = '../index.html'
+            })
+    } else {
+        window.location.href = '../index.html'
+    }
 }
 
 function showCallEnded(message) {
@@ -334,5 +433,38 @@ function showError(message) {
     document.getElementById('errorScreen').style.display = 'flex'
     document.getElementById('errorMessage').textContent = message
 }
+
+// Handle messages from Jitsi
+window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'video-conference-started') {
+        console.log('Conference started')
+    }
+})
+
+// Listen for audio element changes
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' && jitsiIframe) {
+            // Check for new audio elements
+            try {
+                const iframeDoc = jitsiIframe.contentWindow.document;
+                const newAudio = iframeDoc.querySelectorAll('audio, video');
+                if (newAudio.length > audioElements.length) {
+                    audioElements = Array.from(newAudio);
+                    console.log('New audio elements detected');
+                }
+            } catch(e) {}
+        }
+    });
+});
+
+// Start observing when iframe is ready
+setTimeout(() => {
+    if (jitsiIframe) {
+        try {
+            observer.observe(document.body, { childList: true, subtree: true });
+        } catch(e) {}
+    }
+}, 5000);
 
 initCall()
