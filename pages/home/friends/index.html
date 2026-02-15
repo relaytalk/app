@@ -93,79 +93,76 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Scripts - FIXED PATHS (../../../ for utils) -->
+    <!-- Incoming Call Notification Container (Hidden by default) -->
+    <div id="incomingCallNotification" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #007acc; color: white; padding: 16px 20px; z-index: 10000; align-items: center; justify-content: space-between; animation: slideDown 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></div>
+
+    <!-- Animation Styles -->
+    <style>
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        #incomingCallNotification button {
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        #incomingCallNotification button:active {
+            transform: scale(0.95);
+        }
+        
+        #incomingCallNotification img {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+        }
+        
+        .caller-avatar-placeholder {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: white;
+            color: #007acc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+
+    <!-- Scripts -->
     <script type="module" src="../../../utils/supabase.js"></script>
     <script type="module" src="friends.js"></script>
     
-    <!-- Simple Call Listener -->
+    <!-- Use the SAME callListener.js that works in CallApp -->
     <script type="module">
         import { initializeSupabase } from '../../../utils/supabase.js';
+        import { initCallListener } from '../../../utils/callListener.js';
         
-        let audioPlayer = null;
-        
-        async function initCallListener() {
+        async function startListener() {
             const supabase = await initializeSupabase();
             const { data: { session } } = await supabase.auth.getSession();
             
             if (!session) return;
             
-            console.log('📞 Call listener active for:', session.user.email);
+            console.log('📞 Starting call listener for friends page...');
             
-            // Setup audio
-            try {
-                audioPlayer = new Audio();
-                audioPlayer.loop = true;
-                audioPlayer.volume = 0.5;
-                audioPlayer.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
-            } catch(e) {}
-            
-            // Listen for calls
-            supabase
-                .channel('incoming-calls-friends')
-                .on('postgres_changes', {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'calls',
-                    filter: `receiver_id=eq.${session.user.id}`
-                }, async (payload) => {
-                    console.log('📞 Incoming call!', payload.new);
-                    
-                    if (payload.new.status === 'ringing') {
-                        // Play sound
-                        if (audioPlayer) audioPlayer.play().catch(e => {});
-                        
-                        // Get caller info
-                        const { data: caller } = await supabase
-                            .from('profiles')
-                            .select('username, avatar_url')
-                            .eq('id', payload.new.caller_id)
-                            .single();
-                        
-                        // Simple confirm dialog
-                        if (confirm(`Incoming call from ${caller?.username || 'Unknown'}. Answer?`)) {
-                            if (audioPlayer) audioPlayer.pause();
-                            window.location.href = `/pages/call-app/call/index.html?incoming=true&room=${payload.new.room_name}&callerId=${payload.new.caller_id}&callId=${payload.new.id}`;
-                        } else {
-                            if (audioPlayer) audioPlayer.pause();
-                            await supabase
-                                .from('calls')
-                                .update({ status: 'rejected', ended_at: new Date().toISOString() })
-                                .eq('id', payload.new.id);
-                        }
-                    }
-                })
-                .subscribe();
+            // Initialize the same listener that works in CallApp
+            initCallListener(supabase, session.user);
         }
         
-        initCallListener();
-        
-        // Cleanup
-        window.addEventListener('beforeunload', () => {
-            if (audioPlayer) {
-                audioPlayer.pause();
-                audioPlayer = null;
-            }
-        });
+        startListener();
     </script>
 </body>
 </html>
