@@ -93,156 +93,71 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Incoming Call Notification -->
-    <div id="incomingCallNotification" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #007acc; color: white; padding: 16px 20px; z-index: 10000; align-items: center; justify-content: space-between; animation: slideDown 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></div>
-
-    <!-- Animation Styles -->
-    <style>
-        @keyframes slideDown {
-            from { transform: translateY(-100%); }
-            to { transform: translateY(0); }
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        
-        #incomingCallNotification button {
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-        
-        #incomingCallNotification button:active {
-            transform: scale(0.95);
-        }
-        
-        #incomingCallNotification img {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid white;
-        }
-        
-        .caller-avatar-placeholder {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: white;
-            color: #007acc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .call-friend-btn {
-            background: #007acc;
-            border: none;
-            color: white;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 5px;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0,122,204,0.3);
-        }
-        
-        .call-friend-btn:active {
-            transform: scale(0.9);
-            background: #005a9e;
-        }
-        
-        .call-friend-btn i {
-            font-size: 1.2rem;
-        }
-        
-        .friend-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 12px 15px;
-            background: white;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #f0f0f0;
-            transition: all 0.1s;
-        }
-        
-        .friend-avatar {
-            width: 55px;
-            height: 55px;
-            background: linear-gradient(135deg, #007acc, #00b4d8);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: white;
-            flex-shrink: 0;
-            position: relative;
-            cursor: pointer;
-        }
-        
-        .friend-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-        
-        .friend-info-clean {
-            flex: 1;
-            min-width: 0;
-            cursor: pointer;
-        }
-        
-        .friend-name-clean {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1e293b;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .friend-status-clean {
-            font-size: 0.85rem;
-            color: #64748b;
-        }
-        
-        .status-indicator-clean {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 2px solid white;
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-        }
-        
-        .status-indicator-clean.online {
-            background: #28a745;
-        }
-        
-        .status-indicator-clean.offline {
-            background: #888888;
-        }
-    </style>
-
     <!-- Scripts -->
-    <script type="module" src="../../../utils/supabase.js"></script>
+    <script type="module" src="../../utils/supabase.js"></script>
     <script type="module" src="friends.js"></script>
+    
+    <!-- SIMPLE CALL LISTENER - exactly like call-app -->
+    <script type="module">
+        import { initializeSupabase } from '../../utils/supabase.js';
+        
+        let audioPlayer = null;
+        
+        async function initCallListener() {
+            const supabase = await initializeSupabase();
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) return;
+            
+            console.log('📞 Call listener active for:', session.user.email);
+            
+            // Setup audio
+            try {
+                audioPlayer = new Audio();
+                audioPlayer.loop = true;
+                audioPlayer.volume = 0.5;
+                audioPlayer.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
+            } catch(e) {}
+            
+            // Listen for calls
+            supabase
+                .channel('incoming-calls')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'calls',
+                    filter: `receiver_id=eq.${session.user.id}`
+                }, async (payload) => {
+                    console.log('📞 Incoming call!', payload.new);
+                    
+                    if (payload.new.status === 'ringing') {
+                        // Play sound
+                        if (audioPlayer) audioPlayer.play().catch(e => {});
+                        
+                        // Get caller info
+                        const { data: caller } = await supabase
+                            .from('profiles')
+                            .select('username, avatar_url')
+                            .eq('id', payload.new.caller_id)
+                            .single();
+                        
+                        // Simple confirm dialog
+                        if (confirm(`Incoming call from ${caller?.username || 'Unknown'}. Answer?`)) {
+                            if (audioPlayer) audioPlayer.pause();
+                            window.location.href = `/pages/call-app/call/index.html?incoming=true&room=${payload.new.room_name}&callerId=${payload.new.caller_id}&callId=${payload.new.id}`;
+                        } else {
+                            if (audioPlayer) audioPlayer.pause();
+                            await supabase
+                                .from('calls')
+                                .update({ status: 'rejected' })
+                                .eq('id', payload.new.id);
+                        }
+                    }
+                })
+                .subscribe();
+        }
+        
+        initCallListener();
+    </script>
 </body>
 </html>
