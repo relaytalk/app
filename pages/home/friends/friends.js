@@ -1,13 +1,11 @@
-// friends.js - WITH AVATAR SUPPORT
-
-import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
+import { initializeSupabase } from '../../utils/supabase.js';
 
 let supabase = null;
 let currentUser = null;
 let allFriends = [];
 let filteredFriends = [];
+let callWindow = null;
 
-// Initialize with Supabase wait
 async function initFriendsPage() {
     console.log('Loading friends...');
 
@@ -23,7 +21,7 @@ async function initFriendsPage() {
         if (error) throw error;
 
         if (!session) {
-            window.location.href = '../../../pages/login/index.html';
+            window.location.href = '../login/index.html';
             return;
         }
 
@@ -35,13 +33,25 @@ async function initFriendsPage() {
         const loader = document.getElementById('loadingIndicator');
         if (loader) loader.classList.add('hidden');
 
+        // Initialize call listener for incoming calls
+        initCallListener();
+
     } catch (error) {
         console.error('Init error:', error);
         showError('Failed to load friends: ' + error.message);
     }
 }
 
-// 🔥 UPDATED: Load friends WITH AVATAR URL
+// Initialize call listener
+async function initCallListener() {
+    try {
+        const { initCallListener } = await import('../../call/utils/callListener.js');
+        initCallListener(supabase, currentUser);
+    } catch (error) {
+        console.error('Failed to load call listener:', error);
+    }
+}
+
 async function loadFriends() {
     try {
         if (!currentUser || !supabase) return;
@@ -59,8 +69,7 @@ async function loadFriends() {
         }
 
         const friendIds = friendsData.map(f => f.friend_id);
-        
-        // 🔥 UPDATED: Include avatar_url
+
         const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
             .select('id, username, avatar_url, status, last_seen')
@@ -79,7 +88,7 @@ async function loadFriends() {
     }
 }
 
-// 🔥 UPDATED: Render friends list WITH AVATAR URL
+// 🔥 UPDATED: Render friends list WITH CALL BUTTON
 function renderFriendsList() {
     const container = document.getElementById('friendsList');
     if (!container) return;
@@ -97,29 +106,44 @@ function renderFriendsList() {
         const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Never';
 
         html += `
-            <div class="friend-item" onclick="openChat('${friend.id}', '${friend.username}')">
-                <div class="friend-avatar" style="background: linear-gradient(45deg, #007acc, #00b4d8); position: relative;">
+            <div class="friend-item">
+                <div class="friend-avatar" onclick="openChat('${friend.id}', '${friend.username}')" style="cursor:pointer;">
                     ${friend.avatar_url 
                         ? `<img src="${friend.avatar_url}" alt="${friend.username}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
                         : `<span style="color:white; font-size:1.3rem; font-weight:600;">${initial}</span>`
                     }
                     <span class="status-indicator-clean ${online ? 'online' : 'offline'}" style="position: absolute; bottom: 5px; right: 5px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; ${online ? 'background: #28a745;' : 'background: #888888;'}"></span>
                 </div>
-                <div class="friend-info-clean">
+                <div class="friend-info-clean" onclick="openChat('${friend.id}', '${friend.username}')" style="cursor:pointer; flex:1;">
                     <div class="friend-name-status">
                         <div class="friend-name-clean">${friend.username || 'User'}</div>
                         <div class="friend-status-clean">
                             ${online ? 'Online' : `Last seen ${lastSeen}`}
                         </div>
                     </div>
-                    <i class="fas fa-chevron-right" style="color:#cbd5e1;"></i>
                 </div>
+                <!-- 🔥 CALL BUTTON - Opens in new tab -->
+                <button class="call-friend-btn" onclick="startCall('${friend.id}', '${friend.username}', event)" title="Call ${friend.username}">
+                    <i class="fas fa-phone"></i>
+                </button>
+                <i class="fas fa-chevron-right" style="color:#cbd5e1; margin-left:5px;" onclick="openChat('${friend.id}', '${friend.username}')"></i>
             </div>
         `;
     });
 
     container.innerHTML = html;
 }
+
+// 🔥 NEW: Start call in new tab
+window.startCall = function(friendId, friendName, event) {
+    event.stopPropagation(); // Prevent opening chat
+    
+    // Open call in new tab
+    const callUrl = `../../call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`;
+    window.open(callUrl, '_blank');
+    
+    showToast('success', `Calling ${friendName}...`);
+};
 
 // Format last seen
 function formatLastSeen(timestamp) {
@@ -169,7 +193,7 @@ function showEmptyState() {
         <div class="empty-state">
             <div class="empty-icon">👥</div>
             <h3>No friends yet</h3>
-            <p>Add friends to start chatting</p>
+            <p>Add friends to start calling</p>
             <button class="add-friends-btn" onclick="openSearch()">
                 <i class="fas fa-user-plus"></i> Add Friends
             </button>
@@ -194,21 +218,18 @@ function showError(message) {
     `;
 }
 
-// Open chat with correct path
+// Open chat
 window.openChat = function(friendId, friendName) {
     sessionStorage.setItem('currentChatFriend', JSON.stringify({
         id: friendId,
         username: friendName
     }));
-    window.location.href = `../../chats/index.html?friendId=${friendId}`;
+    window.location.href = `../chats/index.html?friendId=${friendId}`;
 };
 
-// 🔥 UPDATED: Search users WITH AVATAR URL
+// Search users to add
 window.searchUsers = async function() {
-    if (!supabase || !currentUser) {
-        console.log('Waiting for Supabase...');
-        return;
-    }
+    if (!supabase || !currentUser) return;
 
     const input = document.getElementById('userSearchInput');
     const container = document.getElementById('searchResults');
@@ -237,7 +258,6 @@ window.searchUsers = async function() {
 
         const pendingIds = pending?.map(r => r.receiver_id) || [];
 
-        // 🔥 UPDATED: Include avatar_url
         const { data: users, error } = await supabase
             .from('profiles')
             .select('id, username, avatar_url')
@@ -342,7 +362,7 @@ function showToast(type, message) {
 }
 
 // Navigation
-window.goToHome = () => window.location.href = '../../home/index.html';
+window.goToHome = () => window.location.href = '../index.html';
 window.openSearch = () => {
     const modal = document.getElementById('searchModal');
     if (modal) {
@@ -352,18 +372,6 @@ window.openSearch = () => {
 };
 window.closeModal = () => {
     document.getElementById('searchModal').style.display = 'none';
-};
-window.logout = async () => {
-    if (supabase) await supabase.auth.signOut();
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Clear cookies
-    document.cookie.split(";").forEach(function(c) {
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
-    
-    window.location.href = '../../../pages/login/index.html';
 };
 
 // Start
