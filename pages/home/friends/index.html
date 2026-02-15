@@ -141,14 +141,14 @@
         }
     </style>
 
-    <!-- Scripts - WITH CORRECT PATHS -->
+    <!-- Scripts -->
     <script type="module" src="../../../utils/supabase.js"></script>
     <script type="module" src="friends.js"></script>
     
-    <!-- Use callListener.js with CORRECT path -->
+    <!-- Use callListener.js from call-app/utils/ -->
     <script type="module">
         import { initializeSupabase } from '../../../utils/supabase.js';
-        import { initCallListener } from '../../../utils/callListener.js';
+        import { initCallListener } from '../../../pages/call-app/utils/callListener.js';
         
         async function startListener() {
             console.log('📞 Starting call listener from friends page...');
