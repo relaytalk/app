@@ -8,15 +8,80 @@
     <!-- Jitsi External API -->
     <script src='https://8x8.vc/external_api.js' async></script>
     
-    <!-- Styles - FIXED PATHS -->
-    <link rel="stylesheet" href="/pages/call-app/styles/main.css">
-    <link rel="stylesheet" href="/pages/call-app/call/call.css">
+    <!-- Font Awesome for hangup button only -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* Force hide Jitsi join screen */
-        .prejoin-screen, .welcome-page, .join-dialog {
-            display: none !important;
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        #dailyContainer {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .call-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 1000;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top: 3px solid #f5b342;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 2000;
+        }
+        
+        .back-home-btn {
+            background: #f5b342;
+            color: #333;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -27,37 +92,19 @@
         <div id="loadingText">Starting call...</div>
     </div>
 
-    <!-- Active Call Screen -->
-    <div class="active-call-screen" id="activeCallScreen" style="display: none;">
-        <div id="dailyContainer" class="daily-container"></div>
-        
-        <!-- Call Controls -->
-        <div class="call-controls" id="callControls">
-            <button class="control-btn" id="muteBtn" onclick="window.toggleMute()">
-                <i class="fas fa-microphone"></i>
-            </button>
-            <button class="control-btn" id="videoBtn" onclick="window.toggleVideo()">
-                <i class="fas fa-video-slash"></i>
-            </button>
-            <button class="control-btn" id="speakerBtn" onclick="window.toggleSpeaker()">
-                <i class="fas fa-volume-up"></i>
-            </button>
-            <button class="control-btn end-call-btn" id="endCallBtn" onclick="window.endCall()">
-                <i class="fas fa-phone-slash"></i>
-            </button>
-        </div>
-    </div>
+    <!-- Active Call Screen - Only container for Jitsi -->
+    <div id="dailyContainer"></div>
 
     <!-- Error Screen -->
     <div class="error-screen" id="errorScreen" style="display: none;">
-        <i class="fas fa-exclamation-circle"></i>
+        <i class="fas fa-exclamation-circle" style="font-size: 60px; color: #dc3545; margin-bottom: 20px;"></i>
         <h3>Call Failed</h3>
-        <p id="errorMessage">Could not start the call</p>
+        <p id="errorMessage" style="color: #ccc; margin: 10px 0 20px;">Could not start the call</p>
         <button class="back-home-btn" onclick="window.location.href='/pages/call-app/index.html'">
             <i class="fas fa-arrow-left"></i> Go Back
         </button>
     </div>
 
-    <script type="module" src="/pages/call-app/call/call.js"></script>
+    <script type="module" src="call.js"></script>
 </body>
 </html>
