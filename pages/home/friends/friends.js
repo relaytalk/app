@@ -1,6 +1,6 @@
-// friends.js - WITH INCOMING CALL NOTIFICATION LIKE CALLAPP
+// friends.js - WITH FULL INCOMING CALL NOTIFICATION
 
-import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
+import { initializeSupabase, supabase as supabaseClient } from '../../utils/supabase.js';
 
 let supabase = null;
 let currentUser = null;
@@ -72,7 +72,7 @@ function stopRingtone() {
     }
 }
 
-// Load friends WITH AVATAR URL
+// Load friends
 async function loadFriends() {
     try {
         if (!currentUser || !supabase) return;
@@ -109,7 +109,7 @@ async function loadFriends() {
     }
 }
 
-// Render friends list WITH AVATAR URL AND CALL BUTTON
+// Render friends list
 function renderFriendsList() {
     const container = document.getElementById('friendsList');
     if (!container) return;
@@ -143,7 +143,7 @@ function renderFriendsList() {
                         </div>
                     </div>
                 </div>
-                <button class="call-friend-btn" onclick="startCall('${friend.id}', '${friend.username}', event)" style="background: #007acc; border: none; color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 5px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,122,204,0.3);">
+                <button class="call-friend-btn" onclick="startCall('${friend.id}', '${friend.username}', event)">
                     <i class="fas fa-phone"></i>
                 </button>
             </div>
@@ -155,14 +155,11 @@ function renderFriendsList() {
 
 // Start voice call
 window.startCall = async function(friendId, friendName, event) {
-    event.stopPropagation(); // Prevent opening chat
+    event.stopPropagation();
     
     try {
-        // Navigate to CallApp
         window.location.href = `/pages/call-app/call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`;
-        
         showToast('success', `Calling ${friendName}...`);
-        
     } catch (error) {
         console.error('Call error:', error);
         showToast('error', 'Failed to start call');
@@ -209,12 +206,10 @@ function setupIncomingCallListener() {
 
 // Handle incoming call
 async function handleIncomingCall(call) {
-    // Don't show if already on call page
     if (window.location.pathname.includes('/call-app/')) {
         return;
     }
     
-    // Get caller info
     const { data: caller } = await supabase
         .from('profiles')
         .select('username, avatar_url')
@@ -224,7 +219,6 @@ async function handleIncomingCall(call) {
     showIncomingCallNotification(call, caller);
     playRingtone();
     
-    // Store in session storage
     sessionStorage.setItem('incomingCall', JSON.stringify({
         id: call.id,
         roomName: call.room_name,
@@ -233,47 +227,25 @@ async function handleIncomingCall(call) {
     }));
 }
 
-// Hide incoming call notification
-function hideIncomingCallNotification() {
-    const existing = document.getElementById('incomingCallNotification');
-    if (existing) {
-        existing.remove();
-    }
-}
-
-// Show incoming call notification (LIKE CALLAPP)
+// Show incoming call notification
 function showIncomingCallNotification(call, caller) {
-    // Remove existing notification
     hideIncomingCallNotification();
     
-    const notification = document.createElement('div');
-    notification.id = 'incomingCallNotification';
+    const notification = document.getElementById('incomingCallNotification');
+    if (!notification) return;
     
-    // Add animation style if not exists
-    if (!document.getElementById('callAnimationStyles')) {
-        const style = document.createElement('style');
-        style.id = 'callAnimationStyles';
-        style.textContent = `
-            @keyframes slideDown {
-                from { transform: translateY(-100%); }
-                to { transform: translateY(0); }
-            }
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1); }
-            }
-        `;
-        document.head.appendChild(style);
+    let avatarHtml = '';
+    if (caller?.avatar_url) {
+        avatarHtml = `<img src="${caller.avatar_url}" alt="${caller.username}">`;
+    } else {
+        const initial = caller?.username?.charAt(0).toUpperCase() || '?';
+        avatarHtml = `<div class="caller-avatar-placeholder">${initial}</div>`;
     }
     
-    const avatar = caller?.avatar_url 
-        ? `<img src="${caller.avatar_url}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid white;">`
-        : `<div style="width: 48px; height: 48px; border-radius: 50%; background: white; color: #007acc; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold;">${caller?.username?.charAt(0).toUpperCase() || '?'}</div>`;
-    
+    notification.style.display = 'flex';
     notification.innerHTML = `
         <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
-            ${avatar}
+            ${avatarHtml}
             <div>
                 <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 4px;">${caller?.username || 'Incoming Call'}</div>
                 <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem;">🔊 Incoming voice call...</div>
@@ -288,8 +260,6 @@ function showIncomingCallNotification(call, caller) {
             </button>
         </div>
     `;
-    
-    document.body.prepend(notification);
     
     document.getElementById('acceptCallBtn').addEventListener('click', async () => {
         console.log('Accept button clicked');
@@ -316,6 +286,15 @@ function showIncomingCallNotification(call, caller) {
         
         sessionStorage.removeItem('incomingCall');
     });
+}
+
+// Hide incoming call notification
+function hideIncomingCallNotification() {
+    const notification = document.getElementById('incomingCallNotification');
+    if (notification) {
+        notification.style.display = 'none';
+        notification.innerHTML = '';
+    }
 }
 
 // Format last seen
@@ -391,7 +370,7 @@ function showError(message) {
     `;
 }
 
-// Open chat with correct path
+// Open chat
 window.openChat = function(friendId, friendName) {
     sessionStorage.setItem('currentChatFriend', JSON.stringify({
         id: friendId,
@@ -402,10 +381,7 @@ window.openChat = function(friendId, friendName) {
 
 // Search users
 window.searchUsers = async function() {
-    if (!supabase || !currentUser) {
-        console.log('Waiting for Supabase...');
-        return;
-    }
+    if (!supabase || !currentUser) return;
 
     const input = document.getElementById('userSearchInput');
     const container = document.getElementById('searchResults');
