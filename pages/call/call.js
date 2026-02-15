@@ -1,3 +1,5 @@
+// /call/call.js - COMPLETE DEBUG VERSION
+
 import { initializeSupabase } from './utils/supabase.js'
 import { getRelayTalkUser, syncUserToDatabase } from './utils/userSync.js'
 
@@ -23,6 +25,7 @@ async function initCall() {
         }
 
         console.log('✅ Got user:', relayUser.email)
+        console.log('✅ User ID:', relayUser.id)
 
         supabase = await initializeSupabase()
         currentUser = await syncUserToDatabase(supabase, relayUser)
@@ -35,17 +38,36 @@ async function initCall() {
         const callerId = params.get('callerId')
         const callId = params.get('callId')
 
-        console.log('📞 Call params:', { friendId, friendName, incoming, roomName, callerId, callId })
+        console.log('📞 Call params:', { 
+            friendId, 
+            friendName, 
+            incoming, 
+            roomName, 
+            callerId, 
+            callId,
+            currentUserId: currentUser.id
+        })
 
         if (incoming === 'true' && roomName && callerId && callId) {
             // For incoming calls, first update the call status
+            console.log('📞 Handling incoming call...')
             currentCall = { id: callId, room_name: roomName }
-            await supabase
+            
+            // Update call status to active
+            const { error } = await supabase
                 .from('calls')
                 .update({ status: 'active', answered_at: new Date().toISOString() })
                 .eq('id', callId)
+            
+            if (error) {
+                console.log('❌ Error updating call status:', error)
+            } else {
+                console.log('✅ Call status updated to active')
+            }
+            
             await joinCall(roomName)
         } else if (friendId) {
+            console.log('📞 Starting outgoing call to:', friendId, friendName)
             await startOutgoingCall(friendId, friendName)
         } else {
             showError('No call information provided')
@@ -93,7 +115,7 @@ async function startOutgoingCall(friendId, friendName) {
             created_at: new Date().toISOString()
         }
 
-        console.log('3️⃣ Call data:', callData)
+        console.log('3️⃣ Call data to insert:', callData)
 
         const { data: call, error } = await supabase
             .from('calls')
@@ -106,7 +128,37 @@ async function startOutgoingCall(friendId, friendName) {
             throw new Error('Database error: ' + error.message)
         }
 
-        console.log('4️⃣ ✅ Call inserted:', call)
+        console.log('4️⃣ ✅ Call inserted successfully!')
+        console.log('4️⃣ ✅ Call object:', call)
+        
+        // DEBUG: Verify the call was inserted correctly
+        console.log('🔍 Verifying call in database...')
+        setTimeout(async () => {
+            const { data: verifyCall, error: verifyError } = await supabase
+                .from('calls')
+                .select('*')
+                .eq('id', call.id)
+                .single()
+            
+            if (verifyError) {
+                console.log('❌ Verification failed:', verifyError)
+            } else {
+                console.log('✅ Verification successful - call exists in DB:', {
+                    id: verifyCall.id,
+                    status: verifyCall.status,
+                    caller: verifyCall.caller_id,
+                    receiver: verifyCall.receiver_id,
+                    created: verifyCall.created_at
+                })
+                
+                // Check if receiver matches
+                if (verifyCall.receiver_id === friendId) {
+                    console.log('✅ Receiver ID matches:', friendId)
+                } else {
+                    console.log('❌ Receiver ID mismatch! Expected:', friendId, 'Got:', verifyCall.receiver_id)
+                }
+            }
+        }, 2000)
 
         currentCall = call
         document.getElementById('loadingText').textContent = `Waiting for ${friendName} to answer...`
@@ -132,9 +184,10 @@ function setupCallListener(callId) {
             console.log('📞 Call update received:', payload.new.status)
 
             if (payload.new.status === 'active' && !conferenceStarted) {
+                console.log('✅ Call was answered! Joining...')
                 joinCall(payload.new.room_name)
             } else if (payload.new.status === 'ended' || payload.new.status === 'rejected' || payload.new.status === 'cancelled') {
-                // If other user ended the call, show ended screen and close tab
+                console.log('❌ Call ended or rejected')
                 showCallEndedAndClose()
             }
         })
@@ -199,7 +252,7 @@ async function joinCall(roomName) {
         // Listen for Jitsi events
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'video-conference-left') {
-                // User left the conference, end call and close tab
+                console.log('📞 User left conference')
                 endCallAndClose()
             }
         })
@@ -217,23 +270,29 @@ async function joinCall(roomName) {
     }
 }
 
-// 🔥 UPDATED: End call and close tab
+// End call and close tab
 async function endCallAndClose() {
     if (callTabClosed) return;
     callTabClosed = true;
     
     console.log('Ending call and closing tab...')
     if (currentCall) {
-        await supabase
+        const { error } = await supabase
             .from('calls')
             .update({ status: 'ended', ended_at: new Date().toISOString() })
             .eq('id', currentCall.id)
+        
+        if (error) {
+            console.log('❌ Error updating call status:', error)
+        } else {
+            console.log('✅ Call status updated to ended')
+        }
     }
     
     showCallEndedAndClose()
 }
 
-// 🔥 NEW: Show ended screen then close
+// Show ended screen then close
 function showCallEndedAndClose() {
     // Hide all screens
     document.getElementById('loadingScreen').style.display = 'none'
@@ -245,6 +304,7 @@ function showCallEndedAndClose() {
     
     // Auto close after 3 seconds
     setTimeout(() => {
+        console.log('🔚 Closing tab...')
         window.close()
         // Fallback
         setTimeout(() => {
@@ -257,6 +317,7 @@ function showCallEndedAndClose() {
 window.endCall = endCallAndClose
 
 window.cancelCall = async function() {
+    console.log('📞 Cancelling call...')
     if (currentCall) {
         await supabase
             .from('calls')
@@ -267,10 +328,12 @@ window.cancelCall = async function() {
 }
 
 function showError(message) {
+    console.log('❌ Error:', message)
     document.getElementById('loadingScreen').style.display = 'none'
     document.getElementById('errorScreen').style.display = 'flex'
     document.getElementById('errorMessage').textContent = message
 }
 
 // Initialize
+console.log('🚀 Call page starting...')
 initCall()
