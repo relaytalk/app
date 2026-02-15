@@ -1,4 +1,4 @@
-// friends.js - DEBUG VERSION
+// friends.js - SIMPLE VERSION like call-app
 
 import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
 
@@ -7,71 +7,51 @@ let currentUser = null;
 let allFriends = [];
 let filteredFriends = [];
 
-// Call listener variables
+// Call listener variables (simple like call-app)
 let audioPlayer = null;
 let callSubscription = null;
 let notificationShowing = false;
 
 async function initFriendsPage() {
-    console.log('🚀 Friends page initializing...');
+    console.log('Loading friends...');
 
     try {
         supabase = await initializeSupabase();
-        console.log('1️⃣ Supabase initialized:', !!supabase);
 
         if (!supabase || !supabase.auth) {
             throw new Error('Supabase not initialized');
         }
 
         const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('2️⃣ Session exists:', !!session);
 
         if (error) throw error;
 
         if (!session) {
-            console.log('❌ No session, redirecting to login');
             window.location.href = '../login/index.html';
             return;
         }
 
         currentUser = session.user;
-        console.log('3️⃣ Current user:', {
-            email: currentUser.email,
-            id: currentUser.id,
-            metadata: currentUser.user_metadata
-        });
+        console.log('✅ Logged in as:', currentUser.email);
 
         await loadFriends();
 
         const loader = document.getElementById('loadingIndicator');
         if (loader) loader.classList.add('hidden');
 
-        // Initialize call listener
-        initializeCallListener();
-
-        // TEST: Manually check for calls every 5 seconds
-        setInterval(() => {
-            console.log('🔍 Manual check for calls...');
-            checkForExistingCalls();
-        }, 5000);
+        // SIMPLE call listener initialization (LIKE CALL-APP)
+        initCallListener();
 
     } catch (error) {
-        console.error('❌ Init error:', error);
+        console.error('Init error:', error);
         showError('Failed to load friends: ' + error.message);
     }
 }
 
-// ==================== CALL LISTENER FUNCTIONS ====================
+// ==================== SIMPLE CALL LISTENER (LIKE CALL-APP) ====================
 
-function initializeCallListener() {
-    if (!supabase || !currentUser) {
-        console.log('❌ Cannot initialize call listener: missing supabase or user');
-        return;
-    }
-    
-    const username = currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User';
-    console.log('📞 Initializing call listener for:', username);
-    console.log('📞 User ID:', currentUser.id);
+function initCallListener() {
+    console.log('📞 Initializing call listener...');
     
     setupRingtone();
     setupIncomingCallListener();
@@ -84,7 +64,6 @@ function setupRingtone() {
         audioPlayer.loop = true;
         audioPlayer.volume = 0.5;
         audioPlayer.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA=='
-        console.log('🔔 Ringtone setup complete');
     } catch (e) {
         console.log('Ringtone setup failed:', e);
     }
@@ -106,33 +85,20 @@ function stopRingtone() {
 function setupIncomingCallListener() {
     if (!supabase || !currentUser) return;
 
-    console.log('📡 Setting up Realtime subscription...');
-    console.log('📡 Channel:', `calls-friends-${currentUser.id}`);
-    console.log('📡 Filter: receiver_id =', currentUser.id);
-
-    // Test if we can query the calls table
-    testDatabaseConnection();
+    console.log('Setting up call listener for user:', currentUser.id);
 
     callSubscription = supabase
-        .channel(`calls-friends-${currentUser.id}`)
+        .channel(`calls-${currentUser.id}`)
         .on('postgres_changes', {
             event: 'INSERT',
             schema: 'public',
             table: 'calls',
             filter: `receiver_id=eq.${currentUser.id}`
         }, (payload) => {
-            console.log('🔥🔥🔥 INCOMING CALL DETECTED! 🔥🔥🔥');
-            console.log('📞 Full payload:', payload);
-            console.log('📞 Call data:', payload.new);
-            console.log('📞 Caller ID:', payload.new.caller_id);
-            console.log('📞 Status:', payload.new.status);
-            console.log('📞 Room:', payload.new.room_name);
+            console.log('📞 Incoming call detected!', payload.new);
 
             if (payload.new.status === 'ringing') {
-                console.log('✅ This is a ringing call - showing notification');
                 handleIncomingCall(payload.new);
-            } else {
-                console.log('❌ Not a ringing call, status:', payload.new.status);
             }
         })
         .on('postgres_changes', {
@@ -141,87 +107,31 @@ function setupIncomingCallListener() {
             table: 'calls',
             filter: `receiver_id=eq.${currentUser.id}`
         }, (payload) => {
-            console.log('📞 Call updated:', payload.new.status);
+            console.log('Call updated:', payload.new.status);
+
+            if (payload.new.status === 'cancelled' || payload.new.status === 'ended') {
+                hideIncomingCallNotification();
+                stopRingtone();
+            }
         })
         .subscribe((status) => {
-            console.log('📡 Subscription status:', status);
-            if (status === 'SUBSCRIBED') {
-                console.log('✅ Successfully subscribed!');
-                
-                // After subscribing, do another check
-                setTimeout(() => {
-                    console.log('🔍 Post-subscription check for calls...');
-                    checkForExistingCalls();
-                }, 2000);
-            } else if (status === 'CHANNEL_ERROR') {
-                console.log('❌ Channel error - check Supabase realtime is enabled');
-            } else if (status === 'TIMED_OUT') {
-                console.log('⏰ Subscription timed out');
-            } else if (status === 'CLOSED') {
-                console.log('🔒 Subscription closed');
-            }
+            console.log('Call listener status:', status);
         });
-}
-
-async function testDatabaseConnection() {
-    try {
-        console.log('🧪 Testing database connection...');
-        
-        // Test 1: Can we query profiles?
-        const { data: profileTest, error: profileError } = await supabase
-            .from('profiles')
-            .select('id')
-            .limit(1);
-        
-        console.log('🧪 Profiles query:', profileError ? '❌ Failed' : '✅ Success', profileError || '');
-        
-        // Test 2: Can we query calls?
-        const { data: callsTest, error: callsError } = await supabase
-            .from('calls')
-            .select('id')
-            .limit(1);
-        
-        console.log('🧪 Calls query:', callsError ? '❌ Failed' : '✅ Success', callsError || '');
-        
-        // Test 3: Check if realtime is enabled for calls table
-        console.log('🧪 Checking if calls table exists and is accessible');
-        
-    } catch (e) {
-        console.log('🧪 Test failed:', e);
-    }
 }
 
 async function checkForExistingCalls() {
     try {
-        console.log('🔍 Checking for existing ringing calls at:', new Date().toLocaleTimeString());
-        
-        const { data: calls, error } = await supabase
+        const { data: calls } = await supabase
             .from('calls')
             .select('*')
             .eq('receiver_id', currentUser.id)
             .eq('status', 'ringing')
             .order('created_at', { ascending: false })
-            .limit(5);
+            .limit(1);
 
-        if (error) {
-            console.log('🔍 Query error:', error);
-            return;
-        }
-
-        console.log(`🔍 Found ${calls?.length || 0} ringing calls`);
-        
         if (calls && calls.length > 0) {
-            console.log('🔍 Ringing calls:', calls);
-            
-            // Filter out self-calls
-            const validCalls = calls.filter(call => call.caller_id !== currentUser.id);
-            
-            if (validCalls.length > 0) {
-                console.log('🔍 Valid incoming call found!', validCalls[0]);
-                handleIncomingCall(validCalls[0]);
-            } else {
-                console.log('🔍 All ringing calls are self-calls, ignoring');
-            }
+            console.log('Found existing ringing call');
+            handleIncomingCall(calls[0]);
         }
     } catch (error) {
         console.error('Error checking existing calls:', error);
@@ -229,22 +139,13 @@ async function checkForExistingCalls() {
 }
 
 async function handleIncomingCall(call) {
-    console.log('📞 HANDLING INCOMING CALL:', call);
-    
-    // Don't show if already on a call page
     if (window.location.pathname.includes('/call/')) {
-        console.log('📞 Already on call page, not showing notification');
         return;
     }
 
-    if (notificationShowing) {
-        console.log('📞 Notification already showing');
-        return;
-    }
+    if (notificationShowing) return;
 
-    console.log('📞 Getting caller info for ID:', call.caller_id);
     const caller = await getCallerInfo(call.caller_id);
-    console.log('📞 Caller info:', caller);
 
     showIncomingCallNotification(call, caller);
     playRingtone();
@@ -259,47 +160,21 @@ async function handleIncomingCall(call) {
 
 async function getCallerInfo(callerId) {
     try {
-        const { data, error } = await supabase
+        const { data } = await supabase
             .from('profiles')
             .select('username, avatar_url')
             .eq('id', callerId)
             .single();
 
-        if (error) {
-            console.log('📞 Error getting caller info:', error);
-            return { username: 'Unknown', avatar_url: null };
-        }
-        
         return data || { username: 'Unknown', avatar_url: null };
     } catch (error) {
-        console.log('📞 Exception getting caller info:', error);
         return { username: 'Unknown', avatar_url: null };
     }
 }
 
 function showIncomingCallNotification(call, caller) {
-    console.log('🔔 SHOWING NOTIFICATION for call from:', caller?.username);
-    
     hideIncomingCallNotification();
     notificationShowing = true;
-
-    // Add animation styles if not already present
-    if (!document.getElementById('callAnimationStyles')) {
-        const style = document.createElement('style');
-        style.id = 'callAnimationStyles';
-        style.textContent = `
-            @keyframes slideDown {
-                from { transform: translateY(-100%); }
-                to { transform: translateY(0); }
-            }
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1); }
-            }
-        `;
-        document.head.appendChild(style);
-    }
 
     const notification = document.createElement('div');
     notification.id = 'incomingCallNotification';
@@ -319,6 +194,20 @@ function showIncomingCallNotification(call, caller) {
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
+
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    `;
+    document.head.appendChild(style);
 
     const avatar = caller?.avatar_url 
         ? `<img src="${caller.avatar_url}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white;">`
@@ -344,73 +233,29 @@ function showIncomingCallNotification(call, caller) {
 
     document.body.prepend(notification);
 
-    document.getElementById('acceptCallBtn').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        console.log('✅ Accept button clicked');
-        await acceptCall(call);
-    });
+    document.getElementById('acceptCallBtn').addEventListener('click', async () => {
+        stopRingtone();
+        hideIncomingCallNotification();
 
-    document.getElementById('declineCallBtn').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        console.log('❌ Decline button clicked');
-        await declineCall(call);
-    });
-
-    // Auto-hide after 30 seconds
-    setTimeout(() => {
-        if (notificationShowing) {
-            console.log('⏰ Auto-hiding notification after 30 seconds');
-            hideIncomingCallNotification();
-            stopRingtone();
-        }
-    }, 30000);
-}
-
-async function acceptCall(call) {
-    console.log('📞 Accepting call:', call.id);
-    stopRingtone();
-    hideIncomingCallNotification();
-
-    try {
-        const { error } = await supabase
+        await supabase
             .from('calls')
             .update({ status: 'active', answered_at: new Date().toISOString() })
             .eq('id', call.id);
 
-        if (error) {
-            console.log('❌ Error updating call:', error);
-            return;
-        }
+        window.open(`../../call/index.html?incoming=true&room=${call.room_name}&callerId=${call.caller_id}&callId=${call.id}`, '_blank');
+    });
 
-        console.log('✅ Call updated to active, opening new tab');
-        const callUrl = `../../call/index.html?incoming=true&room=${call.room_name}&callerId=${call.caller_id}&callId=${call.id}`;
-        window.open(callUrl, '_blank');
-    } catch (error) {
-        console.error('Error accepting call:', error);
-    }
-}
+    document.getElementById('declineCallBtn').addEventListener('click', async () => {
+        stopRingtone();
+        hideIncomingCallNotification();
 
-async function declineCall(call) {
-    console.log('📞 Declining call:', call.id);
-    stopRingtone();
-    hideIncomingCallNotification();
-
-    try {
-        const { error } = await supabase
+        await supabase
             .from('calls')
             .update({ status: 'rejected', ended_at: new Date().toISOString() })
             .eq('id', call.id);
 
-        if (error) {
-            console.log('❌ Error declining call:', error);
-            return;
-        }
-
-        console.log('✅ Call declined');
         sessionStorage.removeItem('incomingCall');
-    } catch (error) {
-        console.error('Error declining call:', error);
-    }
+    });
 }
 
 function hideIncomingCallNotification() {
@@ -418,11 +263,10 @@ function hideIncomingCallNotification() {
     if (existing) {
         existing.remove();
         notificationShowing = false;
-        console.log('🔔 Notification hidden');
     }
 }
 
-// ==================== ORIGINAL FRIENDS PAGE FUNCTIONS ====================
+// ==================== ORIGINAL FRIENDS FUNCTIONS ====================
 
 async function loadFriends() {
     try {
@@ -474,7 +318,7 @@ function renderFriendsList() {
     filteredFriends.forEach(friend => {
         const initial = friend.username ? friend.username.charAt(0).toUpperCase() : '?';
         const online = friend.status === 'online';
-        const lastSeen = friend.last_seen ? formatLastSeen(friend.lastSeen) : 'Never';
+        const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Never';
 
         html += `
             <div class="friend-item">
@@ -512,9 +356,7 @@ window.startCall = function(friendId, friendName, event) {
         return;
     }
     
-    console.log('📞 Starting call to:', friendName);
-    const callUrl = `../../call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`;
-    window.open(callUrl, '_blank');
+    window.open(`../../call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`, '_blank');
     showToast('success', `Calling ${friendName}...`);
 };
 
@@ -587,7 +429,6 @@ function showError(message) {
 }
 
 window.openChat = function(friendId, friendName) {
-    console.log('💬 Opening chat with:', friendName);
     sessionStorage.setItem('currentChatFriend', JSON.stringify({
         id: friendId,
         username: friendName
@@ -738,60 +579,4 @@ window.closeModal = () => {
     document.getElementById('searchModal').style.display = 'none';
 };
 
-window.addEventListener('beforeunload', function() {
-    stopRingtone();
-    if (callSubscription) {
-        callSubscription.unsubscribe();
-    }
-    hideIncomingCallNotification();
-});
-
 document.addEventListener('DOMContentLoaded', initFriendsPage);
-
-
-// Add this new function
-async function debugAllCalls() {
-    try {
-        console.log('🔍 DEBUG: Checking ALL calls for receiver...');
-        
-        const { data: allCalls, error } = await supabase
-            .from('calls')
-            .select('*')
-            .eq('receiver_id', currentUser.id)
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-        if (error) {
-            console.log('🔍 DEBUG Error:', error);
-            return;
-        }
-
-        console.log(`🔍 DEBUG: Found ${allCalls?.length || 0} total calls for this user`);
-        
-        if (allCalls && allCalls.length > 0) {
-            console.log('🔍 DEBUG: All calls:', allCalls.map(c => ({
-                id: c.id,
-                status: c.status,
-                caller: c.caller_id,
-                created: c.created_at
-            })));
-        } else {
-            console.log('🔍 DEBUG: No calls found at all for this user');
-            
-            // Also check if user exists in profiles
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('id, username')
-                .eq('id', currentUser.id)
-                .single();
-                
-            console.log('🔍 DEBUG: User profile exists?', profile ? '✅' : '❌', profile);
-        }
-    } catch (e) {
-        console.log('🔍 DEBUG Exception:', e);
-    }
-}
-
-// Call it right after subscription
-// In the subscription success callback, add this line:
-setTimeout(() => debugAllCalls(), 3000);
