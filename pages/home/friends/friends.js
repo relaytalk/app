@@ -1,4 +1,4 @@
-import { initializeSupabase } from '../../utils/supabase.js';
+import { initializeSupabase } from '../../../utils/supabase.js';
 
 let supabase = null;
 let currentUser = null;
