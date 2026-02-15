@@ -747,3 +747,51 @@ window.addEventListener('beforeunload', function() {
 });
 
 document.addEventListener('DOMContentLoaded', initFriendsPage);
+
+
+// Add this new function
+async function debugAllCalls() {
+    try {
+        console.log('🔍 DEBUG: Checking ALL calls for receiver...');
+        
+        const { data: allCalls, error } = await supabase
+            .from('calls')
+            .select('*')
+            .eq('receiver_id', currentUser.id)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (error) {
+            console.log('🔍 DEBUG Error:', error);
+            return;
+        }
+
+        console.log(`🔍 DEBUG: Found ${allCalls?.length || 0} total calls for this user`);
+        
+        if (allCalls && allCalls.length > 0) {
+            console.log('🔍 DEBUG: All calls:', allCalls.map(c => ({
+                id: c.id,
+                status: c.status,
+                caller: c.caller_id,
+                created: c.created_at
+            })));
+        } else {
+            console.log('🔍 DEBUG: No calls found at all for this user');
+            
+            // Also check if user exists in profiles
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('id, username')
+                .eq('id', currentUser.id)
+                .single();
+                
+            console.log('🔍 DEBUG: User profile exists?', profile ? '✅' : '❌', profile);
+        }
+    } catch (e) {
+        console.log('🔍 DEBUG Exception:', e);
+    }
+}
+
+// Call it right after subscription
+// In the subscription success callback, add this line:
+setTimeout(() => debugAllCalls(), 3000);
