@@ -1,4 +1,4 @@
-// pages/call-app/call/call.js - COMPLETE WITH JITSI HIDE
+// pages/call-app/call/call.js - VOICE-FIRST WITH JITSI
 
 import { initializeSupabase } from '../utils/supabase.js'
 import { createCallRoom, getRoomInfo, getCallUrl } from '../utils/jitsi.js'
@@ -176,7 +176,7 @@ async function joinCall(roomName) {
         const container = document.getElementById('dailyContainer')
         container.innerHTML = ''
         
-        // Create wrapper with absolute positioning for overlays
+        // Create wrapper
         const wrapper = document.createElement('div')
         wrapper.style.width = '100%'
         wrapper.style.height = '100%'
@@ -199,106 +199,61 @@ async function joinCall(roomName) {
         container.appendChild(wrapper)
         jitsiIframe = iframe
         
-        // Create overlay to hide Jitsi UI elements
-        const overlay = document.createElement('div')
-        overlay.style.position = 'absolute'
-        overlay.style.top = '0'
-        overlay.style.left = '0'
-        overlay.style.width = '100%'
-        overlay.style.height = '100%'
-        overlay.style.background = 'transparent'
-        overlay.style.zIndex = '999'
-        overlay.style.pointerEvents = 'none' // Allow clicks to pass through
-        
-        // Add CSS to hide specific areas
-        const hideTopBar = document.createElement('div')
-        hideTopBar.style.position = 'absolute'
-        hideTopBar.style.top = '0'
-        hideTopBar.style.left = '0'
-        hideTopBar.style.width = '100%'
-        hideTopBar.style.height = '60px'
-        hideTopBar.style.background = '#000'
-        hideTopBar.style.zIndex = '1000'
-        hideTopBar.style.pointerEvents = 'none'
-        
-        const hideBottomBar = document.createElement('div')
-        hideBottomBar.style.position = 'absolute'
-        hideBottomBar.style.bottom = '0'
-        hideBottomBar.style.left = '0'
-        hideBottomBar.style.width = '100%'
-        hideBottomBar.style.height = '80px'
-        hideBottomBar.style.background = '#000'
-        hideBottomBar.style.zIndex = '1000'
-        hideBottomBar.style.pointerEvents = 'none'
-        
-        const hideRightBar = document.createElement('div')
-        hideRightBar.style.position = 'absolute'
-        hideRightBar.style.top = '0'
-        hideRightBar.style.right = '0'
-        hideRightBar.style.width = '200px'
-        hideRightBar.style.height = '100%'
-        hideRightBar.style.background = '#000'
-        hideRightBar.style.zIndex = '1000'
-        hideRightBar.style.pointerEvents = 'none'
-        
-        wrapper.appendChild(overlay)
-        wrapper.appendChild(hideTopBar)
-        wrapper.appendChild(hideBottomBar)
-        wrapper.appendChild(hideRightBar)
-        
-        // Try to auto-join by clicking button
-        iframe.onload = function() {
-            console.log('Iframe loaded, attempting auto-join...')
+        // Add CSS to force video fit and hide inputs
+        const style = document.createElement('style');
+        style.textContent = `
+            /* Force video to fill screen properly */
+            video, 
+            #largeVideo, 
+            .videocontainer, 
+            .remote-videos,
+            [class*="video"],
+            [class*="Video"] {
+                object-fit: cover !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
             
-            // Hide loading screen after a delay
-            setTimeout(() => {
-                document.getElementById('loadingScreen').style.display = 'none'
-            }, 2000)
+            /* Hide ALL input fields and join screens */
+            input, 
+            .prejoin-input-area, 
+            .welcome-page,
+            .join-dialog,
+            [class*="prejoin"],
+            [class*="welcome"],
+            [class*="input"],
+            [class*="Input"],
+            [class*="form"],
+            [class*="Form"],
+            button:not([aria-label*="microphone"]):not([aria-label*="hangup"]),
+            [class*="toolbar"]:not([class*="microphone"]):not([class*="hangup"]) {
+                display: none !important;
+            }
             
-            // Try to click join button
-            setTimeout(() => {
-                try {
-                    const iframeDoc = iframe.contentWindow.document
-                    
-                    // Look for join button
-                    const joinSelectors = [
-                        'button[data-testid="prejoin.joinButton"]',
-                        '.prejoin-input-area button',
-                        '.join-button',
-                        'button:contains("Join")',
-                        'button:contains("Join meeting")'
-                    ]
-                    
-                    for (const selector of joinSelectors) {
-                        const btn = iframeDoc.querySelector(selector)
-                        if (btn) {
-                            console.log('Found join button, clicking...')
-                            btn.click()
-                            break
-                        }
-                    }
-                    
-                    // Also try to find and click microphone permission
-                    const micSelectors = [
-                        'button[aria-label="Allow microphone"]',
-                        'button:contains("Allow")',
-                        '.permission-button'
-                    ]
-                    
-                    for (const selector of micSelectors) {
-                        const micBtn = iframeDoc.querySelector(selector)
-                        if (micBtn) {
-                            console.log('Found permission button, clicking...')
-                            micBtn.click()
-                            break
-                        }
-                    }
-                    
-                } catch(e) {
-                    console.log('Could not auto-join:', e)
-                }
-            }, 3000)
-        }
+            /* Keep only essential buttons */
+            [aria-label="microphone"],
+            [aria-label="hangup"],
+            [class*="microphone"],
+            [class*="hangup"] {
+                display: flex !important;
+            }
+            
+            /* Hide watermarks and logos */
+            .watermark,
+            .brand-watermark,
+            .powered-by,
+            [class*="watermark"],
+            [class*="logo"],
+            [class*="Logo"] {
+                display: none !important;
+            }
+        `;
+        wrapper.appendChild(style);
+        
+        // Hide loading after delay
+        setTimeout(() => {
+            document.getElementById('loadingScreen').style.display = 'none'
+        }, 3000)
         
         document.getElementById('activeCallScreen').style.display = 'block'
         console.log('✅ Jitsi call connected!')
@@ -316,16 +271,6 @@ window.toggleMute = function() {
     btn.innerHTML = btn.classList.contains('muted') 
         ? '<i class="fas fa-microphone-slash"></i>' 
         : '<i class="fas fa-microphone"></i>'
-    
-    // Try to control Jitsi mute
-    if (jitsiIframe) {
-        try {
-            jitsiIframe.contentWindow.postMessage({
-                type: 'muteAudio',
-                muted: btn.classList.contains('muted')
-            }, '*')
-        } catch(e) {}
-    }
 }
 
 window.toggleSpeaker = function() {
@@ -389,12 +334,5 @@ function showError(message) {
     document.getElementById('errorScreen').style.display = 'flex'
     document.getElementById('errorMessage').textContent = message
 }
-
-// Handle messages from Jitsi
-window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'video-conference-started') {
-        console.log('Conference started')
-    }
-})
 
 initCall()
