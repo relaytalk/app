@@ -1,4 +1,4 @@
-// friends.js - WITH FULL INCOMING CALL NOTIFICATION 
+// friends.js - WITH CORRECT PATHS
 
 import { initializeSupabase, supabase as supabaseClient } from '../../../utils/supabase.js';
 
@@ -6,8 +6,6 @@ let supabase = null;
 let currentUser = null;
 let allFriends = [];
 let filteredFriends = [];
-let callSubscription = null;
-let audioPlayer = null;
 
 // Initialize with Supabase wait
 async function initFriendsPage() {
@@ -33,8 +31,6 @@ async function initFriendsPage() {
         console.log('✅ Logged in as:', currentUser.email);
 
         await loadFriends();
-        setupRingtone();
-        setupIncomingCallListener();
 
         const loader = document.getElementById('loadingIndicator');
         if (loader) loader.classList.add('hidden');
@@ -42,33 +38,6 @@ async function initFriendsPage() {
     } catch (error) {
         console.error('Init error:', error);
         showError('Failed to load friends: ' + error.message);
-    }
-}
-
-// Setup ringtone
-function setupRingtone() {
-    try {
-        audioPlayer = new Audio();
-        audioPlayer.loop = true;
-        audioPlayer.volume = 0.5;
-        audioPlayer.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
-    } catch (e) {
-        console.log('Ringtone setup failed:', e);
-    }
-}
-
-// Play ringtone
-function playRingtone() {
-    if (audioPlayer) {
-        audioPlayer.play().catch(e => console.log('Audio play failed:', e));
-    }
-}
-
-// Stop ringtone
-function stopRingtone() {
-    if (audioPlayer) {
-        audioPlayer.pause();
-        audioPlayer.currentTime = 0;
     }
 }
 
@@ -165,137 +134,6 @@ window.startCall = async function(friendId, friendName, event) {
         showToast('error', 'Failed to start call');
     }
 };
-
-// Setup incoming call listener
-function setupIncomingCallListener() {
-    if (!supabase || !currentUser) return;
-    
-    console.log('📞 Setting up incoming call listener for:', currentUser.email);
-    
-    callSubscription = supabase
-        .channel('incoming-calls-friends')
-        .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'calls',
-            filter: `receiver_id=eq.${currentUser.id}`
-        }, (payload) => {
-            console.log('📞📞📞 INCOMING CALL DETECTED!', payload.new);
-            
-            if (payload.new.status === 'ringing') {
-                handleIncomingCall(payload.new);
-            }
-        })
-        .on('postgres_changes', {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'calls',
-            filter: `receiver_id=eq.${currentUser.id}`
-        }, (payload) => {
-            console.log('📞 Call updated:', payload.new.status);
-            
-            if (payload.new.status === 'cancelled' || payload.new.status === 'ended') {
-                hideIncomingCallNotification();
-                stopRingtone();
-            }
-        })
-        .subscribe((status) => {
-            console.log('Call listener status:', status);
-        });
-}
-
-// Handle incoming call
-async function handleIncomingCall(call) {
-    if (window.location.pathname.includes('/call-app/')) {
-        return;
-    }
-    
-    const { data: caller } = await supabase
-        .from('profiles')
-        .select('username, avatar_url')
-        .eq('id', call.caller_id)
-        .single();
-    
-    showIncomingCallNotification(call, caller);
-    playRingtone();
-    
-    sessionStorage.setItem('incomingCall', JSON.stringify({
-        id: call.id,
-        roomName: call.room_name,
-        callerId: call.caller_id,
-        callerName: caller?.username || 'Unknown'
-    }));
-}
-
-// Show incoming call notification
-function showIncomingCallNotification(call, caller) {
-    hideIncomingCallNotification();
-    
-    const notification = document.getElementById('incomingCallNotification');
-    if (!notification) return;
-    
-    let avatarHtml = '';
-    if (caller?.avatar_url) {
-        avatarHtml = `<img src="${caller.avatar_url}" alt="${caller.username}">`;
-    } else {
-        const initial = caller?.username?.charAt(0).toUpperCase() || '?';
-        avatarHtml = `<div class="caller-avatar-placeholder">${initial}</div>`;
-    }
-    
-    notification.style.display = 'flex';
-    notification.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
-            ${avatarHtml}
-            <div>
-                <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 4px;">${caller?.username || 'Incoming Call'}</div>
-                <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem;">🔊 Incoming voice call...</div>
-            </div>
-        </div>
-        <div style="display: flex; gap: 12px;">
-            <button id="acceptCallBtn" style="background: white; border: none; color: #28a745; width: 48px; height: 48px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                <i class="fas fa-phone-alt"></i>
-            </button>
-            <button id="declineCallBtn" style="background: white; border: none; color: #dc3545; width: 48px; height: 48px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                <i class="fas fa-phone-slash"></i>
-            </button>
-        </div>
-    `;
-    
-    document.getElementById('acceptCallBtn').addEventListener('click', async () => {
-        console.log('Accept button clicked');
-        stopRingtone();
-        hideIncomingCallNotification();
-        
-        await supabase
-            .from('calls')
-            .update({ status: 'active', answered_at: new Date().toISOString() })
-            .eq('id', call.id);
-        
-        window.location.href = `/pages/call-app/call/index.html?incoming=true&room=${call.room_name}&callerId=${call.caller_id}&callId=${call.id}`;
-    });
-    
-    document.getElementById('declineCallBtn').addEventListener('click', async () => {
-        console.log('Decline button clicked');
-        stopRingtone();
-        hideIncomingCallNotification();
-        
-        await supabase
-            .from('calls')
-            .update({ status: 'rejected', ended_at: new Date().toISOString() })
-            .eq('id', call.id);
-        
-        sessionStorage.removeItem('incomingCall');
-    });
-}
-
-// Hide incoming call notification
-function hideIncomingCallNotification() {
-    const notification = document.getElementById('incomingCallNotification');
-    if (notification) {
-        notification.style.display = 'none';
-        notification.innerHTML = '';
-    }
-}
 
 // Format last seen
 function formatLastSeen(timestamp) {
@@ -514,7 +352,7 @@ function showToast(type, message) {
 }
 
 // Navigation
-window.goToHome = () => window.location.href = '../../home/index.html';
+window.goToHome = () => window.location.href = '../../../home/index.html';
 window.openSearch = () => {
     const modal = document.getElementById('searchModal');
     if (modal) {
@@ -536,14 +374,6 @@ window.logout = async () => {
 
     window.location.href = '../../../pages/login/index.html';
 };
-
-// Cleanup
-window.addEventListener('beforeunload', () => {
-    if (callSubscription) {
-        callSubscription.unsubscribe();
-    }
-    stopRingtone();
-});
 
 // Start
 document.addEventListener('DOMContentLoaded', initFriendsPage);
