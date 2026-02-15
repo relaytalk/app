@@ -1,10 +1,11 @@
+// friends.js - WITH CORRECT IMPORTS
+
 import { initializeSupabase } from '../../../utils/supabase.js';
 
 let supabase = null;
 let currentUser = null;
 let allFriends = [];
 let filteredFriends = [];
-let callWindow = null;
 
 async function initFriendsPage() {
     console.log('Loading friends...');
@@ -88,7 +89,7 @@ async function loadFriends() {
     }
 }
 
-// 🔥 UPDATED: Render friends list WITH CALL BUTTON
+// Render friends list WITH CALL BUTTON
 function renderFriendsList() {
     const container = document.getElementById('friendsList');
     if (!container) return;
@@ -122,7 +123,7 @@ function renderFriendsList() {
                         </div>
                     </div>
                 </div>
-                <!-- 🔥 CALL BUTTON - Opens in new tab -->
+                <!-- CALL BUTTON - Opens in new tab -->
                 <button class="call-friend-btn" onclick="startCall('${friend.id}', '${friend.username}', event)" title="Call ${friend.username}">
                     <i class="fas fa-phone"></i>
                 </button>
@@ -134,11 +135,11 @@ function renderFriendsList() {
     container.innerHTML = html;
 }
 
-// 🔥 NEW: Start call in new tab
+// Start call in new tab
 window.startCall = function(friendId, friendName, event) {
     event.stopPropagation(); // Prevent opening chat
     
-    // Open call in new tab
+    // Open call in new tab - CORRECT PATH
     const callUrl = `../../call/index.html?friendId=${friendId}&friendName=${encodeURIComponent(friendName)}`;
     window.open(callUrl, '_blank');
     
