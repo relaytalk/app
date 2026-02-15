@@ -1,0 +1,241 @@
+/* call/call.css - RelayTalk Theme */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f8fafc;
+    color: #1e293b;
+    height: 100vh;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
+/* Loading Screen */
+.call-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid #e2e8f0;
+    border-top: 3px solid #007acc;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+#loadingText {
+    color: #64748b;
+    font-size: 16px;
+}
+
+/* Incoming Call Screen */
+.incoming-call-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1500;
+}
+
+.incoming-call-content {
+    text-align: center;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.caller-avatar {
+    margin-bottom: 20px;
+}
+
+.caller-avatar i {
+    font-size: 100px;
+    color: #007acc;
+}
+
+.caller-avatar img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #007acc;
+}
+
+.caller-info h2 {
+    font-size: 28px;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+
+.caller-info p {
+    color: #64748b;
+    font-size: 16px;
+    margin-bottom: 40px;
+}
+
+.call-actions {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+}
+
+.call-btn {
+    width: 70px;
+    height: 70px;
+    border: none;
+    border-radius: 50%;
+    font-size: 28px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.call-btn:active {
+    transform: scale(0.95);
+}
+
+.accept-btn {
+    background: #28a745;
+}
+
+.decline-btn {
+    background: #dc3545;
+}
+
+/* Active Call Screen */
+#jitsiContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+}
+
+#jitsiContainer iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #000;
+}
+
+/* Error Screen */
+.error-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    z-index: 2000;
+}
+
+.error-screen i {
+    font-size: 60px;
+    color: #dc3545;
+    margin-bottom: 20px;
+}
+
+.error-screen h3 {
+    font-size: 24px;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+
+.error-screen p {
+    color: #64748b;
+    margin-bottom: 30px;
+}
+
+/* Call Ended Screen */
+.call-ended-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1500;
+}
+
+/* Buttons */
+.back-home-btn {
+    background: #007acc;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.back-home-btn:active {
+    background: #005a9e;
+    transform: scale(0.98);
+}
+
+.back-home-btn i {
+    font-size: 16px;
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .caller-avatar i {
+        font-size: 80px;
+    }
+
+    .caller-info h2 {
+        font-size: 24px;
+    }
+
+    .call-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+}
