@@ -4,11 +4,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Call · CallApp</title>
+    
+    <!-- Jitsi External API -->
+    <script src='https://8x8.vc/external_api.js' async></script>
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="call.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<!-- Add this in the head section -->
-<script src='https://8x8.vc/external_api.js' async></script>
+    
+    <!-- Global Styles to Hide Jitsi UI -->
+    <style>
+        /* Force video to fill screen properly */
+        video, 
+        #largeVideo, 
+        .videocontainer, 
+        .remote-videos,
+        [class*="video"],
+        [class*="Video"] {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        /* Hide ALL input fields and join screens */
+        input, 
+        .prejoin-input-area, 
+        .welcome-page,
+        .join-dialog,
+        [class*="prejoin"],
+        [class*="welcome"],
+        [class*="input"],
+        [class*="Input"],
+        [class*="form"],
+        [class*="Form"] {
+            display: none !important;
+        }
+        
+        /* Hide watermarks and logos */
+        .watermark,
+        .brand-watermark,
+        .powered-by,
+        [class*="watermark"],
+        [class*="logo"],
+        [class*="Logo"] {
+            display: none !important;
+        }
+        
+        /* Hide all toolbar buttons except mic and hangup */
+        [class*="toolbar"] button:not([aria-label*="microphone"]):not([aria-label*="hangup"]),
+        [class*="Toolbar"] button:not([aria-label*="microphone"]):not([aria-label*="hangup"]) {
+            display: none !important;
+        }
+        
+        /* Keep only essential buttons visible */
+        [aria-label="microphone"],
+        [aria-label="hangup"],
+        [class*="microphone"],
+        [class*="hangup"] {
+            display: flex !important;
+        }
+        
+        /* Hide conference info */
+        .subject,
+        .conference-timer,
+        [class*="participant"],
+        [class*="Participant"] {
+            display: none !important;
+        }
+        
+        /* Make video container full screen */
+        #largeVideoContainer,
+        .filmstrip,
+        [class*="filmstrip"],
+        [class*="Filmstrip"] {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        /* Ensure dark background */
+        body, html, #dailyContainer, .active-call-screen {
+            background: #000 !important;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -40,17 +121,18 @@
 
     <!-- Active Call Screen -->
     <div class="active-call-screen" id="activeCallScreen" style="display: none;">
+        <!-- Jitsi iframe will be injected here -->
         <div id="dailyContainer" class="daily-container"></div>
         
         <!-- Call Controls -->
-        <div class="call-controls">
+        <div class="call-controls" id="callControls">
             <button class="control-btn" id="muteBtn" onclick="window.toggleMute()">
                 <i class="fas fa-microphone"></i>
             </button>
             <button class="control-btn" id="speakerBtn" onclick="window.toggleSpeaker()">
                 <i class="fas fa-volume-up"></i>
             </button>
-            <button class="control-btn end-call-btn" onclick="window.endCall()">
+            <button class="control-btn end-call-btn" id="endCallBtn" onclick="window.endCall()">
                 <i class="fas fa-phone-slash"></i>
             </button>
         </div>
@@ -61,7 +143,7 @@
         <i class="fas fa-exclamation-circle"></i>
         <h3>Call Failed</h3>
         <p id="errorMessage">Could not start the call</p>
-        <button class="back-home-btn" onclick="window.location.href='../../index.html'">
+        <button class="back-home-btn" onclick="window.location.href='../index.html'">
             <i class="fas fa-arrow-left"></i> Go Back
         </button>
     </div>
