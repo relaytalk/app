@@ -8,10 +8,17 @@
     <!-- Jitsi External API -->
     <script src='https://8x8.vc/external_api.js' async></script>
     
-    <!-- Styles -->
-    <link rel="stylesheet" href="../../styles/main.css">
-    <link rel="stylesheet" href="call.css">
+    <!-- Styles - FIXED PATHS -->
+    <link rel="stylesheet" href="/pages/call-app/styles/main.css">
+    <link rel="stylesheet" href="/pages/call-app/call/call.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Force hide Jitsi join screen */
+        .prejoin-screen, .welcome-page, .join-dialog {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -20,38 +27,16 @@
         <div id="loadingText">Starting call...</div>
     </div>
 
-    <!-- Incoming Call Screen -->
-    <div class="incoming-call-screen" id="incomingCallScreen" style="display: none;">
-        <div class="incoming-call-content">
-            <div class="caller-avatar" id="callerAvatar">
-                <i class="fas fa-user-circle"></i>
-            </div>
-            <div class="caller-info">
-                <h2 id="callerName">Incoming Call</h2>
-                <p>Voice call · CallApp</p>
-            </div>
-            <div class="call-actions">
-                <button class="call-btn decline-btn" onclick="window.declineCall()">
-                    <i class="fas fa-phone-slash"></i>
-                </button>
-                <button class="call-btn accept-btn" onclick="window.acceptCall()">
-                    <i class="fas fa-phone-alt"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Active Call Screen -->
     <div class="active-call-screen" id="activeCallScreen" style="display: none;">
-        <!-- Jitsi iframe will be injected here -->
         <div id="dailyContainer" class="daily-container"></div>
         
-        <!-- Call Controls - NOW WITH VIDEO BUTTON! -->
+        <!-- Call Controls -->
         <div class="call-controls" id="callControls">
             <button class="control-btn" id="muteBtn" onclick="window.toggleMute()">
                 <i class="fas fa-microphone"></i>
             </button>
-            <button class="control-btn" id="videoBtn" onclick="window.toggleVideo()" style="background: #333;">
+            <button class="control-btn" id="videoBtn" onclick="window.toggleVideo()">
                 <i class="fas fa-video-slash"></i>
             </button>
             <button class="control-btn" id="speakerBtn" onclick="window.toggleSpeaker()">
@@ -68,11 +53,11 @@
         <i class="fas fa-exclamation-circle"></i>
         <h3>Call Failed</h3>
         <p id="errorMessage">Could not start the call</p>
-        <button class="back-home-btn" onclick="window.location.href='../index.html'">
+        <button class="back-home-btn" onclick="window.location.href='/pages/call-app/index.html'">
             <i class="fas fa-arrow-left"></i> Go Back
         </button>
     </div>
 
-    <script type="module" src="call.js"></script>
+    <script type="module" src="/pages/call-app/call/call.js"></script>
 </body>
 </html>
