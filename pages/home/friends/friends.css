@@ -1,4 +1,4 @@
-/* friends.css - ULTRA SIMPLE */
+/* friends.css - ULTRA SIMPLE WITH CALL BUTTON */
 
 * {
     margin: 0;
@@ -9,6 +9,7 @@
 body {
     background: #f8fafc;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding-bottom: 70px;
 }
 
 /* Header */
@@ -120,18 +121,17 @@ body {
     padding: 20px;
 }
 
-/* Friend Item - ONLY THIS MATTERS */
+/* Friend Item with Call Button */
 .friend-item {
     display: flex;
     align-items: center;
     gap: 15px;
-    padding: 15px;
+    padding: 12px 15px;
     background: white;
     border-radius: 12px;
     margin-bottom: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     border: 1px solid #f0f0f0;
-    cursor: pointer;
     transition: all 0.1s;
 }
 
@@ -151,44 +151,115 @@ body {
     font-weight: 600;
     color: white;
     flex-shrink: 0;
+    position: relative;
+    cursor: pointer;
 }
 
-.friend-info {
+.friend-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.friend-info-clean {
     flex: 1;
     min-width: 0;
+    cursor: pointer;
 }
 
-.friend-name {
+.friend-name-status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.friend-name-clean {
     font-size: 1.1rem;
     font-weight: 600;
     color: #1e293b;
-    margin-bottom: 5px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.friend-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+.friend-status-clean {
     font-size: 0.85rem;
     color: #64748b;
 }
 
-.status-dot {
-    width: 8px;
-    height: 8px;
+/* Call Button Styles */
+.call-friend-btn {
+    background: #007acc;
+    border: none;
+    color: white;
+    width: 45px;
+    height: 45px;
     border-radius: 50%;
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,122,204,0.3);
 }
 
-.status-online {
-    background: #22c55e;
+.call-friend-btn:active {
+    transform: scale(0.9);
+    background: #005a9e;
 }
 
-.status-offline {
-    background: #94a3b8;
+.call-friend-btn i {
+    font-size: 1.2rem;
+}
+
+/* Status Indicator */
+.status-indicator-clean {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid white;
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+}
+
+.status-indicator-clean.online {
+    background: #28a745;
+}
+
+.status-indicator-clean.offline {
+    background: #888888;
+}
+
+/* Incoming Call Notification */
+#incomingCallNotification {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #007acc;
+    color: white;
+    padding: 16px 20px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideDown 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#incomingCallNotification button {
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+#incomingCallNotification button:active {
+    transform: scale(0.95);
 }
 
 /* Empty State */
@@ -241,6 +312,7 @@ body {
     padding: 10px 0;
     max-width: 600px;
     margin: 0 auto;
+    z-index: 100;
 }
 
 .nav-item {
@@ -345,13 +417,19 @@ body {
 .search-result-avatar {
     width: 45px;
     height: 45px;
-    background: #e2e8f0;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     color: #475569;
+    overflow: hidden;
+}
+
+.search-result-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .search-result-info {
@@ -377,11 +455,18 @@ body {
     border-radius: 20px;
     font-size: 0.8rem;
     cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-friend-btn:active {
+    background: #005a9e;
+    transform: scale(0.95);
 }
 
 .add-friend-btn.added {
     background: #e2e8f0;
     color: #64748b;
+    cursor: not-allowed;
 }
 
 /* Toast */
@@ -405,6 +490,37 @@ body {
     gap: 12px;
     margin-bottom: 10px;
     border-left: 4px solid #007acc;
+    animation: slideIn 0.3s ease;
+}
+
+.toast-success {
+    border-left-color: #22c55e;
+}
+
+.toast-error {
+    border-left-color: #ef4444;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 
 /* Loading */
@@ -420,6 +536,10 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 9999;
+}
+
+.loading-indicator.hidden {
+    display: none;
 }
 
 .loading-spinner {
@@ -441,14 +561,19 @@ body {
     .friends-list {
         padding: 15px;
     }
-    
+
     .friend-avatar {
         width: 50px;
         height: 50px;
         font-size: 1.2rem;
     }
     
-    .friend-name {
+    .call-friend-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .call-friend-btn i {
         font-size: 1rem;
     }
 }
