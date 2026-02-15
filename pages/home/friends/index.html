@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Friends · RelayTalk</title>
-<meta name="google-site-verification" content="y2KUdk5NLGrxUgulLoxvA0a2y3jQlVPObdNtYkIef2U" />
-    <!-- Styles -->
+    <meta name="google-site-verification" content="y2KUdk5NLGrxUgulLoxvA0a2y3jQlVPObdNtYkIef2U" />
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="friends.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -53,9 +52,9 @@
     <!-- Friends List -->
     <main class="friends-list" id="friendsList"></main>
 
-    <!-- Bottom Navigation - REMOVED CHATS, KEPT FRIENDS -->
+    <!-- Bottom Navigation -->
     <nav class="bottom-nav">
-        <a href="../../home/index.html" class="nav-item">
+        <a href="../index.html" class="nav-item">
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
@@ -93,7 +92,9 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Scripts - MODULE TYPE -->
+    <!-- Incoming Call Notification (will be shown by callListener) -->
+    <div id="incomingCallContainer"></div>
+
     <script type="module" src="../../utils/supabase.js"></script>
     <script type="module" src="friends.js"></script>
 </body>
