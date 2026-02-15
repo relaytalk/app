@@ -1,72 +1,52 @@
-// pages/call-app/utils/jitsi.js - COMPLETE FINAL VERSION
+// pages/call-app/utils/jitsi.js - NOW WITH JAAS!
+
+const JAAS_APP_ID = 'vpaas-magic-cookie-16664d50d3a04e79a2876de86dcc38e4';
+const JAAS_DOMAIN = '8x8.vc';
 
 export async function createCallRoom(roomName = null) {
     try {
         const uniqueRoomName = roomName || `CallApp-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
         
-        console.log('🎯 Creating Jitsi room:', uniqueRoomName);
+        // JAAS format
+        const fullRoomName = `${JAAS_APP_ID}/${uniqueRoomName}`;
         
-        // COMPLETE CONFIG - NO PHONE, NO MODERATOR MESSAGES, AUTO-JOIN
-        const jitsiConfig = '#' +
-            // ===== CRITICAL: Disable phone numbers =====
-            'config.dialInConfCode.enabled=false' +
-            '&config.dialInNumbersUrl=""' +
-            '&config.dialOutAuthUrl=""' +
-            '&config.dialOutEnabled=false' +
-            '&config.enableDialIn=false' +
-            '&config.phoneEnabled=false' +
-            
-            // ===== Disable moderator messages =====
-            '&config.disableModeratorIndicator=true' +
-            '&config.hideModeratorMessage=true' +
-            '&config.notificationTimeouts.moderator=1' +
-            
-            // ===== AUTO-JOIN (MOST IMPORTANT) =====
-            '&config.prejoinPageEnabled=false' +
-            '&config.startWithAudioMuted=false' +
-            '&config.startWithVideoMuted=true' +
-            '&config.enableWelcomePage=false' +
-            
-            // ===== Hide everything =====
-            '&config.disableChat=true' +
-            '&config.disableInviteFunctions=true' +
-            '&config.disableRecording=true' +
-            '&config.disableLiveStreaming=true' +
-            '&config.hideConferenceTimer=true' +
-            '&config.hideParticipantsStats=true' +
-            '&config.hideLogo=true' +
-            '&config.hideWatermark=true' +
-            '&config.hideBrandWatermark=true' +
-            '&config.hideHelpButton=true' +
-            '&config.hideShareButton=true' +
-            '&config.hideVideoQualityLabel=true' +
-            '&config.hideAddPersonButton=true' +
-            '&config.hideMeetingName=true' +
-            '&config.hideSubject=true' +
-            
-            // ===== Only show essential buttons =====
-            '&config.toolbarButtons=["microphone","camera","hangup"]' +
-            '&config.toolbarAlwaysVisible=true' +
-            
-            // ===== Audio settings =====
-            '&config.disableAudioLevel=false' +
-            '&config.enableNoAudioDetection=true' +
-            '&config.enableNoisyMicDetection=true' +
-            '&config.channelLastN=2' +
-            
-            // ===== Disable reactions and raise hand =====
-            '&config.disableReactions=true' +
-            '&config.disableRaiseHand=true' +
-            
-            // ===== Interface tweaks =====
-            '&config.disableFilmstripAutoHide=false' +
-            '&config.disableTileView=true' +
-            '&config.disableShortcuts=true' +
-            '&config.disableSelfViewSettings=true';
+        console.log('🎯 Creating JAAS room:', fullRoomName);
+        
+        // Perfect configuration - everything hidden!
+        const config = {
+            configOverwrite: {
+                startWithAudioMuted: false,      // Audio ON immediately
+                startWithVideoMuted: true,       // Video OFF
+                prejoinPageEnabled: false,       // NO welcome page
+                enableWelcomePage: false,        // NO welcome page
+                disableChat: true,                // NO chat
+                disableInviteFunctions: true,     // NO invite
+                disableRecording: true,           // NO recording
+                hideConferenceTimer: true,        // NO timer
+                hideParticipantsStats: true,      // NO stats
+                hideLogo: true,                    // NO logo
+                hideWatermark: true,               // NO watermark
+                toolbarButtons: ['microphone', 'camera', 'hangup'], // Only 3 buttons
+                disableModeratorIndicator: true,   // NO moderator messages
+                disableReactions: true,            // NO reactions
+                disableRaiseHand: true             // NO raise hand
+            },
+            interfaceConfigOverwrite: {
+                TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup'],
+                SHOW_JITSI_WATERMARK: false,
+                SHOW_WATERMARK_FOR_GUESTS: false,
+                DEFAULT_LOGO_URL: '',
+                HIDE_INVITE_MORE_HEADER: true,
+                DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+            }
+        };
+        
+        const configParam = encodeURIComponent(JSON.stringify(config));
+        const roomUrl = `https://${JAAS_DOMAIN}/${fullRoomName}#config=${configParam}`;
         
         return {
-            name: uniqueRoomName,
-            url: `https://meet.jit.si/${uniqueRoomName}${jitsiConfig}`,
+            name: fullRoomName,
+            url: roomUrl,
             id: uniqueRoomName
         };
         
@@ -78,28 +58,10 @@ export async function createCallRoom(roomName = null) {
 
 export async function getRoomInfo(roomName) {
     try {
-        const jitsiConfig = '#' +
-            'config.dialInConfCode.enabled=false' +
-            '&config.dialOutEnabled=false' +
-            '&config.enableDialIn=false' +
-            '&config.phoneEnabled=false' +
-            '&config.disableModeratorIndicator=true' +
-            '&config.hideModeratorMessage=true' +
-            '&config.prejoinPageEnabled=false' +
-            '&config.startWithAudioMuted=false' +
-            '&config.startWithVideoMuted=true' +
-            '&config.enableWelcomePage=false' +
-            '&config.toolbarButtons=["microphone","camera","hangup"]' +
-            '&config.disableChat=true' +
-            '&config.disableInviteFunctions=true' +
-            '&config.disableReactions=true' +
-            '&config.disableRaiseHand=true';
-        
         return {
             name: roomName,
-            url: `https://meet.jit.si/${roomName}${jitsiConfig}`
+            url: `https://${JAAS_DOMAIN}/${roomName}`
         };
-        
     } catch (error) {
         console.error('❌ Error getting room info:', error);
         throw error;
@@ -108,7 +70,21 @@ export async function getRoomInfo(roomName) {
 
 export function getCallUrl(roomUrl, username = 'User') {
     try {
-        return `${roomUrl}&userInfo.displayName=${encodeURIComponent(username)}`;
+        // Add username to existing URL with config
+        const config = {
+            userInfo: {
+                displayName: username
+            }
+        };
+        
+        // Check if URL already has config
+        if (roomUrl.includes('#config=')) {
+            return `${roomUrl}&userInfo.displayName=${encodeURIComponent(username)}`;
+        } else {
+            const configParam = encodeURIComponent(JSON.stringify(config));
+            return `${roomUrl}#config=${configParam}`;
+        }
+        
     } catch (error) {
         return roomUrl;
     }
