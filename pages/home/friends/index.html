@@ -10,359 +10,6 @@
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="friends.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        /* Additional styles for friends page */
-        .friends-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            padding-bottom: 80px;
-        }
-
-        .search-box {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
-        .search-box i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #007acc;
-            font-size: 1rem;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 12px 16px 12px 45px;
-            border: 2px solid #007acc;
-            border-radius: 25px;
-            font-size: 1rem;
-            background: white;
-            outline: none;
-        }
-
-        .search-box input:focus {
-            border-color: #005a9e;
-            box-shadow: 0 0 0 3px rgba(0,122,204,0.1);
-        }
-
-        .friends-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .friend-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 12px 16px;
-            background: white;
-            border: 2px solid #007acc;
-            border-radius: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: all 0.2s;
-        }
-
-        .friend-item:active {
-            transform: scale(0.98);
-            background: #f0f9ff;
-        }
-
-        .friend-avatar {
-            width: 55px;
-            height: 55px;
-            background: #007acc;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 600;
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .friend-avatar img {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .status-indicator {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 2px solid white;
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-        }
-
-        .status-indicator.online {
-            background: #28a745;
-        }
-
-        .status-indicator.offline {
-            background: #888;
-        }
-
-        .friend-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .friend-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .friend-status-text {
-            font-size: 0.85rem;
-            color: #64748b;
-        }
-
-        .call-btn {
-            width: 44px;
-            height: 44px;
-            background: #007acc;
-            border: none;
-            border-radius: 50%;
-            color: white;
-            font-size: 1.2rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-
-        .call-btn:active {
-            background: #005a9e;
-            transform: scale(0.95);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            color: #cbd5e1;
-            margin-bottom: 20px;
-        }
-
-        .empty-state h3 {
-            font-size: 1.3rem;
-            color: #334155;
-            margin-bottom: 8px;
-        }
-
-        .empty-state p {
-            color: #64748b;
-            margin-bottom: 20px;
-        }
-
-        .primary-btn {
-            background: #007acc;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .error-container {
-            max-width: 400px;
-            margin: 50px auto;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .error-container i {
-            font-size: 3rem;
-            color: #dc3545;
-            margin-bottom: 16px;
-        }
-
-        .error-container h3 {
-            margin-bottom: 8px;
-            color: #1e293b;
-        }
-
-        .error-container p {
-            color: #64748b;
-            margin: 16px 0;
-        }
-
-        /* Loading Indicator */
-        .loading-indicator {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid #007acc;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        #loadingText {
-            color: #64748b;
-            font-size: 1rem;
-        }
-
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-top: 1px solid #eee;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            max-width: 600px;
-            margin: 0 auto;
-            z-index: 100;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: #94a3b8;
-            font-size: 0.8rem;
-            gap: 4px;
-        }
-
-        .nav-item i {
-            font-size: 1.2rem;
-        }
-
-        .nav-item.active {
-            color: #007acc;
-        }
-
-        /* Header */
-        .app-header {
-            background: white;
-            padding: 16px 20px;
-            border-bottom: 2px solid #007acc;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .header-content {
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .header-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #005a9e;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 16px;
-        }
-
-        .header-btn {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            color: #007acc;
-            cursor: pointer;
-            padding: 8px;
-        }
-
-        .back-btn {
-            background: none;
-            border: none;
-            font-size: 1.3rem;
-            color: #007acc;
-            cursor: pointer;
-            padding: 5px;
-            margin-right: 10px;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-        }
-
-        /* Toast Container */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            width: 90%;
-            max-width: 400px;
-        }
-
-        .toast {
-            background: white;
-            padding: 15px 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 10px;
-            border-left: 4px solid #007acc;
-        }
-
-        .toast-success {
-            border-left-color: #28a745;
-        }
-
-        .toast-error {
-            border-left-color: #dc3545;
-        }
-    </style>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -414,7 +61,579 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Scripts -->
-    <script type="module" src="friends.js"></script>
+    <script type="module">
+        import { initializeSupabase } from '../../../utils/supabase.js'
+
+        // ========== GLOBAL VARIABLES ==========
+        let supabase
+        let currentUser
+        let friends = []
+        let audioPlayer = null
+        let callSubscription = null
+        let notificationShowing = false
+
+        // ========== INIT ==========
+        async function init() {
+            showLoading(true, 'Loading friends...')
+
+            try {
+                // Get user from RelayTalk
+                const user = getRelayTalkUser()
+                if (!user) {
+                    showError('Please login to RelayTalk first')
+                    return
+                }
+
+                console.log('✅ Got user:', user.email)
+                console.log('✅ User ID:', user.id)
+
+                // Initialize Supabase
+                supabase = await initializeSupabase()
+
+                // Sync user
+                currentUser = await syncUserToDatabase(user)
+
+                // Load friends
+                await loadFriends()
+
+                showLoading(false)
+
+                // ===== INIT CALL LISTENER (DIRECTLY HERE) =====
+                initCallListener()
+
+            } catch (error) {
+                console.error('❌ Init error:', error)
+                showError('Failed to initialize: ' + error.message)
+            }
+        }
+
+        // ========== GET USER FROM LOCALSTORAGE ==========
+        function getRelayTalkUser() {
+            try {
+                const possibleKeys = [
+                    'supabase.auth.token',
+                    'sb-auth-token',
+                    'sb-refresh-token'
+                ]
+
+                let authData = null
+                for (const key of possibleKeys) {
+                    const data = localStorage.getItem(key)
+                    if (data) {
+                        authData = data
+                        console.log(`✅ Found auth in: ${key}`)
+                        break
+                    }
+                }
+
+                if (!authData) return null
+
+                const parsed = JSON.parse(authData)
+                let session = null
+
+                if (parsed.currentSession) {
+                    session = parsed.currentSession
+                } else if (parsed.user) {
+                    session = parsed
+                } else if (parsed.access_token) {
+                    session = { user: parsed.user || parsed }
+                } else if (Array.isArray(parsed) && parsed[0]?.user) {
+                    session = parsed[0]
+                }
+
+                if (!session?.user) return null
+
+                const user = session.user
+
+                return {
+                    id: user.id,
+                    email: user.email || '',
+                    username: user.user_metadata?.username || 
+                             user.email?.split('@')[0] || 
+                             'User',
+                    avatar_url: user.user_metadata?.avatar_url || null
+                }
+
+            } catch (e) {
+                console.error('Error getting user:', e)
+                return null
+            }
+        }
+
+        // ========== SYNC USER TO DATABASE ==========
+        async function syncUserToDatabase(user) {
+            try {
+                console.log('🔄 Syncing user to DB:', user.email)
+
+                const { data: existing, error: checkError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .maybeSingle()
+
+                if (checkError) throw checkError
+
+                if (existing) {
+                    const { data: updated, error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ 
+                            status: 'online',
+                            last_seen: new Date().toISOString(),
+                            username: existing.username || user.username,
+                            email: user.email,
+                            avatar_url: user.avatar_url || existing.avatar_url
+                        })
+                        .eq('id', user.id)
+                        .select()
+                        .single()
+
+                    if (updateError) throw updateError
+                    return updated || existing
+                }
+
+                const newUser = {
+                    id: user.id,
+                    username: user.username,
+                    email: user.email,
+                    avatar_url: user.avatar_url,
+                    status: 'online',
+                    last_seen: new Date().toISOString(),
+                    created_at: new Date().toISOString()
+                }
+
+                const { data: created, error: insertError } = await supabase
+                    .from('profiles')
+                    .insert([newUser])
+                    .select()
+                    .single()
+
+                if (insertError) throw insertError
+
+                console.log('✅ User created in DB')
+                return created
+
+            } catch (error) {
+                console.error('❌ Sync failed:', error)
+                throw error
+            }
+        }
+
+        // ========== LOAD FRIENDS ==========
+        async function loadFriends() {
+            try {
+                const { data: friendships } = await supabase
+                    .from('friends')
+                    .select('friend_id')
+                    .eq('user_id', currentUser.id)
+
+                if (!friendships || friendships.length === 0) {
+                    renderFriendsList([])
+                    return
+                }
+
+                const friendIds = friendships.map(f => f.friend_id)
+
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url, status, last_seen')
+                    .in('id', friendIds)
+                    .order('username')
+
+                friends = profiles || []
+                renderFriendsList(friends)
+
+            } catch (error) {
+                console.error('Error loading friends:', error)
+                renderFriendsList([])
+            }
+        }
+
+        // ========== RENDER FRIENDS LIST ==========
+        function renderFriendsList(friendsToRender) {
+            const onlineFriends = friendsToRender.filter(f => f.status === 'online').length
+
+            let friendsHtml = ''
+            
+            if (!friendsToRender || friendsToRender.length === 0) {
+                friendsHtml = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h3>No friends yet</h3>
+                        <p>Add friends in RelayTalk and they'll appear here</p>
+                        <button onclick="window.location.href='/'" class="primary-btn">
+                            Go to RelayTalk
+                        </button>
+                    </div>
+                `
+            } else {
+                friendsToRender.forEach(friend => {
+                    const online = friend.status === 'online'
+                    const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Offline'
+
+                    friendsHtml += `
+                        <div class="friend-item">
+                            <div class="friend-avatar">
+                                ${friend.avatar_url 
+                                    ? `<img src="${friend.avatar_url}" alt="${friend.username}">`
+                                    : `<span>${friend.username.charAt(0).toUpperCase()}</span>`
+                                }
+                                <span class="status-indicator ${online ? 'online' : 'offline'}"></span>
+                            </div>
+                            <div class="friend-info">
+                                <div class="friend-name">${friend.username}</div>
+                                <div class="friend-status-text">${online ? 'Online' : lastSeen}</div>
+                            </div>
+                            <button class="call-btn" onclick="window.open('../../call/index.html?friendId=${friend.id}&friendName=${encodeURIComponent(friend.username)}', '_blank')">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                        </div>
+                    `
+                })
+            }
+
+            document.getElementById('mainContent').innerHTML = `
+                <div class="friends-container">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="friendSearch" placeholder="Search friends..." oninput="searchFriends(this.value)">
+                    </div>
+                    <div class="friends-list" id="friendsList">
+                        ${friendsHtml}
+                    </div>
+                </div>
+            `
+        }
+
+        // ========== SEARCH FRIENDS ==========
+        window.searchFriends = function(term) {
+            if (!term) {
+                document.getElementById('friendsList').innerHTML = friends.map(f => renderFriendItem(f)).join('')
+                return
+            }
+
+            const filtered = friends.filter(f => 
+                f.username.toLowerCase().includes(term.toLowerCase())
+            )
+            document.getElementById('friendsList').innerHTML = filtered.map(f => renderFriendItem(f)).join('')
+        }
+
+        function renderFriendItem(friend) {
+            const online = friend.status === 'online'
+            const lastSeen = friend.last_seen ? formatLastSeen(friend.last_seen) : 'Offline'
+
+            return `
+                <div class="friend-item">
+                    <div class="friend-avatar">
+                        ${friend.avatar_url 
+                            ? `<img src="${friend.avatar_url}" alt="${friend.username}">`
+                            : `<span>${friend.username.charAt(0).toUpperCase()}</span>`
+                        }
+                        <span class="status-indicator ${online ? 'online' : 'offline'}"></span>
+                    </div>
+                    <div class="friend-info">
+                        <div class="friend-name">${friend.username}</div>
+                        <div class="friend-status-text">${online ? 'Online' : lastSeen}</div>
+                    </div>
+                    <button class="call-btn" onclick="window.open('../../call/index.html?friendId=${friend.id}&friendName=${encodeURIComponent(friend.username)}', '_blank')">
+                        <i class="fas fa-phone"></i>
+                    </button>
+                </div>
+            `
+        }
+
+        function formatLastSeen(timestamp) {
+            const now = new Date()
+            const time = new Date(timestamp)
+            const diff = Math.floor((now - time) / 60000)
+
+            if (diff < 1) return 'Just now'
+            if (diff < 60) return `${diff}m ago`
+            if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
+            return time.toLocaleDateString()
+        }
+
+        // ========== CALL LISTENER (EXACTLY LIKE OLD CALL-APP) ==========
+        function initCallListener() {
+            console.log('📞 Initializing call listener...')
+            
+            setupRingtone()
+            setupIncomingCallListener()
+            checkForExistingCalls()
+        }
+
+        function setupRingtone() {
+            try {
+                audioPlayer = new Audio()
+                audioPlayer.loop = true
+                audioPlayer.volume = 0.5
+                audioPlayer.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA=='
+                console.log('🔔 Ringtone ready')
+            } catch (e) {
+                console.log('Ringtone setup failed:', e)
+            }
+        }
+
+        function playRingtone() {
+            if (audioPlayer) {
+                audioPlayer.play().catch(e => console.log('Audio play failed:', e))
+            }
+        }
+
+        function stopRingtone() {
+            if (audioPlayer) {
+                audioPlayer.pause()
+                audioPlayer.currentTime = 0
+            }
+        }
+
+        function setupIncomingCallListener() {
+            if (!supabase || !currentUser) return
+
+            console.log('Setting up call listener for user:', currentUser.id)
+
+            callSubscription = supabase
+                .channel(`calls:${currentUser.id}`)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'calls',
+                    filter: `receiver_id=eq.${currentUser.id}`
+                }, (payload) => {
+                    console.log('📞 Incoming call detected!', payload.new)
+
+                    if (payload.new.status === 'ringing') {
+                        handleIncomingCall(payload.new)
+                    }
+                })
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'calls',
+                    filter: `receiver_id=eq.${currentUser.id}`
+                }, (payload) => {
+                    console.log('Call updated:', payload.new.status)
+
+                    if (payload.new.status === 'cancelled' || payload.new.status === 'ended') {
+                        hideIncomingCallNotification()
+                        stopRingtone()
+                    }
+                })
+                .subscribe((status) => {
+                    console.log('Call listener status:', status)
+                })
+        }
+
+        async function checkForExistingCalls() {
+            try {
+                const { data: calls } = await supabase
+                    .from('calls')
+                    .select('*')
+                    .eq('receiver_id', currentUser.id)
+                    .eq('status', 'ringing')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+
+                if (calls && calls.length > 0) {
+                    console.log('Found existing ringing call')
+                    handleIncomingCall(calls[0])
+                }
+            } catch (error) {
+                console.error('Error checking existing calls:', error)
+            }
+        }
+
+        async function handleIncomingCall(call) {
+            if (window.location.pathname.includes('/call/')) {
+                return
+            }
+
+            if (notificationShowing) return
+
+            const caller = await getCallerInfo(call.caller_id)
+
+            showIncomingCallNotification(call, caller)
+            playRingtone()
+
+            sessionStorage.setItem('incomingCall', JSON.stringify({
+                id: call.id,
+                roomName: call.room_name,
+                callerId: call.caller_id,
+                callerName: caller?.username || 'Unknown'
+            }))
+        }
+
+        async function getCallerInfo(callerId) {
+            try {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('username, avatar_url')
+                    .eq('id', callerId)
+                    .single()
+
+                return data || { username: 'Unknown', avatar_url: null }
+            } catch (error) {
+                return { username: 'Unknown', avatar_url: null }
+            }
+        }
+
+        function showIncomingCallNotification(call, caller) {
+            hideIncomingCallNotification()
+            notificationShowing = true
+
+            // Add animation styles
+            if (!document.getElementById('callAnimationStyles')) {
+                const style = document.createElement('style')
+                style.id = 'callAnimationStyles'
+                style.textContent = `
+                    @keyframes slideDown {
+                        from { transform: translateY(-100%); }
+                        to { transform: translateY(0); }
+                    }
+                    @keyframes pulse {
+                        0% { transform: scale(1); }
+                        50% { transform: scale(1.1); }
+                        100% { transform: scale(1); }
+                    }
+                `
+                document.head.appendChild(style)
+            }
+
+            const notification = document.createElement('div')
+            notification.id = 'incomingCallNotification'
+            notification.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: #007acc;
+                color: white;
+                padding: 16px 20px;
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                animation: slideDown 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            `
+
+            const avatar = caller?.avatar_url 
+                ? `<img src="${caller.avatar_url}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white;">`
+                : `<div style="width: 44px; height: 44px; border-radius: 50%; background: white; color: #007acc; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">${caller?.username?.charAt(0).toUpperCase() || '?'}</div>`
+
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                    ${avatar}
+                    <div>
+                        <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">${caller?.username || 'Incoming Call'}</div>
+                        <div style="font-size: 13px; opacity: 0.9;">🔊 Incoming voice call...</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button id="acceptCallBtn" style="background: white; border: none; color: #28a745; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite;">
+                        <i class="fas fa-phone-alt"></i>
+                    </button>
+                    <button id="declineCallBtn" style="background: white; border: none; color: #dc3545; width: 44px; height: 44px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-phone-slash"></i>
+                    </button>
+                </div>
+            `
+
+            document.body.prepend(notification)
+
+            document.getElementById('acceptCallBtn').addEventListener('click', async () => {
+                stopRingtone()
+                hideIncomingCallNotification()
+
+                await supabase
+                    .from('calls')
+                    .update({ status: 'active', answered_at: new Date().toISOString() })
+                    .eq('id', call.id)
+
+                window.open(`../../call/index.html?incoming=true&room=${call.room_name}&callerId=${call.caller_id}&callId=${call.id}`, '_blank')
+            })
+
+            document.getElementById('declineCallBtn').addEventListener('click', async () => {
+                stopRingtone()
+                hideIncomingCallNotification()
+
+                await supabase
+                    .from('calls')
+                    .update({ status: 'rejected', ended_at: new Date().toISOString() })
+                    .eq('id', call.id)
+
+                sessionStorage.removeItem('incomingCall')
+            })
+
+            // Auto-hide after 30 seconds
+            setTimeout(() => {
+                if (notificationShowing) {
+                    hideIncomingCallNotification()
+                    stopRingtone()
+                }
+            }, 30000)
+        }
+
+        function hideIncomingCallNotification() {
+            const existing = document.getElementById('incomingCallNotification')
+            if (existing) {
+                existing.remove()
+                notificationShowing = false
+            }
+        }
+
+        // ========== UTILITIES ==========
+        function showLoading(show, text) {
+            const loader = document.getElementById('loadingIndicator')
+            if (loader) {
+                loader.style.display = show ? 'flex' : 'none'
+                if (text) document.getElementById('loadingText').textContent = text
+            }
+        }
+
+        function showError(message) {
+            showLoading(false)
+            document.getElementById('mainContent').innerHTML = `
+                <div class="error-container">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Error</h3>
+                    <p>${message}</p>
+                    <button onclick="window.location.href='/'" class="primary-btn">
+                        Go to RelayTalk
+                    </button>
+                </div>
+            `
+        }
+
+        function showToast(type, message) {
+            const container = document.getElementById('toastContainer')
+            if (!container) return
+
+            const toast = document.createElement('div')
+            toast.className = `toast toast-${type}`
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}" style="color:${type === 'success' ? '#28a745' : '#dc3545'};"></i>
+                <span>${message}</span>
+            `
+            container.appendChild(toast)
+
+            setTimeout(() => {
+                toast.style.opacity = '0'
+                setTimeout(() => toast.remove(), 300)
+            }, 3000)
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            stopRingtone()
+            if (callSubscription) {
+                callSubscription.unsubscribe()
+            }
+            hideIncomingCallNotification()
+        })
+
+        // Start the app
+        init()
+    </script>
 </body>
 </html>
